@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Architecture — AsterOS</title>
+<meta name="description" content="The full AsterOS boot stack: custom UEFI bootloader, real XNU kernel, from-scratch dyld, libobjc, CoreFoundation, Foundation, GCD, and launchd — layer by layer, with the real design decisions behind each one." />
+<link rel="icon" href="assets/img/favicon-256.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<div class="void-field"></div>
+<div class="grain"></div>
+<div class="cursor-glow"></div>
+
+<header class="site-nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <img class="mark" src="assets/img/logo-mark.png" alt="AsterOS" />
+      AsterOS
+    </a>
+    <nav class="nav-links" id="nav-links">
+      <a href="index.html">Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="get-started.html">Get Started</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://github.com/linuxkid473/AsterOS" target="_blank" rel="noopener">Source</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow reveal">The stack</span>
+      <h1 class="reveal">Eleven layers.<br/>Nothing borrowed.</h1>
+      <p class="reveal">
+        From power-on to an interactive shell, every layer here is either Apple's own
+        open-source Darwin code, patched to compile and boot on a modern toolchain, or a
+        from-scratch implementation targeting the real, ground-truthed on-disk ABI. Tap any
+        layer to open it up.
+      </p>
+    </div>
+  </section>
+
+  <section class="block tight">
+    <div class="wrap">
+      <div class="stack card-grid reveal-group" style="position:relative;">
+        <div class="stack-rail" aria-hidden="true"></div>
+
+        <!-- 1: Hardware / QEMU -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">Target hardware — QEMU q35 / x86_64</div>
+            <div class="tag">qemu-system-x86_64 -machine q35 -cpu Haswell, OVMF firmware</div>
+          </div>
+          <span class="status done">real hardware model</span>
+          <div class="layer-detail">
+            <p>Boots on <code>-machine q35</code> with edk2 OVMF firmware (Homebrew's <code>qemu</code>
+            package). The CPU model matters more than it looks: <code>qemu64</code> fails xnu's own
+            <code>cpuid_set_cpufamily()</code> vendor/family check outright ("Unsupported CPU").
+            <code>-cpu Haswell</code> is the one that satisfies it.</p>
+            <ul>
+              <li>PS/2 keyboard input (i8042, ports 0x60/0x64), polled directly — no USB HID stack, per explicit scope decision.</li>
+              <li>Output via xnu's existing GOP-framebuffer / serial console code in pexpert — no new video driver needed.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 2: Bootloader -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">Custom UEFI bootloader</div>
+            <div class="tag">boot/ — clang + lld-link, no gnu-efi</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p>Apple's real <code>boot.efi</code> was never open-sourced, so this is a clean-room
+            UEFI application: it parses the kernel's <code>LC_SEGMENT_64</code> commands, loads the
+            launchd RAMDisk into a separate <code>AllocatePages</code> region, hand-builds Apple's
+            flattened device tree (every node needs an explicit <code>"name"</code> property — a
+            zero-property node is an end-of-list sentinel, not "no properties"), fills in the
+            4096-byte <code>boot_args</code> struct, and calls <code>ExitBootServices</code>.</p>
+            <ul>
+              <li>Strips every <code>EFI_MEMORY_RUNTIME</code> descriptor before exit — this project never calls <code>SetVirtualAddressMap()</code>, and leaving them in let two OVMF regions collide at virtual page 0, clobbering the low identity map.</li>
+              <li>Bump-allocates <code>boot_args</code>/device-tree/memory-map immediately after the kernel's own Mach-O segments and reports them as part of <code>ksize</code>, so xnu never frees or reuses that memory.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 3: Kernel -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">XNU kernel — Mach + BSD</div>
+            <div class="tag">src/xnu · xnu-6153.141.1 · 14+ source patches</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p>The real, unmodified-in-spirit Apple kernel — fork, execve, waitpid, signals, the
+            scheduler, VM/copy-on-write, mmap, all stock <code>bsd/kern</code> and <code>osfmk</code> code.
+            Patched only where a modern toolchain forces it.</p>
+            <ul>
+              <li>The deep one: <code>osfmk/x86_64/start.s</code> loaded absolute addresses of
+                high-canonical-but-physically-low symbols truncated to 32 bits — a long-standing
+                xnu idiom for pre-paging code. Modern <code>ld</code> now hard-rejects that. Fixed at
+                9 call sites (including one direct far-jump with no relative form) using only
+                relocation kinds the linker still accepts.</li>
+              <li>NFS, netboot, and the Python-2-only lldbmacros install step compiled out — out of scope, not broken.</li>
+              <li>Real upstream bugs fixed along the way: undefined PCI-config identifiers in <code>cpuid.h</code>, a missing comma silently concatenating two malloc-zone name strings.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 4: Root filesystem -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">fat16lite — root filesystem driver</div>
+            <div class="tag">bsd/miscfs/fat16lite · from scratch, read + write</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p>Replaced an earlier MOCKFS + in-memory RAMDisk design (a 3-node read-only
+            "boot from an executable" filesystem) once real directories, multiple binaries, and
+            file creation were needed. Full VFS vnops: <code>mkdir</code>/<code>create</code>/<code>write</code>/<code>remove</code>/<code>rmdir</code>,
+            plus cluster allocation and FAT-entry management, written from scratch.</p>
+            <ul>
+              <li>Root-mount flags were hardcoded to <code>MNT_RDONLY</code> deep in <code>vfs_subr.c</code>, silently overriding the filesystem's own writable flag.</li>
+              <li>Repeated in-place overwrites during image deployment fragmented cluster runs; the driver assumed contiguous clusters, mapping later pages to the wrong physical memory. Fixed by defragmenting on every deploy, not patching around it.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 5: dyld -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">dyld — the dynamic linker</div>
+            <div class="tag">userland/dyld/ · from scratch</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p>Loads <code>LC_LOAD_DYLIB</code> dependencies from disk, rebases (<code>REBASE_OPCODE_*</code>),
+            binds (<code>BIND_OPCODE_*</code>, eager and a real lazy <code>dyld_stub_binder</code> path), and
+            resolves symbols via the export trie — all interpreted against the real
+            <code>mach-o/loader.h</code>. The kernel's own <code>load_dylinker()</code> needed zero changes.</p>
+            <ul>
+              <li>xnu ASLR-slides the dylinker itself, unconditionally — so dyld has to be genuine
+                position-independent code, correct at any load address with <em>zero</em> fixups of
+                its own. Needs both <code>-fPIC</code> and explicit hidden visibility on every
+                cross-TU extern, or clang routes them through a GOT slot only a rebase pass (which
+                dyld can never apply to itself) would populate.</li>
+              <li>Known v1 limits: fixed 256MB dylib slots instead of a real VM allocator, no <code>@rpath</code>, no two-level namespace.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 6: libSystem -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">libSystem.B.dylib</div>
+            <div class="tag">userland/libSystem/ · 568 exported symbols</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p>Every <code>userland/libc/</code> source file, recompiled <code>-fPIC</code> and linked
+            <code>-dynamiclib</code> — the same from-scratch, raw-syscall libc that BusyBox already
+            ran against statically, now shared. <code>__libc_start</code> had to move to a small
+            per-executable object (<code>libc_start.o</code>) since ld64's mod-init-func section
+            symbols are scoped per final image, matching real Darwin's crt1.o/libSystem split.</p>
+            <ul>
+              <li>Static linking remains the default for anything that doesn't need a shared dependency — BusyBox/coreutils were deliberately not migrated, to protect the already-verified boot path.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 7: libobjc -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">libobjc.A.dylib — Objective-C runtime</div>
+            <div class="tag">userland/libobjc/ · genuine nonfragile ABI2</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p><code>class_t</code>/<code>class_ro_t</code>/<code>method_t</code>/<code>ivar_t</code>/<code>category_t</code>/<code>protocol_t</code>
+            metadata layout ground-truthed field-by-field against <code>otool</code> output on real
+            compiled <code>.m</code> probes — real, unmodified <code>.m</code> source compiles and runs
+            against it. Hand-written x86_64 <code>objc_msgSend</code> with a per-class dispatch cache.</p>
+            <ul>
+              <li>Class realization was silently broken until a tagged-pointer scheme distinguished "still the compiler's read-only <code>class_ro_t</code>" from "already realized" — <code>data</code> is never <code>NULL</code>, so the naive guard was true on every class's first call.</li>
+              <li>ARC's <code>objc_retainAutoreleasedReturnValue</code> fast path turned out to be semantically required, not an optimization — found via a live double-free.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 8: CoreFoundation -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">CoreFoundation</div>
+            <div class="tag">libCoreFoundation.dylib · pure C, no libobjc dependency</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p>Real <code>CFRetain</code>/<code>CFRelease</code> refcounting and a real
+            <code>CFRuntimeClass</code> registration table, with <code>CFString</code>,
+            <code>CFArray</code>, <code>CFDictionary</code>, <code>CFSet</code>, <code>CFNumber</code>,
+            <code>CFBoolean</code>, <code>CFData</code> all genuinely callback-driven.</p>
+            <ul>
+              <li>v1 storage tradeoffs, documented not hidden: <code>CFString</code> is UTF-8-backed
+                (BMP-only UniChar decoding), and <code>CFDictionary</code>/<code>CFSet</code> are linear
+                arrays — O(n) lookup, not a hash table.</li>
+              <li>No <code>CFRunLoop</code> yet — everything here is synchronous, run-to-completion.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 9: Foundation -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">Foundation</div>
+            <div class="tag">libFoundation.dylib · real toll-free bridging</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p><code>CFRuntimeBase</code> now opens with a literal <code>void *isa</code> matching
+            libobjc's <code>objc_object</code> layout, so a bridged <code>CFStringRef</code> cast to
+            <code>id</code> is a genuinely dispatchable object — <code>NSCFString</code> forwards
+            <code>-retain</code>/<code>-release</code>/<code>-hash</code>/<code>-isEqual:</code> straight into the
+            matching CF calls. Retain counts and equality are identical through either API.</p>
+            <ul>
+              <li><code>NSException</code> uses real historical <code>NS_DURING</code>/<code>NS_HANDLER</code>
+                macros (setjmp/longjmp) instead of modern <code>@try</code>/<code>@catch</code> — this tree
+                has no zero-cost DWARF unwinder for x86_64.</li>
+              <li>Chasing <code>NSUserDefaults</code>'s disk persistence surfaced three real fat16lite
+                bugs, none of them Foundation's — documented in the roadmap.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 10: libdispatch -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">libdispatch — Grand Central Dispatch</div>
+            <div class="tag">libdispatch.dylib · built on real kernel-scheduled pthreads</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p>Serial and concurrent <code>dispatch_queue_t</code>, <code>dispatch_async</code>/<code>sync</code>,
+            <code>dispatch_once</code>, semaphores, groups, and <code>dispatch_after</code> — on top of
+            Phase 16's real <code>bsdthread_create</code>-backed pthreads, not xnu's actual
+            workqueue/kevent machinery.</p>
+            <ul>
+              <li>A serial queue's drainer holds the queue for its <em>entire</em> backlog, not one item at a time — a concurrent <code>dispatch_async</code> mid-drain just sees the gate and skips scheduling a duplicate wakeup.</li>
+              <li>No <code>dispatch_source_t</code> yet (needs <code>kevent</code>, unwired); <code>dispatch_get_main_queue()</code> is an ordinary auto-draining queue, not runloop-attached.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 11: launchd + userland -->
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">launchd (PID 1) + BusyBox userland</div>
+            <div class="tag">userland/launchd/ · real upstream BusyBox 1.36.1</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            <p>Real PID 1, loaded by xnu's own <code>load_init_program()</code> — which already tries
+            <code>/sbin/launchd</code> before <code>/sbin/init</code>, so this needed zero kernel changes.
+            A hand-written recursive-descent XML plist parser drives daemon supervision:
+            <code>RunAtLoad</code>, throttled <code>KeepAlive</code> respawn, orphan reaping via
+            <code>wait4(-1, …)</code>, and a bounded <code>SIGTERM</code> → <code>reboot(RB_HALT)</code> shutdown.</p>
+            <p>The interactive shell is genuine, unmodified upstream BusyBox 1.36.1 (<code>ash</code>),
+            statically linked against the raw-syscall libc — no dyld dependency for the base
+            coreutils, by design.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= BOOT PROTOCOL ============================= -->
+  <section class="block">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Ground-truthed, not guessed</span>
+        <h2>The boot protocol, bit for bit</h2>
+        <p>Every field below was read out of <code style="font-family:var(--font-mono);color:var(--aster-bright);">pexpert/pexpert/i386/boot.h</code>
+          and real xnu source before being implemented — not assumed from documentation that
+          doesn't exist for this era.</p>
+      </div>
+      <div class="card-grid reveal-group" style="grid-template-columns:repeat(3,1fr);">
+        <div class="card">
+          <h3>boot_args</h3>
+          <p>Exactly 4096 bytes (<code style="font-family:var(--font-mono);">kBootArgsVersion2</code>). Revision/version/flags,
+            a 1024-byte command line, the EFI memory map descriptor, video framebuffer info,
+            the device-tree physical address + length, and the kernel's <code style="font-family:var(--font-mono);">kaddr</code>/<code style="font-family:var(--font-mono);">ksize</code>.</p>
+        </div>
+        <div class="card">
+          <h3>Flattened device tree</h3>
+          <p>Apple's own format: each node is <code style="font-family:var(--font-mono);">{nProperties, nChildren}</code> followed by
+            that many name/length/value property records, then children depth-first. A
+            zero-property node is an unreachable dead end, not "empty" — <code style="font-family:var(--font-mono);">/chosen/memory-map</code>'s
+            <code style="font-family:var(--font-mono);">"RAMDisk"</code> property is how the kernel finds its root device.</p>
+        </div>
+        <div class="card">
+          <h3>Syscall ABI</h3>
+          <p>BSD class-2 syscalls: <code style="font-family:var(--font-mono);">0x2000000 | number</code> in <code style="font-family:var(--font-mono);">%rax</code>, args in
+            <code style="font-family:var(--font-mono);">%rdi,%rsi,%rdx,%r10,%r8,%r9</code>, error signaled by the carry flag with a
+            <em>positive</em> errno left in <code style="font-family:var(--font-mono);">%rax</code> — never negated. Missing the carry
+            check was the single bug that unblocked the most downstream debugging in this project.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= DESIGN DECISIONS ============================= -->
+  <section class="block">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Why it's built this way</span>
+        <h2>Deliberate scope, documented in the open</h2>
+        <p>Every deviation from "just port real macOS" was a decision with a reason, not a
+          shortcut taken quietly.</p>
+      </div>
+      <div class="card-grid reveal-group" style="grid-template-columns:repeat(2,1fr);">
+        <div class="card">
+          <h3>No AHCI, no HFS+</h3>
+          <p>Apple's real AHCI/NVMe and HFS+ kexts were never open-sourced. Writing a disk driver
+            from scratch was a real option — ravynOS spent roughly six months on exactly that —
+            but it's out of scope for the smallest system that can boot to a real shell. The
+            root filesystem is a from-scratch FAT16 driver instead.</p>
+        </div>
+        <div class="card">
+          <h3>PS/2, not USB</h3>
+          <p>Keyboard input polls the i8042 controller (ports 0x60/0x64) directly. QEMU's q35
+            machine includes one by default, and a USB HID stack buys nothing this project
+            needs yet.</p>
+        </div>
+        <div class="card">
+          <h3>MOCKFS → FAT16</h3>
+          <p>The original plan was a 3-node read-only MOCKFS backed by an in-memory RAMDisk — the
+            smallest possible root filesystem, needing zero drivers. It couldn't support BusyBox's
+            separate applet binary, real directories, or <code style="font-family:var(--font-mono);">mkdir</code>/<code style="font-family:var(--font-mono);">echo &gt;</code>, so it
+            was replaced outright once those became the goal.</p>
+        </div>
+        <div class="card">
+          <h3>Static libc first, dyld later</h3>
+          <p>The original decision was "no dyld at all" — a statically-linked Mach-O with no
+            <code style="font-family:var(--font-mono);">LC_LOAD_DYLINKER</code> needs no dynamic-linking runtime at all, and building
+            real dyld + Libsystem + objc4 is a multi-month undertaking on its own. That
+            constraint was later revisited on purpose, once a real dyld became the more
+            interesting problem — see the roadmap for Phase 11.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="brand">
+          <img class="mark" src="assets/img/logo-mark.png" alt="AsterOS" />
+          AsterOS
+        </a>
+        <p>A from-source bring-up of a minimal Darwin 19 system — real kernel, real userland,
+          booting in QEMU. Built one root-caused bug at a time.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Site</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+          <li><a href="get-started.html">Get Started</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Repo</h4>
+        <ul>
+          <li><a href="get-started.html#layout">Layout</a></li>
+          <li><a href="get-started.html#building">Building the kernel</a></li>
+          <li><a href="get-started.html#booting">Booting in QEMU</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Docs</h4>
+        <ul>
+          <li><a href="architecture.html">Design decisions</a></li>
+          <li><a href="roadmap.html">Phase-by-phase log</a></li>
+          <li><a href="roadmap.html">Known v1 limitations</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span data-year></span> AsterOS — built on Apple's open-source Darwin/XNU.</span>
+      <span>Not affiliated with Apple Inc.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

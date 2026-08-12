@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AsterOS — a real Darwin kernel, hand-built from source</title>
+<meta name="description" content="AsterOS is a from-source bring-up of a minimal Darwin 19 (Catalina) x86_64 system: a real XNU kernel, a hand-written UEFI bootloader, dyld, libobjc, CoreFoundation, Foundation, GCD, and launchd — booting to an interactive shell in QEMU." />
+<link rel="icon" href="assets/img/favicon-256.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<a class="skip-link" href="#main" style="position:absolute;left:-999px;">Skip to content</a>
+<div class="void-field"></div>
+<div class="grain"></div>
+<div class="cursor-glow"></div>
+
+<header class="site-nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <img class="mark" src="assets/img/logo-mark.png" alt="AsterOS" />
+      AsterOS
+    </a>
+    <nav class="nav-links" id="nav-links">
+      <a href="index.html">Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="get-started.html">Get Started</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://github.com/linuxkid473/AsterOS" target="_blank" rel="noopener">Source</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============================= HERO ============================= -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">x86_64 · Darwin 19 · from source</span>
+        <h1>A real Darwin<br/>kernel, <span class="accent">hand-built</span><br/>from nothing.</h1>
+        <p class="lede">
+          AsterOS boots Apple's own open-source XNU — real Mach, real BSD, real VM —
+          under a UEFI bootloader we wrote ourselves, into a userland we wrote ourselves:
+          dyld, libobjc, CoreFoundation, Foundation, GCD, launchd. No shims left unexplained,
+          no panic left un-root-caused.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="architecture.html">Explore the stack →</a>
+          <a class="btn btn-ghost" href="get-started.html">Build &amp; boot it</a>
+        </div>
+        <div class="hero-badge-row">
+          <span class="pill">xnu-6153.141.1</span>
+          <span class="pill">custom UEFI bootloader</span>
+          <span class="pill">real dyld</span>
+          <span class="pill">nonfragile ABI2 Objective-C</span>
+          <span class="pill">QEMU q35 + OVMF</span>
+        </div>
+      </div>
+      <div class="hero-sigil">
+        <div class="sigil-wrap">
+          <div class="sigil-glow"></div>
+          <img class="sigil-img" src="assets/img/logo-mark.png" alt="AsterOS — a devil platypus mascot holding a trident, beside an aster flower, inside a red ring" />
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="terminal reveal" data-terminal>
+        <div class="terminal-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="title">serial0 — qemu-system-x86_64 -machine q35 -bios OVMF.fd</span>
+        </div>
+        <div class="terminal-body">
+          <div class="ln dim" data-text="$ qemu-system-x86_64 -machine q35 -m 2048 -bios OVMF.fd \" data-speed="10" data-pause="40">&nbsp;</div>
+          <div class="ln dim" data-text="    -drive format=raw,file=boot/esp.img -serial stdio" data-speed="10" data-pause="200">&nbsp;</div>
+          <div class="ln" data-text="Darwin Kernel Version 19.6.0: root:xnu-6153.141.1~asteros/RELEASE_X86_64" data-speed="8" data-pause="120">&nbsp;</div>
+          <div class="ln dim" data-text="Boot args: -v keepsyms=1 debug=0x144" data-speed="8" data-pause="120">&nbsp;</div>
+          <div class="ln dim" data-text="[boot] loaded launchd RAMDisk ok, jumping to kernel entry" data-speed="8" data-pause="120">&nbsp;</div>
+          <div class="ln dim" data-text="Registering: IOService:/IOGenericPlatformExpert/chosen" data-speed="8" data-pause="200">&nbsp;</div>
+          <div class="ln" data-text="[launchd] com.asteros.dispatchtest: loaded (RunAtLoad)" data-speed="8" data-pause="80">&nbsp;</div>
+          <div class="ln" data-text="[launchd] com.asteros.foundationtest: loaded (KeepAlive)" data-speed="8" data-pause="140">&nbsp;</div>
+          <div class="ln ok" data-text="DISPATCHTEST PASS" data-speed="10" data-pause="90">&nbsp;</div>
+          <div class="ln ok" data-text="FOUNDATIONTEST PASS" data-speed="10" data-pause="220">&nbsp;</div>
+          <div class="ln" data-text="BusyBox v1.36.1 (ash) built-in shell" data-speed="8" data-pause="120">&nbsp;</div>
+          <div class="ln" data-text="~ # uname -a" data-speed="14" data-pause="100">&nbsp;</div>
+          <div class="ln dim" data-text="Darwin asteros 19.6.0 RELEASE_X86_64 x86_64" data-speed="8" data-pause="80">&nbsp;</div>
+          <div class="ln"><span class="k">~ #</span> <span class="caret-host"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= STATS ============================= -->
+  <section class="stats">
+    <div class="wrap">
+      <div class="stats-grid reveal">
+        <div class="stat">
+          <div class="num">12<span class="u">/19</span></div>
+          <div class="lbl">phases shipped &amp; verified live</div>
+        </div>
+        <div class="stat">
+          <div class="num">568</div>
+          <div class="lbl">symbols exported by libSystem.B.dylib</div>
+        </div>
+        <div class="stat">
+          <div class="num">0</div>
+          <div class="lbl">bugs fixed by guessing, not tracing</div>
+        </div>
+        <div class="stat">
+          <div class="num">Catalina<span class="u">10.15</span></div>
+          <div class="lbl">Darwin 19 · xnu-6153.141.1 · x86_64</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= STACK TEASER ============================= -->
+  <section class="block">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Boot order, bottom to top</span>
+        <h2>Ten real layers, each one built to run the next.</h2>
+        <p>Every layer below is genuine, ground-truthed source — no stand-ins.
+          Tap a layer to see what it actually does and what it took to get there.</p>
+      </div>
+
+      <div class="stack card-grid reveal-group">
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">Custom UEFI bootloader</div>
+            <div class="tag">boot/ — hand-written, no gnu-efi</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            Parses the kernel Mach-O, builds Apple's flattened device tree by hand, strips
+            <code>EFI_MEMORY_RUNTIME</code> before <code>ExitBootServices</code>, and jumps to
+            <code>_pstart</code>. Apple's real <code>boot.efi</code> isn't open source, so this
+            is a clean-room UEFI application built against clang + lld-link.
+          </div>
+        </div>
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">XNU kernel — Mach + BSD</div>
+            <div class="tag">src/xnu · xnu-6153.141.1</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            Apple's real open-source kernel, 14 patches deep to compile and boot on a modern
+            toolchain — including replacing 9 sites of a 32-bit boot trampoline trick that
+            modern <code>ld</code> now refuses outright. Real fork/exec/signals/VM, unmodified.
+          </div>
+        </div>
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">dyld — the dynamic linker</div>
+            <div class="tag">userland/dyld/ · from scratch</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            Real rebase/bind/export-trie resolution against genuine <code>LC_DYLD_INFO_ONLY</code>
+            metadata. Fully position-independent — even the dylinker itself gets ASLR-slid by
+            the kernel, so dyld has to rebase everyone else without ever fixing up itself.
+          </div>
+        </div>
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">Foundation + CoreFoundation + GCD</div>
+            <div class="tag">NSString ↔ CFString toll-free bridging, real dispatch_queue_t</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            A real object model: <code>CFRetain</code>/<code>CFRelease</code> refcounting,
+            genuine toll-free bridged <code>NSCFString</code>, and a GCD built on real
+            kernel-scheduled pthreads — serial queues, semaphores, dispatch groups.
+          </div>
+        </div>
+        <div class="layer">
+          <span></span>
+          <div>
+            <div class="name">launchd — PID 1</div>
+            <div class="tag">userland/launchd/ · real XML plist supervision</div>
+          </div>
+          <span class="status done">done</span>
+          <div class="layer-detail">
+            Loads <code>/etc/launchd/daemons/*.plist</code>, supervises <code>KeepAlive</code>
+            respawns with real throttling, reaps orphans via <code>wait4(-1, …)</code>, and
+            drains a clean <code>SIGTERM</code> shutdown into <code>reboot(RB_HALT)</code>.
+          </div>
+        </div>
+      </div>
+
+      <div class="center" style="margin-top:36px;">
+        <a class="btn btn-ghost reveal" href="architecture.html">See the full ten-layer stack →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= PHILOSOPHY ============================= -->
+  <section class="block">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">How this gets built</span>
+        <h2>The discipline is the point.</h2>
+      </div>
+
+      <div class="principles">
+        <div class="principle reveal">
+          <div class="pnum">01</div>
+          <div>
+            <h3>Root-caused, not guessed</h3>
+            <p>Every panic gets attached to lldb over QEMU's gdbstub, or read straight out of a
+              serial log, before a fix lands. The pthread realization bug, the EFI runtime-memory
+              collision, the carry-flag syscall misread — all found by reading actual state,
+              not by pattern-matching a Stack Overflow answer.</p>
+          </div>
+        </div>
+        <div class="principle reveal">
+          <div class="pnum">02</div>
+          <div>
+            <h3>Real sources, patched — not reimplemented</h3>
+            <p>The kernel is Apple's actual xnu-6153.141.1. The Objective-C metadata layout is
+              ground-truthed field-by-field against <code style="font-family:var(--font-mono)">otool</code> output on
+              real compiled <code style="font-family:var(--font-mono)">.m</code> files. When something has to be written from
+              scratch — dyld, libobjc, CoreFoundation — it targets the real on-disk ABI, not an
+              approximation of it.</p>
+          </div>
+        </div>
+        <div class="principle reveal">
+          <div class="pnum">03</div>
+          <div>
+            <h3>Verified live, every single phase</h3>
+            <p>"Done" means booted in QEMU with a growing regression checklist re-run in full —
+              dyntest, systest, objctest, cftest, pthreadtest, foundationtest, dispatchtest — all
+              still passing, confirmed via serial console or repeated screendump captures, not
+              assumed from a clean compile.</p>
+          </div>
+        </div>
+        <div class="principle reveal">
+          <div class="pnum">04</div>
+          <div>
+            <h3>v1 gaps, written down — not hidden</h3>
+            <p>Spin-based mutexes instead of psynch, linear-array <code style="font-family:var(--font-mono)">CFDictionary</code> instead of
+              a hash table, one global autorelease pool — every simplification is documented next
+              to the code that makes it, with the reason it was an acceptable tradeoff today.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= LATEST MILESTONE ============================= -->
+  <section class="block">
+    <div class="wrap">
+      <div class="card reveal" style="padding:40px;">
+        <div class="flex-between">
+          <div>
+            <span class="eyebrow">Phase 19 · latest verified milestone</span>
+            <h2 style="font-family:var(--font-display);font-size:clamp(24px,3vw,32px);font-weight:600;margin-top:14px;">
+              Grand Central Dispatch, running on real threads
+            </h2>
+          </div>
+          <span class="status-badge" style="color:#8be8a8;background:rgba(139,232,168,.1);border:1px solid rgba(139,232,168,.25);">verified live in qemu</span>
+        </div>
+        <p style="margin-top:18px;color:var(--ink-dim);max-width:70ch;font-size:15.5px;line-height:1.8;">
+          <code style="font-family:var(--font-mono);color:var(--aster-bright);">libdispatch.dylib</code> now ships serial and
+          concurrent <code style="font-family:var(--font-mono);color:var(--aster-bright);">dispatch_queue_t</code>, <code style="font-family:var(--font-mono);color:var(--aster-bright);">dispatch_sync</code>/<code style="font-family:var(--font-mono);color:var(--aster-bright);">async</code>,
+          semaphores, groups, and <code style="font-family:var(--font-mono);color:var(--aster-bright);">dispatch_after</code> —
+          built directly on Phase 16's real kernel-scheduled pthreads. The regression test pushes
+          4 threads through 50,000 increments each on the global concurrent queue under a
+          dispatch semaphore and lands on an exact 200,000. Zero lost updates.
+        </p>
+        <div style="margin-top:24px;">
+          <a class="btn btn-ghost" href="roadmap.html">Read the full phase log →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="brand">
+          <img class="mark" src="assets/img/logo-mark.png" alt="AsterOS" />
+          AsterOS
+        </a>
+        <p>A from-source bring-up of a minimal Darwin 19 system — real kernel, real userland,
+          booting in QEMU. Built one root-caused bug at a time.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Site</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+          <li><a href="get-started.html">Get Started</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Repo</h4>
+        <ul>
+          <li><a href="get-started.html#layout">Layout</a></li>
+          <li><a href="get-started.html#building">Building the kernel</a></li>
+          <li><a href="get-started.html#booting">Booting in QEMU</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Docs</h4>
+        <ul>
+          <li><a href="architecture.html">Design decisions</a></li>
+          <li><a href="roadmap.html">Phase-by-phase log</a></li>
+          <li><a href="roadmap.html">Known v1 limitations</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span data-year></span> AsterOS — built on Apple's open-source Darwin/XNU.</span>
+      <span>Not affiliated with Apple Inc.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

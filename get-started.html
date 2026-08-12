@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Get Started — AsterOS</title>
+<meta name="description" content="Build the AsterOS kernel from source and boot it in QEMU: requirements, the repo layout, and the exact commands." />
+<link rel="icon" href="assets/img/favicon-256.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<div class="void-field"></div>
+<div class="grain"></div>
+<div class="cursor-glow"></div>
+
+<header class="site-nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <img class="mark" src="assets/img/logo-mark.png" alt="AsterOS" />
+      AsterOS
+    </a>
+    <nav class="nav-links" id="nav-links">
+      <a href="index.html">Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="get-started.html">Get Started</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://github.com/linuxkid473/AsterOS" target="_blank" rel="noopener">Source</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow reveal">From clone to boot</span>
+      <h1 class="reveal">Build it. Boot it.<br/>Watch it panic honestly.</h1>
+      <p class="reveal">
+        Everything here runs on a real macOS host cross-compiling real x86_64 Mach-O, booted
+        under QEMU. No hidden steps, no closed-source pieces required.
+      </p>
+    </div>
+  </section>
+
+  <section class="block tight">
+    <div class="wrap">
+      <div class="card-grid reveal-group" style="grid-template-columns:repeat(3,1fr);">
+        <div class="card">
+          <h3>Host toolchain</h3>
+          <p>macOS with Xcode (clang + ld64 are inherently multi-arch, so cross-compiling
+            x86_64 Mach-O from an arm64 host needs no separate cross-toolchain).</p>
+        </div>
+        <div class="card">
+          <h3>QEMU + OVMF</h3>
+          <p>Homebrew's <code style="font-family:var(--font-mono);">qemu</code> package, for both the emulator and the edk2
+            OVMF UEFI firmware the bootloader runs under.</p>
+        </div>
+        <div class="card">
+          <h3>No real Catalina SDK needed</h3>
+          <p>The build clones a local SDK from the host's own SDK and header-patches it —
+            <code style="font-family:var(--font-mono);">build/SDKs/MacOSX10.15.sdk</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="building">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Step by step</span>
+        <h2>Building the kernel</h2>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-num">1</div>
+        <div>
+          <h3>Build ctf tools &amp; install headers</h3>
+          <p><code style="font-family:var(--font-mono);">build-kernel.sh</code> builds the ctf tools, installs
+            AvailabilityVersions/libplatform headers, and builds <code style="font-family:var(--font-mono);">libfirehose_kernel.a</code>
+            before touching xnu itself.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">2</div>
+        <div>
+          <h3>Run the build</h3>
+          <div class="codeblock">
+            <pre><span class="c1"># from the repo root</span>
+./build-kernel.sh</pre>
+          </div>
+          <p>Runs <code style="font-family:var(--font-mono);">exporthdrs</code> followed by the kernel proper into
+            <code style="font-family:var(--font-mono);">build/kernel/kernel.development</code>. A full clean rebuild (with
+            <code style="font-family:var(--font-mono);">BUILD/</code> deleted first) exits 0 with zero make-error markers.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">3</div>
+        <div>
+          <h3>Verify the output</h3>
+          <div class="codeblock">
+            <pre>file build/kernel/kernel.development
+<span class="c1"># → Mach-O 64-bit executable x86_64</span>
+
+nm build/kernel/kernel.development | grep -E '_pstart|_vstart'
+<span class="c1"># → both present</span></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="divider"></div></div>
+
+  <section class="block" id="booting">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Power it on</span>
+        <h2>Booting in QEMU</h2>
+        <p>Once the bootloader and root filesystem images exist under <code style="font-family:var(--font-mono);color:var(--aster-bright);">boot/</code>, this
+          is the whole command.</p>
+      </div>
+      <div class="codeblock reveal">
+        <pre>qemu-system-x86_64 -machine q35 -m 2048 \
+  -cpu Haswell \
+  -bios &lt;ovmf firmware from Homebrew qemu&gt; \
+  -drive format=raw,file=&lt;ESP image with bootloader + kernel&gt; \
+  -serial stdio</pre>
+      </div>
+      <p style="margin-top:16px;color:var(--ink-dim);font-size:14.5px;max-width:64ch;">
+        <code style="font-family:var(--font-mono);color:var(--aster-bright);">-cpu qemu64</code> will not work — it fails xnu's own
+        CPU vendor/family check before the kernel gets anywhere. <code style="font-family:var(--font-mono);color:var(--aster-bright);">-serial stdio</code>
+        is how every bug on the roadmap page was actually diagnosed: kernel <code style="font-family:var(--font-mono);color:var(--aster-bright);">kprintf</code>
+        output goes to serial, while userspace <code style="font-family:var(--font-mono);color:var(--aster-bright);">stdout</code> goes to the
+        GOP framebuffer console instead.
+      </p>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="divider"></div></div>
+
+  <section class="block" id="layout">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">Where things live</span>
+        <h2>Repo layout</h2>
+      </div>
+      <div class="card reveal" style="padding:34px;">
+        <div class="repo-map">
+          <div><span class="p">src/</span> <span class="c">— pinned checkouts: xnu, dtrace, AvailabilityVersions, libplatform, libdispatch, Libsystem, llvm-project</span></div>
+          <div><span class="p">build/</span> <span class="c">— all build output; build/SDKs/ holds the local header-patched SDK</span></div>
+          <div><span class="p">boot/</span> <span class="c">— the custom EFI bootloader source</span></div>
+          <div><span class="p">userland/</span> <span class="c">— libc, dyld, libSystem, libobjc, CoreFoundation, Foundation, libdispatch, launchd</span></div>
+          <div><span class="p">patches/</span> <span class="c">— one markdown file per kernel source patch, numbered, self-contained</span></div>
+          <div><span class="p">docs/</span> <span class="c">— architecture.md: every design decision, and why</span></div>
+          <div><span class="p">logs/</span> <span class="c">— build and boot logs</span></div>
+          <div><span class="p">TODO.md</span> <span class="c">— the authoritative, currently-maintained phase-by-phase status</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="card reveal center" style="padding:48px;">
+        <h2 style="font-family:var(--font-display);font-size:clamp(24px,3vw,30px);font-weight:600;">
+          Want the reasoning, not just the commands?
+        </h2>
+        <p style="margin-top:14px;color:var(--ink-dim);max-width:56ch;margin-left:auto;margin-right:auto;">
+          <code style="font-family:var(--font-mono);color:var(--aster-bright);">docs/architecture.md</code> covers every real
+          design decision — why FAT16 over HFS+, why PS/2 over USB, why static linking stayed
+          the default even after dyld landed.
+        </p>
+        <div style="margin-top:26px;">
+          <a class="btn btn-primary" href="architecture.html">Read the architecture →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="brand">
+          <img class="mark" src="assets/img/logo-mark.png" alt="AsterOS" />
+          AsterOS
+        </a>
+        <p>A from-source bring-up of a minimal Darwin 19 system — real kernel, real userland,
+          booting in QEMU. Built one root-caused bug at a time.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Site</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+          <li><a href="get-started.html">Get Started</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Repo</h4>
+        <ul>
+          <li><a href="get-started.html#layout">Layout</a></li>
+          <li><a href="get-started.html#building">Building the kernel</a></li>
+          <li><a href="get-started.html#booting">Booting in QEMU</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Docs</h4>
+        <ul>
+          <li><a href="architecture.html">Design decisions</a></li>
+          <li><a href="roadmap.html">Phase-by-phase log</a></li>
+          <li><a href="roadmap.html">Known v1 limitations</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span data-year></span> AsterOS — built on Apple's open-source Darwin/XNU.</span>
+      <span>Not affiliated with Apple Inc.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

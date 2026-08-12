@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roadmap — AsterOS</title>
+<meta name="description" content="The phase-by-phase build log of AsterOS, from workspace setup through Grand Central Dispatch — what's done, what's in progress, and the real bugs found and fixed along the way." />
+<link rel="icon" href="assets/img/favicon-256.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<div class="void-field"></div>
+<div class="grain"></div>
+<div class="cursor-glow"></div>
+
+<header class="site-nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <img class="mark" src="assets/img/logo-mark.png" alt="AsterOS" />
+      AsterOS
+    </a>
+    <nav class="nav-links" id="nav-links">
+      <a href="index.html">Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="get-started.html">Get Started</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://github.com/linuxkid473/AsterOS" target="_blank" rel="noopener">Source</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow reveal">Build log</span>
+      <h1 class="reveal">Nineteen phases.<br/>Every one verified live.</h1>
+      <p class="reveal">
+        A phase isn't marked done from a clean compile — it's done when it boots in QEMU and
+        the full regression checklist from every earlier phase still passes. This is that log,
+        straight from the project's own <code style="font-family:var(--font-mono);color:var(--aster-bright);">TODO.md</code>, including
+        the real bugs found on the way and the v1 gaps left honestly documented.
+      </p>
+    </div>
+  </section>
+
+  <section class="block tight">
+    <div class="wrap">
+      <div class="roadmap-filters reveal">
+        <button class="filter-btn active" data-filter="all">All phases</button>
+        <button class="filter-btn" data-filter="done">Done</button>
+        <button class="filter-btn" data-filter="progress">In progress</button>
+        <button class="filter-btn" data-filter="pending">Superseded</button>
+      </div>
+
+      <div class="timeline">
+
+        <!-- Phase 1 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 01</span>
+                <span class="phase-title">Workspace &amp; sources</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>xnu-6153.141.1, dtrace-338.100.1, AvailabilityVersions-45.11, libplatform-220.100.1,
+                libdispatch-1173.100.2, and Libsystem-1281.100.1 cloned into <code>src/</code>, pinned to
+                the exact apple-oss-distributions tags for this Darwin 19 era. A local SDK copy lives
+                at <code>build/SDKs/MacOSX10.15.sdk</code> — cloned from the host's modern SDK and
+                header-patched, since no real Catalina SDK exists on a current macOS host.</p>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 02</span>
+                <span class="phase-title">Build the XNU kernel</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>A from-scratch clean rebuild (<code>BUILD/</code> deleted, rebuilt from nothing) exits 0
+                with zero make-error markers, producing a 14MB Mach-O 64-bit x86_64
+                <code>kernel.development</code> with <code>_pstart</code>/<code>_slave_pstart</code>/<code>_vstart</code>
+                present. Getting there took 14 source patches.</p>
+              <ul class="bug-list">
+                <li><strong>The deep one:</strong> xnu's real x86_64 entry point loads absolute
+                  addresses of high-canonical-but-physically-low symbols truncated to 32 bits — an
+                  intentional pre-paging idiom modern <code>ld</code> now hard-rejects with no linker-flag
+                  escape hatch. Fixed at 9 call sites, including a direct far-jump with no relative
+                  form, using only relocation kinds the linker accepts — verified to produce
+                  numerically identical runtime values.</li>
+                <li>~20 new clang-21 default-warning categories that didn't exist when this xnu
+                  version was written; an obsolete clang flag; NFS and netboot compiled out entirely
+                  (out of scope, and failing dozens of new warnings-as-errors).</li>
+                <li>Real, pre-existing upstream bugs fixed, not just modernized: undefined
+                  PCI-config identifiers in <code>cpuid.h</code>/<code>hpet.c</code>, a missing comma silently
+                  concatenating two malloc-zone name strings, a <code>NULL</code>-vs-<code>bool</code> argument
+                  bug in <code>IOPMrootDomain.cpp</code>.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phases 3-8 superseded -->
+        <div class="phase pending">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 03–08</span>
+                <span class="phase-title">Boot to console, root filesystem, tiny userspace, init &amp; shell</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">superseded</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>The original plan tracked these as separate milestones: boot past IOKit's platform-expert
+                matching, a MOCKFS + RAMDisk root filesystem, a tiny raw-syscall userspace, then a
+                minimal init and interactive shell. Real, hard bugs were root-caused along this path —
+                a missing device-tree <code>"name"</code> property making <code>/chosen</code> unreachable, an
+                EFI runtime-memory collision clobbering the low identity map, a boot-thread stall inside
+                <code>IOService::doServiceMatch()</code>.</p>
+              <p>Rather than finish this path literally, the project jumped straight to real upstream
+                BusyBox on a real FAT16 root filesystem (Phase 09) once that became the more useful
+                target — a from-scratch libc, a real filesystem driver, and a genuine PID 1 subsumed
+                everything these phases were meant to deliver. Kept here for the historical record, not
+                as open work.</p>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 9 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 09</span>
+                <span class="phase-title">Real upstream BusyBox as PID 1</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>Genuine, unmodified BusyBox 1.36.1 (<code>ash</code> + <code>ls cat echo mkdir rm pwd uname</code>,
+                statically linked, <code>CONFIG_STATIC=y</code>) running against a from-scratch libc built
+                specifically to give it a POSIX surface — no dyld/Libsystem dependency at the base layer.
+                Boots to a live interactive shell, verified with <code>mkdir</code>/<code>cd</code>/<code>echo &gt; file</code>/<code>cat</code>/<code>rm</code>
+                all working end-to-end in one boot session.</p>
+              <ul class="bug-list">
+                <li><strong>Missing carry-flag check on every raw syscall</strong> — the real xnu ABI
+                  signals errors via the carry flag with a positive errno in <code>%rax</code>, never negated.
+                  Every syscall wrapper only ever read <code>%rax</code> as a return value, so every error
+                  was silently misread as a small "successful" result. This was the central diagnostic
+                  breakthrough that unblocked most of what came after.</li>
+                <li>FAT16 file fragmentation from repeated in-place image overwrites broke the driver's
+                  contiguous-cluster assumption, manifesting as a page fault deep inside BusyBox's own
+                  <code>main()</code> — root-caused via disassembly, not guessed.</li>
+                <li><code>getcwd(NULL, 0)</code> unsupported (a glibc/BSD auto-allocate extension ash's
+                  <code>pwd</code> builtin relies on); <code>GETOPT_RESET()</code> hardcoded glibc-style reset
+                  semantics our <code>getopt()</code> didn't honor; a <code>readdir()</code> buffer overrun reading
+                  past the real <code>d_reclen</code>.</li>
+                <li>Full read/write VFS support — <code>mkdir</code>/<code>create</code>/<code>write</code>/<code>remove</code>/<code>rmdir</code> —
+                  implemented from scratch in fat16lite, including fixing a hardcoded root-mount
+                  <code>MNT_RDONLY</code> and a stale read-only-era lookup check.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 10 -->
+        <div class="phase progress">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 10</span>
+                <span class="phase-title">Native Clang/LLVM toolchain</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">in progress</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>The current frontier: <code>clang hello.c -o hello &amp;&amp; ./hello</code> running natively
+                <em>on</em> AsterOS, not just cross-compiling for it. Sourced from
+                <code>llvm-project</code> (sparse checkout, pinned at <code>llvmorg-20.1.8</code>), built
+                incrementally: compiler-rt → libc compat → libunwind → LLVM support libs → Clang
+                frontend → lld, one link/run-verified step at a time.</p>
+              <ul class="bug-list">
+                <li><strong>Step 1, done:</strong> compiler-rt's soft-arithmetic builtins
+                  (<code>__divti3</code>, <code>__udivdi3</code>, <code>__multi3</code>, 128-bit int/float ops) — the
+                  first link-time blocker for <em>any</em> userspace C program, ahead of anything
+                  AsterOS-specific. Built standalone via compiler-rt's own CMake; verified via
+                  <code>lipo</code>/<code>nm</code> to contain real, correctly-named x86_64 Mach-O symbols.</li>
+                <li><strong>Next blocker:</strong> libc compatibility for what LLVM's own support
+                  libraries need beyond today's libc — real nanosecond-resolution time, and an open
+                  question on whether a minimal pthread shim is needed for the build itself.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 11 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 11</span>
+                <span class="phase-title">dyld — the dynamic linker</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>Not the deferred-forever stub the original plan called for — a real dyld, from
+                scratch. Loads dependencies, rebases, binds (both eager and a real lazy
+                <code>dyld_stub_binder</code> path), and resolves symbols via the export trie. The
+                kernel side needed zero changes: <code>load_dylinker()</code> was already fully correct,
+                ground-truthed by reading it before writing a line of dyld code.</p>
+              <ul class="bug-list">
+                <li><strong>The one real bug that mattered:</strong> <code>mach_loader.c</code> always
+                  ASLR-slides the dylinker, regardless of <code>MH_PIE</code> or a <code>-no_pie</code> link. dyld
+                  therefore has to be genuinely position-independent — every internal reference
+                  RIP-relative, correct at any load address with zero self-fixups. Needed both
+                  <code>-fPIC</code> and explicit hidden visibility on every cross-TU extern.</li>
+                <li>Verified live: a normal executable with real <code>LC_LOAD_DYLINKER</code> and
+                  <code>LC_LOAD_DYLIB</code> boots, loads a dylib, calls a function and reads an exported
+                  <code>const char *</code> correctly — across multiple runs with different kernel-chosen
+                  ASLR slides in one boot session.</li>
+                <li>Known v1 limits: fixed 256MB dylib slots, no <code>@rpath</code>, no weak symbols, no
+                  <code>mprotect</code> re-protection after fixups.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 12 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 12</span>
+                <span class="phase-title">libSystem.dylib</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>The raw-syscall libc, compiled <code>-fPIC</code> and linked <code>-dynamiclib</code>, exporting
+                568 symbols at <code>/usr/lib/libSystem.B.dylib</code>. The real design problem:
+                <code>__libc_start</code> can't live inside the dylib, since <code>main</code> only exists once
+                the final executable links — split into a tiny per-executable
+                <code>libc_start.o</code>, matching Darwin's real crt1.o/libSystem division.</p>
+              <ul class="bug-list">
+                <li><strong>The self-link quirk:</strong> ld64 refuses to build a dylib with an empty
+                  dependency list — including <code>libSystem.B.dylib</code> depending, nominally, on
+                  itself. Solved with a placeholder self-link stub; dyld's own image cache means this
+                  never becomes real recursion at load time.</li>
+                <li>Verified live: <code>printf</code>, <code>malloc</code>/<code>free</code>, and a
+                  <code>fork()</code>/<code>waitpid()</code> round trip all running through real dyld rebase/bind —
+                  plus every earlier regression test (dyntest, the full BusyBox checklist) reconfirmed
+                  passing.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 13 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 13</span>
+                <span class="phase-title">libobjc.A.dylib</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>A real Objective-C runtime targeting the genuine nonfragile-ABI2 on-disk layout —
+                ground-truthed field-by-field against <code>otool</code>/<code>objdump</code> on a real compiled
+                probe, not written from memory. dyld gained two small extensions: running a dylib's
+                own mod-init-funcs at load time, and a hardcoded post-bind hook that calls
+                libobjc's <code>__objc_init</code>.</p>
+              <ul class="bug-list">
+                <li><strong>Class realization was completely broken</strong> until a tagged-pointer
+                  scheme (low bit of <code>class_t.data</code>) distinguished real states — <code>data</code> is
+                  never <code>NULL</code>, so the naive "already realized" guard was true from the first call,
+                  and <code>objc_getClass</code> returned <code>NULL</code> for every class despite valid metadata.</li>
+                <li>Ivar offset patching at realization time is not optional under nonfragile ABI2 —
+                  missing it crashed on the first inherited-ivar property access.</li>
+                <li>ARC's autoreleased-return-value fast path is a real correctness requirement, found
+                  via a double-free: an autoreleased value immediately claimed by its caller needs its
+                  pending pool release canceled <em>while still</em> recording a real extra retain, or
+                  either half double-frees or under-retains.</li>
+                <li>Verified live: a subclass with an ivar-backed property, a category adding protocol
+                  conformance, <code>[super init]</code>, ARC-managed alloc, and an explicit
+                  <code>@autoreleasepool</code> block — plus dyld's and libSystem's own regression tests,
+                  unregressed.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 14 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 14</span>
+                <span class="phase-title">launchd</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>Real PID 1 at <code>/sbin/launchd</code>, replacing the earlier tiny init launcher. A
+                hand-written recursive-descent XML plist parser drives daemon supervision from
+                <code>/etc/launchd/daemons/*.plist</code>: <code>RunAtLoad</code>, throttled <code>KeepAlive</code>
+                respawn, orphan reaping via <code>wait4(-1, …)</code>, and a bounded
+                <code>SIGTERM</code>-driven shutdown into <code>reboot(RB_HALT)</code>.</p>
+              <ul class="bug-list">
+                <li>A runaway respawn storm — a daemon that exits in under a millisecond, re-forked
+                  thousands of times a minute — fixed with a measured ~500ms per-daemon throttle,
+                  confirmed against real log timestamps (565ms observed), not host-clock guesses.</li>
+                <li>Console flooding even after throttling, fixed by splitting routine per-daemon
+                  logging (file-only) from launchd's own lifecycle events (file + console).</li>
+                <li><strong>The serious one:</strong> <code>kill -TERM 1</code> during a throttle sleep
+                  interrupted an in-flight <code>sigsuspend()</code> with <code>SIGTERM</code> instead of the
+                  expected <code>SIGALRM</code>, leaving a still-armed timer that fired moments later and
+                  killed launchd itself via default <code>SIGALRM</code> handling — a full kernel panic,
+                  since xnu treats PID 1 exiting as always fatal. Fixed by unconditionally disarming the
+                  timer before restoring the old handler, regardless of why <code>sigsuspend()</code> returned.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 16 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 16</span>
+                <span class="phase-title">Real pthreads</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>Genuine kernel-scheduled threads, replacing a stub where <code>pthread_create()</code>
+                honestly returned <code>EAGAIN</code>. The surprise: xnu-6153 doesn't implement
+                <code>bsdthread_create</code>/<code>psynch_*</code> itself — those syscalls dispatch through a
+                function table a separate <code>pthread.kext</code> is normally supposed to fill in.
+                Fixed by vendoring the real, era-matched Apple <code>libpthread</code> kernel component
+                directly into the kernel image, same pattern as fat16lite.</p>
+              <ul class="bug-list">
+                <li>Two identically-named, differently-shaped <code>struct ksyn_waitq_element</code>
+                  definitions collided once compiled into one image — the real one had to be forced to
+                  win the include-guard race.</li>
+                <li>A genuine object-file basename collision silently dropped the vendored file from the
+                  build entirely (xnu flattens every object to its basename); a duplicate sysctl
+                  registration caused a live panic, confirmed via serial console and backtrace.</li>
+                <li>Mutex/condvar/rwlock are plain atomic-CAS spinlocks, not real psynch-backed kernel
+                  waits — correct under xnu's real preemptive scheduler, just less efficient. A
+                  documented v1 simplification, not a fake.</li>
+                <li>Verified live: 4 real threads incrementing a shared counter 200,000 times each under
+                  a mutex land on an exact 800,000 — zero lost updates under genuine concurrent
+                  execution.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 17 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 17</span>
+                <span class="phase-title">CoreFoundation</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>A real object model and collection library, pure C with no libobjc dependency —
+                <code>CFBase</code>, <code>CFAllocator</code>, <code>CFString</code>/<code>CFMutableString</code>,
+                <code>CFArray</code>, <code>CFDictionary</code>, <code>CFSet</code>, <code>CFNumber</code>, <code>CFBoolean</code>,
+                <code>CFNull</code>, <code>CFData</code>. Deliberately out: <code>CFRunLoop</code>, <code>CFBundle</code>,
+                networking types, <code>CFPropertyList</code>/XML, and internationalization types.</p>
+              <ul class="bug-list">
+                <li>Two documented storage tradeoffs: <code>CFString</code> is UTF-8-backed instead of
+                  real UTF-16 UniChar buffers, and <code>CFDictionary</code>/<code>CFSet</code> are O(n) linear
+                  arrays instead of hash tables.</li>
+                <li><code>CFStringCreateWithFormat</code> rides on the real libc <code>vsnprintf</code> —
+                  which surfaced a real, pre-existing gap: zero floating-point conversion support.
+                  <code>%f</code>/<code>%e</code>/<code>%g</code> silently didn't consume their <code>va_arg</code>, desyncing every
+                  argument after. Caught live, documented, not this phase's bug to fix.</li>
+                <li>Verified live: creation/mutation/comparison/format for every type above, plus a
+                  direct retain-count walk (1 → 2 → 1 → 0) confirming real refcounting, not a no-op.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 18 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 18</span>
+                <span class="phase-title">Foundation</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>Real Objective-C classes wrapping CoreFoundation via genuine toll-free bridging —
+                <code>NSString</code>, <code>NSArray</code>, <code>NSDictionary</code>, <code>NSSet</code>, <code>NSData</code> bridged
+                to their CF counterparts; <code>NSFileManager</code>, <code>NSError</code>, <code>NSException</code>,
+                <code>NSNotificationCenter</code>, a minimal <code>poll()</code>-backed <code>NSRunLoop</code>,
+                <code>NSKeyedArchiver</code>, JSON and property-list serialization, and
+                <code>NSUserDefaults</code> as plain <code>NSObject</code>-backed classes.</p>
+              <ul class="bug-list">
+                <li>A cross-image <code>const NSString *const</code> global written from a constructor
+                  read back stale in a different final executable linking the same dylib — fixed by
+                  dropping <code>const</code> on every such Foundation constant.</li>
+                <li>Chasing <code>NSUserDefaults</code>'s disk persistence surfaced three real, separate
+                  fat16lite bugs: <code>VNOP_CREATE</code> only succeeding one directory level below the
+                  volume root, a stale cached vnode handing back the wrong type after a
+                  directory-to-file slot reuse, and a real disk write that reproducibly hung the whole
+                  process — documented, not chased further this phase.</li>
+                <li>A fourth finding: a very tight <code>KeepAlive</code> respawn loop can starve a slower
+                  co-resident daemon of scheduling time almost entirely — a real, previously-latent
+                  launchd/kernel fairness gap only a slow-enough daemon could reveal.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+        <!-- Phase 19 -->
+        <div class="phase done">
+          <div class="phase-dot"></div>
+          <div class="phase-card">
+            <div class="phase-head">
+              <div class="phase-head-left">
+                <span class="phase-num">PHASE 19</span>
+                <span class="phase-title">libdispatch (GCD)</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge">done</span>
+                <svg class="phase-chevron" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="phase-body"><div class="phase-body-inner">
+              <p>A real, v1-scoped Grand Central Dispatch on top of Phase 16's kernel-scheduled
+                pthreads: serial and concurrent <code>dispatch_queue_t</code>, <code>dispatch_async</code>/<code>sync</code>
+                (+ function-pointer variants), <code>dispatch_once</code>, semaphores, groups, and
+                <code>dispatch_after</code>. Real Apple BlocksRuntime source now also builds into
+                <code>libSystem.B.dylib</code> itself.</p>
+              <ul class="bug-list">
+                <li><code>sysctl()</code>'s <code>HW_NCPU</code> was hardcoded to 1 from before real pthreads
+                  existed — now a real <code>SYS_sysctl</code> round trip, so the worker pool sizes off an
+                  actual core count.</li>
+                <li>The <code>dispatch_after</code> timer thread intermittently never fired — root-caused to
+                  process-wide <code>SIGALRM</code> delivery landing on the wrong thread when more than one
+                  thread could be sleeping at once. Fixed by spin-polling the deadline instead of
+                  calling <code>nanosleep()</code> from a background thread.</li>
+                <li>Verified live: serial-queue FIFO ordering, a real <code>__block</code> byref capture,
+                  <code>dispatch_once</code> racing 8 concurrent threads down to exactly one run, and 4
+                  concurrent tasks pushing 50,000 increments each under a semaphore to an exact
+                  200,000 — zero lost updates.</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="brand">
+          <img class="mark" src="assets/img/logo-mark.png" alt="AsterOS" />
+          AsterOS
+        </a>
+        <p>A from-source bring-up of a minimal Darwin 19 system — real kernel, real userland,
+          booting in QEMU. Built one root-caused bug at a time.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Site</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+          <li><a href="get-started.html">Get Started</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Repo</h4>
+        <ul>
+          <li><a href="get-started.html#layout">Layout</a></li>
+          <li><a href="get-started.html#building">Building the kernel</a></li>
+          <li><a href="get-started.html#booting">Booting in QEMU</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Docs</h4>
+        <ul>
+          <li><a href="architecture.html">Design decisions</a></li>
+          <li><a href="roadmap.html">Phase-by-phase log</a></li>
+          <li><a href="roadmap.html">Known v1 limitations</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span data-year></span> AsterOS — built on Apple's open-source Darwin/XNU.</span>
+      <span>Not affiliated with Apple Inc.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>
