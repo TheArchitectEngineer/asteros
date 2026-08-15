@@ -1277,6 +1277,63 @@ fresh interactive re-run from the shell; `cftest`/`pthreadtest`/
 `foundationtest` independently reconfirmed passing in the same full
 system (no regression).
 
+## Phase 20 — Security.framework: DONE, verified live
+`userland/Security/` — a v1-scoped Security.framework, own `libSecurity.dylib`
+depending on `libCoreFoundation.dylib` + `libSystem.B.dylib` (same per-component
+pattern as libdispatch/CoreFoundation/Foundation's own builds; no dependency on
+libobjc/Foundation, matching real Security.framework's own CoreFoundation-only
+dependency).
+
+In: `SecRandomCopyBytes` (`SecRandom.c`) is a real implementation, not a userland
+PRNG — it's a thin wrapper over the kernel's genuine entropy pool
+(`src/xnu/bsd/dev/random/randomdev.c`'s `getentropy()`, the same source
+`userland/libc`'s `arc4random()`/`uuid.c` already trust), looping in <=256-byte
+chunks since the kernel rejects a single request larger than that
+(`EINVAL`, "Can't request more than 256 random bytes at once"). `SecItem`
+(`SecItemAdd`/`CopyMatching`/`Update`/`Delete`, `SecItem.c`) is a real
+`kSecClassGenericPassword` keychain — an in-memory, per-process linked list of
+items (service/account/label/data, each a real, independently-owned
+`CFStringRef`/`CFDataRef` copy) guarded by a real `pthread_mutex_t` (Phase 16),
+supporting duplicate rejection on service+account, `kSecReturnData`/
+`kSecReturnAttributes`, `kSecMatchLimitOne` (default) vs `kSecMatchLimitAll`
+(array of matches), and partial-attribute updates via `SecItemUpdate`.
+
+One real, documented gotcha carried over from Foundation's own precedent: the
+`kSecClass`/`kSecAttr*`/`kSecReturn*`/`kSecMatchLimit*` constants are real
+heap-allocated `CFStringRef` instances built by an `__attribute__((constructor))`
+at image-load time, exposed as plain `CFStringRef` globals rather than
+`const`-qualified ones — this CoreFoundation has no `CFSTR()` compiler-builtin
+support, and `userland/Foundation/NSError.m` already found that a
+`const`-qualified version of this exact "runtime-built exported constant"
+pattern breaks cross-image reads. Applied here from the start rather than
+rediscovered.
+
+**Known v1 limitations (documented, not oversights):** only
+`kSecClassGenericPassword` is backed by real storage — `kSecClassInternetPassword`/
+`Certificate`/`Key`/`Identity` are declared for source compatibility but every
+`SecItem*` call returns `errSecParam` for them. No on-disk persistence or
+encryption at rest (real Security.framework's keychain is an encrypted
+SQLite-backed store surviving reboots; this needs a working AES implementation
+and an on-disk database format this tree doesn't have yet) — every item is gone
+the moment the process exits, same "document, don't fake" spirit as libdispatch's
+"no `dispatch_source_t`" writeup. No `SecKeychainRef`/`SecKeychainItemRef` opaque
+objects and no `kSecReturnRef` support. No `SecKey`/`SecCertificate`/`SecTrust`/
+`SecCode`/`SecureTransport`/CMS — the vendored SDK's other ~80 Security.framework
+headers are out of scope for this v1.
+
+**Verified live in QEMU:** `userland/Security/test/securitytest.c` exercises
+`SecRandomCopyBytes` (including a >256-byte request to prove the chunking loop,
+checking two independent buffers are non-zero and differ), the full
+`SecItemAdd`/`CopyMatching`/`Update`/`Delete` lifecycle (add, reject a
+service+account duplicate, retrieve, miss on a different account, update the
+stored data, delete, confirm gone, confirm a second delete reports
+`errSecItemNotFound` rather than crashing), `kSecMatchLimitAll` against two
+items sharing a service, and `kSecClass` parameter validation (unsupported
+class, missing class). Installed as a `launchd` daemon
+(`com.asteros.securitytest.plist`) and confirmed booting to `SECURITYTEST PASS`
+alongside `DISPATCHTEST PASS`/`PTHREADTEST PASS`/`FOUNDATIONTEST PASS` (no
+regression) and a live interactive BusyBox `ash` prompt in the same boot.
+
 ## Known deviations from a literal reading of the task (documented, not oversights)
 - ~~BusyBox → our own tiny multicall static binary~~ — superseded, see Phase 9 above.
 - ~~Root filesystem → MOCKFS + RAMDisk~~ — superseded: the actual root filesystem is
