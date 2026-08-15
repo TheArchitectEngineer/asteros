@@ -67,6 +67,15 @@ fi
 if [ -f build/dispatch_obj/dispatchtest ]; then
 	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.dispatchtest.plist ::/etc/launchd/daemons/com.asteros.dispatchtest.plist
 fi
+if [ -f build/security_obj/securitytest ]; then
+	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.securitytest.plist ::/etc/launchd/daemons/com.asteros.securitytest.plist
+fi
+if [ -f build/xpc_obj/xpctest ]; then
+	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.xpctest.plist ::/etc/launchd/daemons/com.asteros.xpctest.plist
+fi
+if [ -f build/libSystem_obj/machtest ]; then
+	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.machtest.plist ::/etc/launchd/daemons/com.asteros.machtest.plist
+fi
 
 DYLD_BIN="build/dyld_obj/dyld"
 LIBSYSTEM_REAL="build/libSystem_obj/libSystem.B.dylib"
@@ -83,6 +92,9 @@ if [ -f "$DYLD_BIN" ]; then
 		fi
 		if [ -f build/libSystem_obj/pthreadtest ]; then
 			mcopy -i "$ROOTFS_IMG" build/libSystem_obj/pthreadtest ::/bin/pthreadtest
+		fi
+		if [ -f build/libSystem_obj/machtest ]; then
+			mcopy -i "$ROOTFS_IMG" build/libSystem_obj/machtest ::/bin/machtest
 		fi
 	elif [ -f "$LIBSYSTEM_PLACEHOLDER" ]; then
 		mcopy -i "$ROOTFS_IMG" "$LIBSYSTEM_PLACEHOLDER" ::/usr/lib/libSystem.B.dylib
@@ -110,6 +122,16 @@ if [ -f "$DYLD_BIN" ]; then
 		echo "libdispatch found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/dispatch_obj/libdispatch.dylib ::/usr/lib/libdispatch.dylib
 		mcopy -i "$ROOTFS_IMG" build/dispatch_obj/dispatchtest ::/bin/dispatchtest
+	fi
+	if [ -f build/security_obj/libSecurity.dylib ] && [ -f build/security_obj/securitytest ]; then
+		echo "Security found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/security_obj/libSecurity.dylib ::/usr/lib/libSecurity.dylib
+		mcopy -i "$ROOTFS_IMG" build/security_obj/securitytest ::/bin/securitytest
+	fi
+	if [ -f build/xpc_obj/libxpc.dylib ] && [ -f build/xpc_obj/xpctest ]; then
+		echo "libxpc found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xpc_obj/libxpc.dylib ::/usr/lib/libxpc.dylib
+		mcopy -i "$ROOTFS_IMG" build/xpc_obj/xpctest ::/bin/xpctest
 	fi
 fi
 
@@ -150,6 +172,8 @@ if [ -x "$CLANG_BIN" ] && [ -x "$LD_BIN" ] && [ -f "$LIBCXX" ] && [ -f "$LIBCXXA
 	# libFoundation.dylib itself is already on disk at /usr/lib.
 	mcopy -s -i "$ROOTFS_IMG" userland/CoreFoundation/include/CoreFoundation ::/usr/include/
 	mcopy -s -i "$ROOTFS_IMG" userland/Foundation/include/Foundation ::/usr/include/
+	mcopy -s -i "$ROOTFS_IMG" userland/Security/include/Security ::/usr/include/
+	mcopy -s -i "$ROOTFS_IMG" userland/libxpc/include/xpc ::/usr/include/
 
 	# crt0.o/libc_start.o as standalone objects, not just archived into
 	# libc.a: a dynamically-linked executable (Foundation/CoreFoundation/

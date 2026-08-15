@@ -1334,6 +1334,264 @@ class, missing class). Installed as a `launchd` daemon
 alongside `DISPATCHTEST PASS`/`PTHREADTEST PASS`/`FOUNDATIONTEST PASS` (no
 regression) and a live interactive BusyBox `ash` prompt in the same boot.
 
+## Phase 21 — Userland Mach IPC: DONE, verified live
+
+First real Mach IPC anywhere in userland (`userland/libc/src/mach_trap_raw.h`,
+`mach_msg.c`, `mach_port.c`, `mach_special_ports.c`) — the opening phase of a
+larger effort to port `SystemConfiguration.framework`, which fundamentally
+needs a `configd`-equivalent daemon reachable over real Mach IPC (Phase 25).
+Before this phase, only headers existed (`userland/libc/include/mach/*.defs`/
+`*.h`, vendored but never implemented against) — confirmed by grep before
+starting: zero raw trap wrappers, zero `mach_msg()` implementation, `pthread.c`'s
+own `sched_yield()` stub explicitly commenting "Mach traps aren't implemented
+in this libc at all yet." Kernel-side `osfmk/ipc/*.c` and MIG server dispatch
+(`task_server.c`, `mach_port_server.c`) were already real, unmodified, and
+compiled into `kernel.development` — this phase is entirely userland.
+
+**Raw trap layer** (`mach_trap_raw.h`): Mach traps are class 1
+(`(1 << 24) | number`, `SYSCALL_CLASS_MACH` in
+`src/xnu/osfmk/mach/i386/syscall_sw.h`), dispatched through the *same*
+`syscall` instruction entry point as BSD class-2 traps
+(`src/xnu/osfmk/x86_64/idt64.s:1715-1744` branches on the class bits), but
+with a different result convention — ground-truthed by reading
+`mach_call_munger64()` (`osfmk/i386/bsd_i386.c`): the raw `kern_return_t`
+goes straight into `%rax`, no carry-flag check. Trap numbers
+(`_kernelrpc_mach_port_allocate_trap`=16 … `mach_msg_trap`=31,
+`mach_msg_overwrite_trap`=32) ground-truthed against
+`src/xnu/osfmk/kern/syscall_sw.c`'s `mach_trap_table`, not guessed.
+
+**`mach_msg()`/`mach_msg_overwrite()`** (`mach_msg.c`): both `mach_msg_trap`
+and `mach_msg_overwrite_trap` resolve to the *same* kernel implementation —
+`mach_msg_trap()` is literally `args->rcv_msg = 0; return
+mach_msg_overwrite_trap(args);` (`src/xnu/osfmk/ipc/mach_msg.c:710-718`) — so
+this project's `mach_msg_overwrite()` always issues one
+`mach_msg_overwrite_trap`, atomically handling combined send+receive in a
+single call rather than as two separate trap invocations (an earlier draft
+split them; fixed before it ever shipped). `mach_task_self()` deliberately
+does *not* go through `mach/mach_init.h`'s macro-based
+`#define mach_task_self() mach_task_self_` in this file — including that
+header here would have rewritten this file's own `mach_task_self(void)`
+*function definition* into a malformed 1-argument invocation of a 0-argument
+macro, caught by the compiler. Both forms coexist project-wide: TUs
+including `mach_init.h` get the macro (direct global read); TUs including
+`mach/mach.h` (`dl_stub.c`, `pthread.c`) get a plain extern declaration
+linked against the real function defined here. This also meant removing
+`dl_stub.c`'s old placeholder stubs (`mach_task_self()`/`mach_host_self()`,
+both `return 1;`) — real implementations now exist and the stubs would have
+been duplicate symbols at link time. `mach_task_self_` (the cached global)
+is initialized once in `__libc_start` and **re-initialized in `fork()`'s
+child branch** (`syscalls.c`) — a forked child gets a genuinely new task
+port name from the kernel, not a copy of the parent's; missing this would
+have silently left every forked child using its parent's stale task port.
+
+**Hand-marshaled MIG client** (`mach_special_ports.c`): `task_get_special_port`/
+`task_set_special_port` are MIG *routines*, not traps (`mach/task.defs:163,172`),
+and no `mig`-generated code exists anywhere in this tree to crib from. Wire
+structs (request/reply layout, NDR record, port descriptor disposition) were
+ground-truthed field-by-field against the kernel's own *generated* server
+stub — `src/xnu/BUILD/obj/DEVELOPMENT_X86_64/osfmk/DEVELOPMENT/mach/
+task_server.{c,h}` — not the `.defs` source, since that's what the kernel
+actually unmarshals against. Confirmed msgh_id 3409/3410 (subsystem base
+3400 + routine index 9/10) directly from `__DeclareRcvRpc(3409, ...)` in the
+generated `.c`, not just computed from the subsystem line. `task_set_special_port`'s
+request descriptor disposition must be exactly 17 (`MACH_MSG_TYPE_MOVE_SEND`)
+or the kernel's own `__MIG_check__Request__task_set_special_port_t` rejects
+it with `MIG_TYPE_ERROR` — confirmed from that exact generated check
+function.
+
+**Bootstrap design** (deliberately narrow, not a general protocol): no
+bootstrap-server abstraction is built. A receiver allocates a RECEIVE right,
+derives a SEND right at the same name (`mach_port_insert_right`,
+`MAKE_SEND`), and installs that send right as its own `TASK_BOOTSTRAP_PORT`
+(`task_set_special_port`) — consuming the send right, keeping the receive
+right. Every child forked afterward inherits a send right to the same port
+automatically, via the kernel's existing, unmodified `ipc_task_init()`
+(`osfmk/kern/ipc_tt.c:232-233`, `itk_bootstrap = ipc_port_copy_send(parent->itk_bootstrap)`)
+— real, already-working kernel-side plumbing this phase needed zero kernel
+changes to use. **Real, load-bearing finding, not assumed:** ordinary
+`mach_port_allocate()`'d ports do *not* propagate across `fork()` at all —
+`ipc_task_init()` gives every new task (fork included) a brand-new, empty
+IPC space; only the small set of *special* ports (self, host, bootstrap,
+exception, registered-via-`mach_ports_register`) are explicitly copied down.
+This directly shaped `machtest`'s design (see below) and will shape
+Phase 25's configd the same way.
+
+**Four real bugs found and fixed live in QEMU, each ground-truthed against
+kernel source before being called a bug (not guessed):**
+1. **Same-buffer receive clobber in the hand-marshaled MIG client.** Both
+   `task_get_special_port` and `task_set_special_port` originally called
+   plain `mach_msg()` with separate `req`/`reply` local variables — but
+   `mach_msg_trap`'s "no distinct receive buffer" convention (`rcv_msg=0`)
+   means the kernel writes the reply into the *same* buffer as the request,
+   not into whatever a caller happens to declare next; the `reply` variable
+   would have stayed uninitialized stack garbage. Fixed by calling
+   `mach_msg_overwrite()` directly with an explicit, distinct `rcv_msg`
+   buffer.
+2. **Receive buffer sizing (`MACH_RCV_TOO_LARGE`, 0x10004004).** Every
+   receive in the first working version of `machtest` failed — initially
+   *misread* as `MACH_RCV_TIMED_OUT` (0x10004003, one hex digit less) before
+   actually checking the exact constants in `message.h`. Real cause:
+   `rcv_size` covered only `sizeof(header)+sizeof(payload)`, leaving no room
+   for the trailer (security/audit metadata, `MACH_MSG_TRAILER_FORMAT_0`)
+   the kernel always appends after the message body on receive. Fixed by
+   padding the receive buffer with headroom (`MAX_TRAILER_SIZE`) while
+   keeping `send_size` limited to the real header+payload bytes via
+   `offsetof`, so the padding is never actually transmitted.
+3. **Reply-port field swap on receive.** After a successful receive, the
+   sender's reply-to port (sent in `msgh_local_port`) is exposed to the
+   *receiver* in `msgh_remote_port`, not `msgh_local_port` — the kernel
+   swaps field roles between the sender's and receiver's perspective on
+   delivery, reusing the same wire struct for both directions. An initial
+   attempt used `msgh_local_port` based on a real but misleading read of
+   `ipc_kmsg_copyout_header()`'s internal `reply = msg->msgh_local_port`
+   local variable (the pre-remap wire value, not the field userland
+   actually sees) — caught by printing both fields after a real receive and
+   comparing against known port names, not by further static reading.
+   Sending a reply to the wrong field produced `MACH_SEND_INVALID_DEST`
+   (0x10000003).
+4. **Stack-argument push order for traps beyond 6 args** (`mach_trap_raw.h`).
+   `mach_msg_trap`/`mach_msg_overwrite_trap` take 7/8 real arguments; only 6
+   fit in registers, so the rest are read by the kernel from the user stack
+   at `rsp+8` (mirroring where a `call`-based stub's args would start after
+   its pushed return address — a bare `syscall` never pushes one, so a
+   dummy word has to occupy that skipped slot). Getting the push *order*
+   right took care: the last `pushq` executed lands at the lowest address
+   (current `rsp`), so the real argument(s) must be pushed *before* the
+   dummy, not after — the naive reading of "push a dummy, then push the
+   real arg" places them backwards. Verified against the kernel's own
+   `mach_call_munger64()` copyin logic before trusting the fix.
+
+**A fifth, separate, out-of-scope finding, flagged not fixed here:** tracing
+bug 4 above surfaced that the *existing*, already-shipped `raw_syscall7()`
+(`userland/libc/src/syscall_raw.h`, Phase 16, used by `bsdthread_register`)
+pushes its dummy word and real 7th argument in that same backwards order —
+by the identical trace, the kernel would read the dummy (0) instead of the
+real value. Invisible in production only because `bsdthread_register`'s one
+caller always passes `tsd_offset=0` anyway (no kernel TLS wired up — see
+Phase 16), so misreading the dummy versus the real argument produces
+identical observed behavior. Not fixed in this phase (touching Phase 16's
+already-verified code wasn't this phase's job); flagged as a background task
+instead.
+
+**Verified live in QEMU:** `userland/mach_test/machtest_main.c` — parent
+allocates a receive right, mints a send right, installs it as its own
+`TASK_BOOTSTRAP_PORT`, forks; child fetches the inherited send right via
+`task_get_special_port`, sends a one-word payload with its own
+`mach_reply_port()` as the reply-to; parent receives it (real cross-process
+delivery, not shared memory), replies with a derived payload; child
+receives the reply and checks the exact bytes. Installed as a `launchd`
+daemon (`com.asteros.machtest.plist`) and confirmed `MACHTEST PASS` on
+multiple independent boots and manual re-runs from the interactive shell,
+alongside `SECURITYTEST PASS`/`PTHREADTEST PASS`/`FOUNDATIONTEST PASS`/
+`DISPATCHTEST PASS`/`CFTEST PASS` (no regression to any prior phase).
+
+**Known v1 limitations (documented, not oversights):**
+- No general bootstrap-server/service-lookup protocol — only the narrow
+  "install a send right as your own special port, children inherit it"
+  pattern above. Sufficient for one well-known service (Phase 25's
+  configd); would need real work to support more than one named service.
+- Only `task_get_special_port`/`task_set_special_port` are hand-marshaled;
+  no other MIG routine has a client stub yet (`task_info`, `host_info`,
+  etc. remain unimplemented — nothing in this tree calls them yet).
+- Port lifecycle coverage is minimal: `mach_port_allocate`/`destroy`/
+  `deallocate`/`mod_refs`/`insert_right` only — no `mach_port_construct`/
+  `mach_port_guard`/portsets.
+- No out-of-line (complex, non-trivial-body) message support yet — every
+  message in this phase is a fixed-size inline struct. Phase 25's configd
+  will need real OOL data descriptors for arbitrary-sized plist payloads,
+  unexercised so far.
+
+## Phase 22 — PCI bus enumeration: DONE, verified live
+
+Real, personality-matchable IOKit presence for PCI devices
+(`src/xnu/iokit/Kernel/IOPlatformExpert.cpp`, appended after
+`IOGenericPlatformExpert`) — the second step of the SystemConfiguration
+port, needed so a future prelinked virtio-net kext (Phase 24) can find its
+device via ordinary `IOKitPersonalities`/`IOPropertyMatch`, the same way
+any real Apple PCI driver does.
+
+**A major plan revision, made before writing anything:** the approved plan
+called for writing PCI config-space access from scratch. Live testing
+during Phase 21 surfaced boot-log lines (`[pci] beginning enumeration...`,
+a full device list, `[xhci] no xHCI controllers found`) proving a complete,
+already-working raw PCI scanner already existed —
+`src/xnu/osfmk/usb/pci.c`/`pci.h`, explicitly marked "AsterOS addition (not
+upstream Apple xnu)," added in an earlier, undocumented-in-TODO.md phase
+for xHCI discovery. It does real PCI Configuration Mechanism #1 I/O
+(0xCF8/0xCFC), spec-correct bridge-topology walking (not just a flat bus-0
+scan — more complete than this phase's own original plan), BAR discovery
+with size probing, and a class-code filter (`pci_find_all_by_class`) — but
+is explicitly scoped as "not a general driver-matching framework" (its own
+header comment) and, confirmed by grep, is called only once, from
+`osfmk/kern/startup.c`'s `usb_xhci_init()`, with zero IOKit registry
+involvement. This phase's actual, much smaller job: wire this existing,
+already-verified scanner into the IORegistry, not duplicate it.
+
+**`IOPCIDeviceNub`**: a plain `IOService` subclass, created and
+`registerService()`'d once per discovered PCI function from a new call in
+`IOGenericPlatformExpert::start()` (right after `IODTPlatformExpert::start()`
+succeeds — device-tree nubs and PCI nubs are both visible before IOKit's
+matching thread runs). Exposes `vendor-id`/`device-id`/`class-code`/
+`revision-id`/`pci-bus`/`pci-device`/`pci-function` and per-BAR
+`barN-addr`/`barN-size` properties for `IOPropertyMatch`. No new
+`KernelConfigTables.cpp` personality entry was needed for the nub class
+itself (unlike `IOGenericPlatformExpert`, which must be device-tree-name-
+matched into existence since nothing else creates the platform expert) —
+`registerService()` on a programmatically-created nub is what triggers
+IOKit's normal matching against every other loaded personality, exactly as
+if a real bus family had published it.
+
+**A real cross-component build constraint, ground-truthed not assumed:**
+`osfmk/usb/pci.h` cannot be `#include`d from `iokit/Kernel/`.
+`src/xnu/makedefs/MakeInc.def`'s `INCFLAGS_GEN` only ever adds
+`-I$(SRCROOT)/$(COMPONENT)` for the component currently being built —
+`iokit` and `osfmk` are separate components with no shared include path.
+Fixed by declaring the handful of needed struct/function shapes directly in
+`IOPlatformExpert.cpp` (mirroring `pci.h`'s real layout exactly) instead of
+touching the include path — the actual symbols still resolve correctly at
+final link time since xnu produces one monolithic `kernel.development`
+image with ordinary external C linkage, not per-component symbol hiding,
+the same cross-component-linkage fact Phase 16's `libpthread_kern`
+integration already depended on.
+
+**Verified live in QEMU, not assumed:** kernel boot log shows
+`pci_enumerate()` running during IOKit's own bootstrap (before
+`bsd_init: calling ubc_init` — confirming the integration point runs at the
+intended point in boot, not just "doesn't crash"), followed by six real
+`[pci] registered IOPCIDeviceNub ...` lines, one per discovered function —
+concrete evidence real `IOService` objects were created and registered, not
+inferred from the absence of a panic. `make run`'s QEMU invocation
+(`Makefile`) now includes `-netdev user,id=net0 -device
+virtio-net-pci,netdev=net0` (Phase 24 will need this device present at
+every boot anyway); confirmed the resulting `1af4:1000` function is
+enumerated and gets its own `IOPCIDeviceNub` (`pci1af4,1000 (00:02.0)`)
+alongside the platform's other five PCI functions. `MACHTEST PASS`/
+`SECURITYTEST PASS`/`PTHREADTEST PASS`/`FOUNDATIONTEST PASS`/
+`DISPATCHTEST PASS` all reconfirmed passing in the same boots (no
+regression from either the kernel change or the new QEMU device).
+
+**Known v1 limitations (documented, not oversights):**
+- `pci_enumerate()` now runs twice per boot — once from
+  `IOGenericPlatformExpert::start()` (this phase) and once from the
+  pre-existing `usb_xhci_init()` — each producing its own full `[pci]`
+  scan log. Harmless (the xHCI call's callback only fills a local array,
+  never touches IOKit's registry, so no duplicate nubs are created) but
+  cosmetically double-logged; not deduped since it's log noise, not a
+  functional bug, and touching `usb_xhci_init()` was out of this phase's
+  scope.
+- `IOPCIDeviceNub` exposes only the properties a driver needs to find and
+  map its device (identity + BARs) — no live config-space read/write
+  methods on the nub itself (`pci_cfg_read32`/etc. remain directly callable
+  C functions, not wrapped as `IOPCIDevice`-style C++ methods); no MSI/
+  MSI-X capability parsing, no PCIe extended config space (ECAM/MMCONFIG)
+  — Configuration Mechanism #1 only, matching the underlying scanner.
+- Bridges are walked and logged but bridge nubs themselves aren't
+  separately represented in the IORegistry — every function (bridge or
+  endpoint) gets a flat `IOPCIDeviceNub` attached directly to the platform
+  expert, not a nested bridge/endpoint topology. Sufficient for Phase 24's
+  single-function virtio-net target; would need real work for a
+  multi-bridge topology to matter.
+
 ## Phase 23 — Prelinked-kext build pipeline: IN PROGRESS, whole pipeline works through real OSMetaClass registration, one narrow bug remains before a kext's `start()` can run
 
 Real, working host-side kxld linker + Mach-O merge tool
@@ -1563,6 +1821,148 @@ un-merged state — see the top of this section), so the kernel ships in that
 safe state; `userland/kexts/HelloKext/` and the whole
 `userland/toolchain/kextbuild/` pipeline remain in the tree as the exact
 reproduction case for whoever continues this.
+
+## Phase 26 — libxpc: DONE, verified live
+
+Real, functional Darwin-19-compatible `libxpc` (`userland/libxpc/`) — a real
+`xpc_object_t` model (null/bool/int64/uint64/double/string/data/array/
+dictionary), a real recursive TLV wire serializer of this project's own
+design, and a real `xpc_connection_t` client↔service round trip over this
+tree's existing Mach IPC (Phase 21) and libdispatch (Phase 19), independent
+of the Phase 23/24/25 kext/virtio-net/configd line of work — same
+per-component dylib pattern as Security/libdispatch (own `libxpc.dylib`
+against `libdispatch.dylib` + `libSystem.B.dylib`, `userland/libxpc/build.sh`).
+
+**Object model** (`xpc_object.c`/`xpc_array.c`/`xpc_dictionary.c`): a plain
+refcounted tagged-union struct, one dictionary implementation backed by a
+singly-linked key/value list (not a hash table — plenty at IPC-message
+scale, same "simple over premature" tradeoff `dispatch_queue.c`'s own
+runnable-list already makes for this codebase), real `xpc_copy`/`xpc_equal`
+(deep, recursive, independent — verified live by mutating a copy and
+checking the original), real `xpc_copy_description`.
+
+**Wire format** (`xpc_serialize.c`): a byte-tag TLV of our own design, not
+Apple's bplist15 — nothing outside this OS's own process pairs ever needs to
+read it. Capped at `XPC_WIRE_MAX_PAYLOAD` (8KB) inline in one `mach_msg` per
+message; no OOL descriptors, since userland OOL send/receive is still
+unwritten anywhere in this tree (kernel-side copyin/copyout is real and
+unmodified — Phase 21 already ground-truthed that — but no userland code,
+this phase included, has yet been the first to build a
+`MACH_MSGH_BITS_COMPLEX` message with a real OOL descriptor). Decode treats
+the buffer as untrusted (it crossed a real process boundary) and fails
+closed on truncated/malformed input.
+
+**Connections** (`xpc_connection.c`): a listener installs a receive right as
+its own `TASK_BOOTSTRAP_PORT`, exactly `userland/mach_test/machtest_main.c`'s
+mechanism (Phase 21) — same documented v1 limitation carried forward: one
+well-known service per process tree, not a real named multi-service
+bootstrap namespace (that needs Phase 25's configd groundwork). Each
+listener demultiplexes multiple simultaneous peers off its single receive
+right by the peer's send-right name, learned from `msgh_remote_port` on
+receipt (the same sender/receiver reply-port field swap Phase 21
+ground-truthed); an accepted peer is delivered to the listener's event
+handler as a plain `xpc_object_t` of type `XPC_TYPE_CONNECTION`, same as
+real XPC. A dedicated pthread per listener/client blocks in `mach_msg()`
+and `dispatch_async_f()`s decoded events onto the connection's target
+queue — there's no `dispatch_source_t`/kevent in this tree's libdispatch
+(Phase 19) to hang a `MACH_RECV` event source off instead, so this reuses
+the same "own blocking thread feeding dispatch_async" shape
+`dispatch_after`'s timer thread already established. Request/reply
+correlation uses an explicit `msg_id`, since a connection here is a durable
+two-port full-duplex channel (each side mints itself one self-held send
+right at `xpc_connection_activate()` time and `COPY_SEND`s it on every
+outgoing message — see the real bug below for why), not a single
+MIG-style round trip.
+
+**Two real bugs found live in QEMU, same "boot it and read exactly where it
+breaks" discipline as every other phase:**
+1. **Repeated `MAKE_SEND` from the same receive-right-derived port hangs
+   the whole system.** The first working version had every outgoing
+   message mint a *fresh* send right straight from the connection's
+   receive right (`msgh_local_port` with a `MAKE_SEND` disposition) rather
+   than reusing one — the same disposition `userland/mach_test/
+   machtest_main.c` and `mach_special_ports.c` already use, just done
+   *repeatedly* on the same port across a connection's lifetime where they
+   only ever do it once. Live in QEMU: the very first message round-tripped
+   fine, but the client's *second* send on the same local port (a
+   fire-and-forget follow-up message) pegged the QEMU process at ~100% CPU
+   and froze the console permanently — every other `RunAtLoad` test daemon
+   after it in launchd's sequence (confirmed by comparing against a known
+   `MACHTEST PASS`/`CFTEST PASS` full regression boot) never got to run
+   either. Not root-caused inside the kernel source itself (that would need
+   attaching lldb to QEMU's gdbstub, this phase's own budget didn't cover
+   it) — but empirically, unambiguously gone after the fix below, on a
+   clean rebuild-and-reboot with nothing else changed. **Fix:**
+   `xpc_connection_activate()` now mints exactly one self-held send right
+   per connection (`mach_port_insert_right(..., MAKE_SEND)`, same "one name,
+   both a receive and a send right" shape the listener's bootstrap-port
+   setup already used) and every send afterward `COPY_SEND`s that one
+   right instead of re-deriving a new one from the receive right each
+   time — the same well-exercised operation already used for the
+   destination field, just reused for the local field too.
+2. **Odd-length serialized payloads fail with `MACH_SEND_MSG_TOO_SMALL`.**
+   Root-caused precisely this time, in `osfmk/ipc/ipc_kmsg.c`'s
+   `ipc_kmsg_get()`: `if ((size < sizeof(mach_msg_legacy_header_t)) ||
+   (size & 3)) return MACH_SEND_MSG_TOO_SMALL;` — despite the name, this
+   fires just as much for "send size isn't a multiple of 4" as for
+   "actually too small" (the doc comment right above it says so verbatim:
+   "Message size not long-word multiple"). This project's own TLV encoder
+   has no reason to produce 4-byte-aligned lengths (a string's byte count
+   is whatever it is), so any message whose total size landed on a
+   non-multiple-of-4 boundary was rejected outright. **Fix:**
+   `XPC_WIRE_SEND_SIZE()` (`xpc_internal.h`) now rounds the send size up to
+   the next multiple of 4; the real payload length is still carried
+   explicitly in the wire struct's own `payload_len` field, so the receiver
+   never reads the up-to-3 pad bytes this adds, and there's always room for
+   them since `trailer_pad` follows `payload` in the same struct.
+
+As defense in depth against either class of bug (or any other reason a
+peer's receive thread might die) leaving a caller permanently blocked, a
+connection whose receive thread exits now completes every one of its own
+*and* its accepted peers' outstanding `xpc_connection_send_message_with_
+reply(_sync)` calls with `XPC_ERROR_CONNECTION_INVALID` rather than leaving
+them parked in `dispatch_semaphore_wait(..., DISPATCH_TIME_FOREVER)` forever.
+
+**Verified live in QEMU, screen-captured, not just "it compiled":**
+`userland/libxpc/test/xpctest.c` — an in-process object-model self-check
+(`xpc_copy`/`xpc_equal` on a nested dictionary+array, confirmed independent
+of the original by mutating the copy) followed by a real cross-process
+round trip: the parent is the listener, forks (same shape as `machtest`),
+the child is the client. The child sends a dictionary (string, int64, and a
+nested array of two strings) via `xpc_connection_send_message_with_reply_
+sync()`; the parent's per-peer handler replies via `xpc_dictionary_create_
+reply()`/`xpc_connection_send_message()`; the child verifies every field
+came back correctly transformed (value doubled, array echoed intact) — a
+real encode → Mach IPC send → decode → handler → encode → Mach IPC send →
+decode round trip. A second, fire-and-forget `xpc_connection_send_message()`
+(no reply) proves the async delivery path independently: the parent's
+handler flips a flag its own `main()` observes after `waitpid()`, off the
+real `dispatch_async_f()` delivery a background worker thread drains, not
+the receive thread itself. Both `XPCTEST PASS (child side)` and the
+parent's own `XPCTEST PASS` were confirmed via QEMU monitor `screendump`
+alongside clean `PTHREADTEST PASS`/`FOUNDATIONTEST PASS`/`DISPATCHTEST
+PASS`/`SECURITYTEST PASS` (no regression to any prior phase), zero panics,
+QEMU CPU usage settling back to idle afterward (versus pegged-and-frozen
+before bug 1's fix) confirming the system reached a genuine steady state
+rather than hanging just past the visible screen region. Installed as a
+launchd daemon (`com.asteros.xpctest.plist`), wired into `userland/
+mkrootfs.sh` the same conditional-on-build-artifact way every other
+optional framework already is.
+
+**Known v1 limitations (documented, not oversights):**
+- No OOL Mach descriptors — every message is a single inline send capped
+  at 8KB. No `xpc_fd_t`/`xpc_shmem_t`/`xpc_uuid_t`/`xpc_date_t`/
+  `xpc_endpoint_t` — each needs either OOL/rights plumbing or a service
+  this OS doesn't have yet.
+- No named multi-service bootstrap lookup — same single well-known
+  service per process tree as `machtest`, not a real bootstrap namespace
+  daemon (Phase 25's job).
+- No code-signing/entitlement peer-requirement checks (no code-signing
+  subsystem to check against).
+- `xpc_connection_suspend()`/`resume()` gate event *delivery* (a
+  suspended connection's receive thread keeps reading and decoding, just
+  blocks before invoking the handler) rather than pausing the underlying
+  Mach receive itself.
 
 ## Known deviations from a literal reading of the task (documented, not oversights)
 - ~~BusyBox → our own tiny multicall static binary~~ — superseded, see Phase 9 above.
