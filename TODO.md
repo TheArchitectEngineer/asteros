@@ -1334,6 +1334,236 @@ class, missing class). Installed as a `launchd` daemon
 alongside `DISPATCHTEST PASS`/`PTHREADTEST PASS`/`FOUNDATIONTEST PASS` (no
 regression) and a live interactive BusyBox `ash` prompt in the same boot.
 
+## Phase 23 — Prelinked-kext build pipeline: IN PROGRESS, whole pipeline works through real OSMetaClass registration, one narrow bug remains before a kext's `start()` can run
+
+Real, working host-side kxld linker + Mach-O merge tool
+(`userland/toolchain/kextbuild/`) — the third step of the SystemConfiguration
+port. This phase turned out to be the single hardest one in the whole
+project so far: six genuinely distinct, previously-never-exercised kernel
+bugs, each found by booting a real test kext (`userland/kexts/HelloKext/`)
+and reading exactly where it broke, not by inspection or guessing. Five are
+fixed and verified; the sixth is precisely bounded and documented below for
+whoever picks this up next. The kernel currently **ships in its fully
+verified-safe state with no prelinked kext merged in** (all five fixes are
+real source patches, present and inert until a kext is actually prelinked —
+reconfirmed via a full regression boot: `MACHTEST PASS`/`SECURITYTEST
+PASS`/`PTHREADTEST PASS`/`FOUNDATIONTEST PASS`/`DISPATCHTEST PASS`, all 6
+`IOPCIDeviceNub` registrations, zero panics, screen-captured live).
+
+**`libkxld.a` builds and runs standalone, for the first time in this
+project.** `src/xnu/libkern/kxld/Makefile` — a real, existing "libkxld build
+alias" Apple ships specifically so `kextcache`/`kextutil` can link real kxld
+into a userland tool, exactly the shape this phase needed — builds against
+this project's vendored SDK with two small, well-justified patches:
+1. The vendored SDK (a relabeled, lightly-patched copy of the *host's*
+   modern SDK — see Phase 1) has a `malloc/_malloc_type.h` whose
+   `__API_AVAILABLE(...)`-annotated declarations don't parse under
+   `-pedantic -Werror` with this specific clang/libc combination (a real,
+   caught-live macro-expansion incompatibility, not guessed) — worked
+   around by pre-defining that header's own include guard plus a
+   compatible empty `_MALLOC_TYPED(...)` macro via `-D` flags, entirely
+   from the build invocation, no source patch needed.
+2. `kxld_util.c`'s `s_cross_link_page_size = PAGE_SIZE` fails to compile
+   ("initializer element is not a compile-time constant") because this
+   SDK's non-kernel `PAGE_SIZE` expands to the runtime extern
+   `vm_page_size`, not a literal — fixed with a one-line source patch to a
+   literal `4096` (x86_64's real, fixed page size; this project has exactly
+   one target, so the "cross-link to a different page size" feature this
+   field exists for is moot regardless).
+
+**The host-side driver** (`kxld_link_tool.c`) calls the real, public
+`kxld_create_context`/`kxld_link_file` API with the running kernel's own
+Mach-O image as the sole KPI dependency (ground-truthed: real Darwin's
+`OSKext::initialize()` points `sKernelKext`'s `linkedExecutable` at the
+*entire* live kernel image, not a separate per-KPI library file — matches
+this project having no separate KPI dylib to point at either). One real bug
+caught before it shipped: passing `cputype=0`/`cpusubtype=0` to
+`kxld_create_context` ("0 for host arch" per its own doc comment) resolved
+against the *physical* build machine's architecture rather than this
+tool's own (forced `-arch x86_64`), producing "Invalid magic number" on a
+genuinely valid Mach-O — fixed by passing `CPU_TYPE_X86_64`/
+`CPU_SUBTYPE_X86_64_ALL` explicitly rather than trusting the "0 means host"
+auto-detection.
+
+**Verified live and concrete, not just "it compiled":** a real test kext
+(`userland/kexts/HelloKext/`, a genuine `IOService` subclass with a real
+`kmod_info_t` via `KMOD_EXPLICIT_DECL`) compiled with `-fapple-kext -mkernel`
+against the SDK's real `Kernel.framework` headers, linked with `-Xlinker
+-kext` into a genuine `MH_KEXT_BUNDLE` (290 undefined KPI symbols going in),
+then run through `kxld_link_tool` against this project's own
+`kernel.development` — **`kxld_link_file` succeeded**, producing a
+fully-linked kext with **zero remaining undefined symbols and no
+`LC_DYSYMTAB` at all** (kxld resolved every one of the 290 externs against
+the real kernel image's real, unstripped 35168-symbol table — confirmed via
+`nm -u` showing nothing left).
+
+**The Mach-O merge tool** (`prelink_merge.py`, now at v3) grows the kernel's
+existing (normally zero-sized) `__PRELINK_TEXT`/`__PRELINK_INFO` segments
+*in place* at their existing vmaddr, rather than appending new content at a
+fresh address. This was not the first design tried — an intermediate v2
+placed the new content at `kext_alloc_base` (`g_kext_map`'s own address,
+2GB below `__TEXT`'s end) to try to satisfy `kext_free()`'s expectations,
+but that turned out to be physically unreachable at UEFI boot time in
+QEMU/OVMF regardless of RAM size, *and* unnecessary once the real root
+cause was found (see bug 1 below) — so v3 reverts to v1's simpler,
+already-UEFI-proven placement: grow in place, right after the kernel's own
+last real segment, in the gap before the FAT16 RAMDisk's fixed physical
+load address. `boot/boot.c`'s UEFI loader derives a segment's *physical*
+load address from only the low 32 bits of its vmaddr, so this placement was
+chosen specifically to avoid colliding with the RAMDisk. Every load command
+whose fields reference a file offset or vmaddr at or past the insertion
+point gets shifted by the inserted size — enumerated from this kernel's own
+`otool -l` output (`__CTF`, `__LINKEDIT`, LC_SYMTAB, LC_DYSYMTAB's
+`indirectsymoff`/`locreloff`, LC_FUNCTION_STARTS), not assumed from a
+generic Mach-O reference.
+
+**The host-side driver, kxld link, and merge mechanics all verified working
+end to end**, same as before: `kxld_link_file` succeeds against the real
+running kernel with zero remaining undefined symbols (290 KPI externs
+resolved), and the merged kernel image reads cleanly under `nm`/`otool`.
+Getting a merged, mergeable-looking image to actually *boot and run its
+kext code* took six more real, previously-unexercised kernel bugs, found in
+this order by booting the actual thing and reading exactly where it broke:
+
+**Bug 1 — `kext_free()` panics on prelinked-kext memory regardless of where
+it's placed.** `OSKext::initWithPrelinkedInfoDict()` wraps a prelinked
+kext's executable in an `OSData` via `setDeallocFunction(osdata_kext_free)`,
+which unconditionally calls `kext_free()` → `mach_vm_deallocate(g_kext_map,
+...)`. Root-caused precisely: `kext_alloc()`/`vm_map_enter()` against
+`g_kext_map` is only ever invoked when the info dict carries a
+`_PrelinkExecutableSourceAddr` key (load address differs from source,
+needs a copy) — this project's `gen_prelink_plist.py` never emits that key
+— so the prelinked executable's memory is *never* entered into `g_kext_map`
+at all, no matter where `prelink_merge.py` places it. `kext_free()` was
+always going to panic "no map entry" against it. **Fix:** a new
+`osdata_prelinked_kext_free()` in `OSKext.cpp` — a no-op dealloc, used only
+for the prelinked-executable `OSData` — since this memory is boot-time
+static (placed directly by `boot/boot.c`, exactly like the kernel's own
+segments) and this project never unloads kexts anyway, so there is nothing
+meaningful to reclaim.
+
+**Bug 2 — `setVMAttributes()`'s `vm_map_protect()` call fails with
+`KERN_PROTECTION_FAILURE`.** With bug 1 fixed, `initWithPrelinkedInfoDict()`
+reaches `setVMAttributes(true, false)`, which calls `OSKext_protect()` to
+raise the kext's `__TEXT` segment to R+X. This failed every time,
+regardless of placement or of raising the Mach-O segment's own `maxprot`
+field (tried, had no effect — a red herring, see below). Root-caused via a
+temporary `kprintf` inside `vm_map_protect()` itself: the address falls
+inside `kernel_map`'s single giant leftover placeholder VM-map entry
+(`[0xffffff8000000000, 0xffffff801337a000)`, `max_protection=VM_PROT_NONE`)
+— nothing in this kernel's boot path ever carves a real, permissioned
+`kernel_map` entry for `__PRELINK_TEXT` specifically (real Apple's kernel
+does, as part of loading the kernelcache itself). Since `vm_map_protect`'s
+bookkeeping check compares against *that live entry's* `max_protection`,
+not the Mach-O file's `maxprot` field, raising the file-level field (still
+done in `prelink_merge.py` — harmless, matches real prelink conventions,
+just not sufficient alone) could never fix it. **Fix:** `setVMAttributes()`
+now special-cases `kext_get_vm_map(kmod_info) == kernel_map` (true for
+every prelinked kext, matching the ARM `LC_SEGMENT_SPLIT_INFO` branch a few
+lines below in the same function, which already documents and skips this
+exact class of situation: "already wired... let the platform code take
+care of protecting it") and returns success without calling
+`OSKext_protect()` — this is VM-map bookkeeping only; it does not touch
+real page-table permissions (see bug 3).
+
+**Bug 3 — the kext's own code is genuinely not executable at the hardware
+level (a real NX page fault).** With bugs 1–2 fixed, `OSKext::start()`
+would still crash the instant it tried to run kext code: `CPU 0 panic ...
+type 14=page fault ... VMM Kernel NX fault`, fault address exactly equal to
+the constructor's entry point. Decoded from the error code (`0x11` = present
++ instruction-fetch): this is a hardware execute-disable fault, not a VM
+bookkeeping one — bug 2's fix explains why (skipping `OSKext_protect()`
+also skips the one call that would have flipped the real page-table NX bit,
+via `pmap_protect()`'s side effects). Investigated and ruled out two more
+targeted fixes before landing on the real one: `pmap_protect()` directly
+cannot help — its own header comment states it plainly ("Will *NOT*
+increase permissions... New access permissions are granted via
+`pmap_enter()` only"). **Fix:** a new `OSKextGrantExecute()` in `OSKext.cpp`
+that re-enters each already-resident physical page of the kext's mapped
+range via `pmap_enter(kernel_pmap, va, pn, VM_PROT_READ|WRITE|EXECUTE, ...)`
+— physical page number computed via this project's established "phys =
+vmaddr's low 32 bits" convention (ground-truthed in `boot/boot.c`, valid
+here because slide=0), called from `initWithPrelinkedInfoDict()` before
+anything ever jumps into the kext's code.
+
+**Bug 4 — the kext's C++ static constructors never ran, so its
+`OSMetaClass`-derived `IOService` subclass was never registered.** With
+bugs 1–3 fixed, matching succeeded (`matchPassive`/`isModuleLoaded` both
+true) but `OSMetaClass::allocClassWithName()` returned `NULL` in
+`IOService::probeCandidates()` — "Couldn't alloc class". Root cause:
+nothing in this vendored kernel (grepped for `mod_init_func`/`callStructors`
+before assuming) ever walks a kext's `__DATA,__mod_init_func` section,
+because `kxld`/`OSKext` were real-but-uncalled before this phase and no
+kext has ever been prelinked in this tree until now. A hand-rolled fix
+(directly invoking the one `__mod_init_func` pointer) ran without
+crashing but still didn't register the class — `OSMetaClass`'s constructor
+needs `OSMetaClass::preModLoad()`'s "module currently loading" context set
+up first, which only the real `OSRuntimeInitializeCPP()` (already present,
+unmodified, in `OSRuntime.cpp` — real Apple calls it from `OSKext::start()`)
+does correctly. **Fix:** call the real `OSRuntimeInitializeCPP(this)` from
+`initWithPrelinkedInfoDict()`, *after* `registerIdentifier()` (see bug 5) —
+eager, at registration time, rather than deferred to an `OSKext::start()`
+that nothing in this project's simplified model would otherwise trigger for
+a kext that's already "loaded" per `isModuleLoaded()`.
+
+**Bug 5 — `OSMetaClass::postModLoad()` looks a kext up by its
+*kmod_info->name*, which must equal the real bundle identifier.** Bug 4's
+fix initially returned `kOSMetaClassNoKext` (`0xb`, decoded from the raw hex
+return value) even after moving it after `registerIdentifier()`. Root
+cause: `postModLoad()` calls `OSKext::lookupKextWithIdentifier(kmodInfo->
+name)` — but `HelloKext.cpp` used `KMOD_EXPLICIT_DECL(com_asteros_HelloKext,
+...)`, whose macro stringifies its bare identifier argument (`#name`) into
+`kmod_info->name`, and a bare C preprocessor token can't contain the dots a
+real bundle ID needs (`com.asteros.HelloKext`) — so `kmod_info->name` was
+`"com_asteros_HelloKext"` (underscored), never matching `sKextsByID`'s real,
+dotted key. The comment originally left on this in `HelloKext.cpp` ("the
+real bundle ID lives in Info.plist's CFBundleIdentifier... not this cosmetic
+kmod_info name field") was a wrong assumption, disproven live. **Fix:**
+`HelloKext.cpp` now builds its `kmod_info_t` directly instead of via
+`KMOD_EXPLICIT_DECL`, so `name` can hold the real, dotted identifier.
+
+**Bug 6 — `readStartupExtensions()` registers prelinked kexts' personalities
+without ever starting matching.** With bugs 1–5 fixed, the class registered
+correctly but `IOService::probeCandidates()` never ran for it at all.
+Root cause: `OSKext::sendAllKextPersonalitiesToCatalog()` is called with its
+default `startMatching=false` — correct for real Apple, where userspace
+`kextd` re-sends personalities with matching enabled once it's up, but this
+project has `NO_KEXTD` set unconditionally (`config/MASTER.x86_64`) and
+nothing else anywhere in this tree ever calls
+`IOService::catalogNewDrivers()` or re-sends with `true` — grepped for every
+call site before concluding this, not guessed. **Fix:** `bootstrap.cpp`'s
+`readStartupExtensions()` now passes `true` — the only matching trigger
+this project has, and the correct one for a permanently-`NO_KEXTD` boot.
+
+**With all six of the above fixed, HelloKext genuinely matches, its class
+registers via the real `OSMetaClass` machinery, and `probeCandidates()`
+allocates a real instance of it** — verified via `OSMetaClass::
+allocClassWithName()` returning a non-NULL instance pointer live in QEMU, a
+first for this entire project. **Where Phase 23 stops, precisely:** shortly
+after class allocation, walking the IOKit personality-uniquing path
+(`IOCatalogue::addDrivers()` → `OSKext::uniquePersonalityProperties()` →
+`OSSymbol::withString()` → `OSSymbolPool::findSymbol()`) page-faults on a
+"not present" (not NX this time) access at a fixed, deterministic address
+inside the kext's own `__TEXT` — the same address every run, ruling out a
+timing-dependent explanation. Leading hypothesis, not yet confirmed: the
+kext's physical pages, loaded directly by `boot.c` and never routed through
+`vm_page_bootstrap()`'s normal accounting, may not be excluded from the
+kernel's free-page list the way the kernel's own image is (via
+`vm_kernel_top`, itself derived from `&last_kernel_symbol` — a linker
+symbol baked in at the *original* kernel link, before `prelink_merge.py`'s
+post-link growth of `__PRELINK_TEXT`/`__LINKEDIT`, so potentially stale in
+exactly this scenario). An attempted fix along these lines (extending
+`vm_kernel_top` to cover the live, post-merge `__LINKEDIT` end in
+`i386_vm_init.c`) did not resolve it and was reverted rather than left in
+speculatively; the real mechanism needs more live investigation before
+touching `vm_page_bootstrap()` itself. **Not a regression risk either way**:
+all five landed fixes are inert when no kext is prelinked (verified by a
+full clean regression boot with `build/kernel/kernel.development` in its
+un-merged state — see the top of this section), so the kernel ships in that
+safe state; `userland/kexts/HelloKext/` and the whole
+`userland/toolchain/kextbuild/` pipeline remain in the tree as the exact
+reproduction case for whoever continues this.
+
 ## Known deviations from a literal reading of the task (documented, not oversights)
 - ~~BusyBox → our own tiny multicall static binary~~ — superseded, see Phase 9 above.
 - ~~Root filesystem → MOCKFS + RAMDisk~~ — superseded: the actual root filesystem is
