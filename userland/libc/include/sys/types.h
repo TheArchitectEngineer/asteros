@@ -28,7 +28,7 @@ typedef long blkcnt_t;
 typedef int blksize_t;
 typedef unsigned int fflags_t;
 typedef long time_t;
-typedef long suseconds_t;
+#include <sys/_types/_suseconds_t.h> /* __darwin_suseconds_t, guarded, matches struct timeval */
 typedef unsigned int useconds_t;
 typedef long clock_t;
 typedef unsigned long tcflag_t;

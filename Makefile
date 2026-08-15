@@ -139,6 +139,7 @@ run: image
 	    -drive if=pflash,format=raw,readonly=on,file=$(OVMF_CODE) \
 	    -drive if=pflash,format=raw,file=$(OVMF_VARS) \
 	    -drive format=raw,file=$(ESP_IMG) \
+	    -netdev user,id=net0 -device virtio-net-pci,netdev=net0 \
 	    -serial mon:stdio -no-reboot -no-shutdown
 
 # --- clean ----------------------------------------------------------------

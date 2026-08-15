@@ -24,13 +24,14 @@ void sys_icache_invalidate(const void *addr, size_t len) { (void)addr; (void)len
 
 #include <mach/mach.h>
 #include <mach/mach_host.h>
-mach_port_t mach_task_self(void) { return 1; }
-
-host_t
-mach_host_self(void)
-{
-	return 1;
-}
+/* mach_task_self()/mach_host_self() used to be honest-fake stubs here
+ * (returning a constant placeholder port name) -- real implementations
+ * now exist in mach_msg.c (Phase 21, backed by the genuine
+ * task_self_trap()/host_self_trap() Mach traps), so the stubs were
+ * removed rather than left as dead, now-incorrect duplicate symbols.
+ * host_statistics() below is unrelated (real host *info*, not just the
+ * host port itself) and stays a stub -- still correct, see this file's
+ * header comment and mach_host.h. */
 
 kern_return_t
 host_statistics(host_t host_priv, host_flavor_t flavor, host_info_t host_info_out,

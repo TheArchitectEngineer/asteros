@@ -248,6 +248,14 @@ extern kern_return_t thread_switch(
 
 extern mach_port_name_t task_self_trap(void);
 
+/* mach_reply_port: real Apple headers declare this here too, adjacent to
+ * task_self_trap. Added for Phase 21 (userland Mach IPC); implementation
+ * in mach_msg.c. (thread_self_trap/host_self_trap are only exposed at
+ * the higher mach_thread_self()/mach_host_self() level -- see
+ * mach/mach_init.h -- since nothing in this tree calls the raw trap
+ * names directly.) */
+extern mach_port_name_t mach_reply_port(void);
+
 extern kern_return_t host_create_mach_voucher_trap(
 	mach_port_name_t host,
 	mach_voucher_attr_raw_recipe_array_t recipes,

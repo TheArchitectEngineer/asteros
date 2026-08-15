@@ -14,6 +14,7 @@ extern int __libc_argc;
 extern char **__libc_argv;
 void __init_stack_chk_guard(void);
 void __init_default_rune_locale(void);
+void __mach_init_task_self(void); /* mach_msg.c, Phase 21 */
 
 int main(int argc, char **argv, char **envp);
 
@@ -45,6 +46,10 @@ __libc_start(int argc, char **argv, char **envp)
 	__libc_argc = argc;
 	__libc_argv = argv;
 	__init_default_rune_locale();
+	__mach_init_task_self(); /* also re-run in the child branch of
+	                          * fork() -- see syscalls.c -- since a
+	                          * forked child gets a genuinely new task
+	                          * port name, not a copy of the parent's */
 	run_mod_init_funcs();
 	int rc = main(argc, argv, envp);
 	exit(rc);

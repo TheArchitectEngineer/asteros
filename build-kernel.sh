@@ -10,7 +10,115 @@ SDKROOT="$ROOT/build/SDKs/MacOSX10.15.sdk"
 TOOLS_BIN="$ROOT/build/tools/bin"
 XCRUN_WRAPPER="$TOOLS_BIN/xcrun"
 
+# build/ is entirely gitignored, so the wrapper has to be (re)materialized
+# here on every run rather than just living on disk as a hand-created file
+# -- otherwise a fresh clone, or a `make clean` that removes build/tools,
+# silently loses this fix and the original "real xcrun can't resolve our
+# SDK path" bug (patches/0002, patches/0017) comes back with no wrapper at
+# all. Always overwritten (not "only if missing") so this script's own
+# content is the one source of truth -- a stale hand-edited copy on disk
+# can never drift from what's actually tracked in git.
+mkdir -p "$TOOLS_BIN"
+cat > "$XCRUN_WRAPPER" <<'XCRUN_WRAPPER_EOF'
+#!/bin/bash
+# Shim xcrun for the xnu build.
+#
+# xnu's makedefs/MakeInc.cmd assumes SDKROOT is a *name* xcrun understands
+# (e.g. "macosx", "macosx.internal") and shells out to
+# `xcrun -sdk $(SDKROOT) -show-sdk-path` / `-find <tool>` / etc.  We instead
+# want SDKROOT to be our own local, header-patched copy of the SDK
+# (build/SDKs/MacOSX10.15.sdk), which real xcrun refuses to resolve via
+# `-sdk <path>` on this Xcode/macOS version ("SDK ... cannot be located").
+#
+# This wrapper intercepts just the `-sdk <OUR_SDK_PATH> ...` calls xnu's
+# build makes and answers them directly; everything else (in particular
+# `-find <tool>`, since the actual clang/ld/mig/etc binaries are the same
+# regardless of sysroot) is forwarded to the real system xcrun using the
+# real "macosx" SDK.
+#
+# Path matching is done by filesystem identity (device:inode via `stat`),
+# not a string compare and NOT `cd ... && pwd -P` either -- both were tried
+# and ground-truthed live to be unreliable here: on this case-insensitive-
+# but-case-preserving APFS volume, `pwd`/$PWD inside a shell reflects
+# whatever literal case was used to `cd` into the tree (e.g. a differently-
+# cased Terminal tab), so the SDKROOT string a `make` invocation ends up
+# with can legitimately differ in case from whatever case this script
+# itself sees, even though both name the exact same on-disk directory. A
+# naive `[[ "$sdk_arg" == "$OUR_SDK" ]]` string compare mismatches in that
+# case (confirmed live) and falls through to the real, broken-for-our-path
+# xcrun. `cd "$path" && pwd -P` was tried next on the theory that physical-
+# path resolution would normalize the case, and does when run standalone
+# at a shell prompt, but was confirmed live to sometimes return the
+# still-differently-cased input path when run inside a script invoked as a
+# fresh `bash somescript` process instead (an APFS directory-entry-cache
+# quirk, not something worth depending on either way). `stat -f '%d:%i'`
+# (device+inode) is the one thing ground-truthed to be genuinely identical
+# for both case-spellings of the same directory every time, regardless of
+# how it's invoked -- it answers "is this the same directory" directly,
+# rather than trying to get two path *strings* to agree.
+set -e
+
+REAL_XCRUN=/usr/bin/xcrun
+
+dir_id() {
+    # Empty output (not an error) for a nonexistent/inaccessible path --
+    # callers treat "" as "can't be our SDK, don't intercept".
+    stat -f '%d:%i' "$1" 2>/dev/null || true
+}
+
+# OUR_SDK is derived from *this script's own* location, not a hardcoded
+# absolute path baked in at some prior point in time -- this script lives
+# at build/tools/bin/xcrun, so the SDK is two directories up from build/.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_SDK="$SELF_DIR/../../SDKs/MacOSX10.15.sdk"
+OUR_SDK="${DARWINBUILD_SDKROOT:-$DEFAULT_SDK}"
+OUR_SDK_ID="$(dir_id "$OUR_SDK")"
+
+args=("$@")
+sdk_arg=""
+for i in "${!args[@]}"; do
+    if [[ "${args[$i]}" == "-sdk" ]]; then
+        next=$((i + 1))
+        sdk_arg="${args[$next]}"
+        break
+    fi
+done
+
+if [ -n "$OUR_SDK_ID" ] && [ -n "$sdk_arg" ] && [ "$(dir_id "$sdk_arg")" = "$OUR_SDK_ID" ]; then
+    for a in "$@"; do
+        case "$a" in
+            -show-sdk-path) echo "$sdk_arg"; exit 0 ;;
+            -show-sdk-version) echo "10.15"; exit 0 ;;
+            -show-sdk-platform-path) exec "$REAL_XCRUN" -sdk macosx -show-sdk-platform-path ;;
+            -show-sdk-platform-version) echo "10.15"; exit 0 ;;
+        esac
+    done
+    # -find <tool> and anything else: delegate to the real macosx SDK,
+    # since the actual toolchain binaries don't depend on our sysroot copy.
+    new_args=()
+    skip_next=0
+    for a in "$@"; do
+        if [[ $skip_next -eq 1 ]]; then skip_next=0; continue; fi
+        if [[ "$a" == "-sdk" ]]; then new_args+=("-sdk" "macosx"); skip_next=1; continue; fi
+        new_args+=("$a")
+    done
+    exec "$REAL_XCRUN" "${new_args[@]}"
+fi
+
+exec "$REAL_XCRUN" "$@"
+XCRUN_WRAPPER_EOF
+chmod +x "$XCRUN_WRAPPER"
+
 export PATH="$TOOLS_BIN:$PATH"
+# A real environment variable, not just a `make XCRUN=...` command-line
+# argument -- inherited by every recursive $(MAKE) invocation xnu's
+# exporthdrs/installhdrs/kernel-build steps make, unconditionally, via
+# plain process-environment inheritance rather than depending on GNU
+# Make's command-line-variable-to-MAKEFLAGS propagation reaching every
+# one of them. src/xnu/makedefs/MakeInc.cmd's XCRUN default now reads
+# this (patches/0017) instead of hardcoding /usr/bin/xcrun, which cannot
+# resolve our own local SDKROOT copy on this host (patches/0002).
+export DARWINBUILD_XCRUN="$XCRUN_WRAPPER"
 
 log() { printf '\n=== %s ===\n' "$1"; }
 

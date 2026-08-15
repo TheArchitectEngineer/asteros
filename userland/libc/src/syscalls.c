@@ -1,6 +1,9 @@
 /* POSIX libc functions implemented directly as raw BSD syscalls -- no
  * dyld, no Libsystem. See syscall_raw.h for the ABI notes. */
 #include "syscall_raw.h"
+
+void __mach_init_task_self(void); /* mach_msg.c, Phase 21 -- re-cache the
+                                    * task port name in a forked child */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -246,6 +249,12 @@ fork(void)
 		return -1;
 	}
 	if (rdx != 0) {
+		__mach_init_task_self(); /* child gets a genuinely new task
+		                          * port name -- mach_task_self_ was
+		                          * cached at __libc_start time in the
+		                          * now-parent process and would
+		                          * otherwise be silently stale/wrong
+		                          * in the child (Phase 21). */
 		return 0; /* child */
 	}
 	return (pid_t)rax; /* parent: child's pid */

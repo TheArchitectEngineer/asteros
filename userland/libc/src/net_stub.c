@@ -1,10 +1,8 @@
-/* No network stack in this kernel config (see docs/architecture.md) --
- * every enabled busybox applet is local-only, but a few shared libbb
- * helper files (bb_getsockname.c etc.) unconditionally reference the
- * BSD sockets API at compile time even though nothing in our .config
- * ever calls into them at runtime. Stub implementations that report
- * failure keep the link satisfied without pretending to have working
- * networking. */
+/* No DNS/hostname resolution in this kernel config (see docs/architecture.md)
+ * -- the actual socket syscalls (socket/bind/connect/accept/send/recv/...)
+ * are real, implemented in socket.c against the AF_UNIX transport the X11
+ * milestone needs. This file only stubs the inet/DNS-name-resolution side,
+ * which has no backing network stack to resolve against. */
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -12,21 +10,6 @@
 
 int h_errno;
 const char *hstrerror(int err) { (void)err; return "network not supported"; }
-
-int socket(int domain, int type, int protocol) { (void)domain; (void)type; (void)protocol; errno = ENOSYS; return -1; }
-int bind(int s, const struct sockaddr *addr, socklen_t len) { (void)s; (void)addr; (void)len; errno = ENOSYS; return -1; }
-int connect(int s, const struct sockaddr *addr, socklen_t len) { (void)s; (void)addr; (void)len; errno = ENOSYS; return -1; }
-int listen(int s, int backlog) { (void)s; (void)backlog; errno = ENOSYS; return -1; }
-int accept(int s, struct sockaddr *addr, socklen_t *len) { (void)s; (void)addr; (void)len; errno = ENOSYS; return -1; }
-ssize_t send(int s, const void *buf, size_t len, int flags) { (void)s; (void)buf; (void)len; (void)flags; errno = ENOSYS; return -1; }
-ssize_t sendto(int s, const void *buf, size_t len, int flags, const struct sockaddr *to, socklen_t tolen) { (void)s; (void)buf; (void)len; (void)flags; (void)to; (void)tolen; errno = ENOSYS; return -1; }
-ssize_t recvfrom(int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen) { (void)s; (void)buf; (void)len; (void)flags; (void)from; (void)fromlen; errno = ENOSYS; return -1; }
-ssize_t recv(int s, void *buf, size_t len, int flags) { (void)s; (void)buf; (void)len; (void)flags; errno = ENOSYS; return -1; }
-int setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen) { (void)s; (void)level; (void)optname; (void)optval; (void)optlen; errno = ENOSYS; return -1; }
-int getsockopt(int s, int level, int optname, void *optval, socklen_t *optlen) { (void)s; (void)level; (void)optname; (void)optval; (void)optlen; errno = ENOSYS; return -1; }
-int shutdown(int s, int how) { (void)s; (void)how; errno = ENOSYS; return -1; }
-int getsockname(int s, struct sockaddr *addr, socklen_t *len) { (void)s; (void)addr; (void)len; errno = ENOSYS; return -1; }
-int getpeername(int s, struct sockaddr *addr, socklen_t *len) { (void)s; (void)addr; (void)len; errno = ENOSYS; return -1; }
 
 struct hostent *gethostbyname(const char *name) { (void)name; return (void *)0; }
 struct hostent *gethostbyaddr(const void *addr, size_t len, int type) { (void)addr; (void)len; (void)type; return (void *)0; }

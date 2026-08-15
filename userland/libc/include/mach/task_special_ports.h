@@ -67,7 +67,20 @@
 #ifndef _MACH_TASK_SPECIAL_PORTS_H_
 #define _MACH_TASK_SPECIAL_PORTS_H_
 
+#include <mach/kern_return.h>
+#include <mach/port.h>
+#include <sys/cdefs.h>
+
 typedef int     task_special_port_t;
+
+/* Hand-marshaled MIG client stubs (Phase 21) -- see
+ * mach_special_ports.c. Real Darwin declares these in mach/task.h; this
+ * project doesn't have a full task.h, so they live here next to the
+ * task_get/set_special_port macros that are their only real callers. */
+__BEGIN_DECLS
+extern kern_return_t task_get_special_port(mach_port_t task, int which_port, mach_port_t *special_port);
+extern kern_return_t task_set_special_port(mach_port_t task, int which_port, mach_port_t special_port);
+__END_DECLS
 
 #define TASK_KERNEL_PORT        1       /* Represents task to the outside
 	                                 *  world.*/
