@@ -12,6 +12,7 @@
 #define XPC_INTERNAL_H
 
 #include <xpc/xpc.h>
+#include <mach/bootstrap.h>
 #include <mach/mach_init.h>
 #include <mach/mach_port.h>
 #include <mach/mach_traps.h>
@@ -91,6 +92,7 @@ struct xpc_peer_entry {
 struct xpc_connection_data {
 	mach_port_name_t local_port;   /* our receive right (shared with every accepted peer, if we're a listener) */
 	mach_port_name_t remote_port;  /* send right to the peer; MACH_PORT_NULL on a not-yet-activated listener */
+	char service_name[BOOTSTRAP_MAX_NAME_LEN]; /* the name passed to xpc_connection_create_mach_service() */
 	dispatch_queue_t targetq;
 	xpc_handler_t handler;         /* Block_copy'd */
 	xpc_handler_f_t handler_f;

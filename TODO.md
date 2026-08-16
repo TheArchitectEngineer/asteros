@@ -2200,6 +2200,192 @@ on-target, no host round-trip required.
   same way `userland/mkrootfs.sh` already does for the on-target case,
   just not needed for this phase's plain-libobjc smoke test.
 
+## Phase 28 — Real bootstrap-namespace service management (xpcd): DONE, verified live in QEMU
+
+Goal: close Phase 26 libxpc's own documented v1 gap ("No named multi-service
+bootstrap lookup... that's Phase 25's configd groundwork") for real --
+`xpc_connection_create_mach_service()`'s `name` argument previously
+discarded outright (`(void)name;`, `xpc_connection.c`), with every process
+getting exactly one implicit "service" by hijacking its own
+`TASK_BOOTSTRAP_PORT` directly. Two named services could never coexist in
+one process tree.
+
+**Decision: hosted inside launchd itself, not a separate `xpcd` binary**
+(confirmed with the user before implementing) -- this matches real modern
+Darwin, where launchd absorbed the bootstrap/`mach_init` role decades ago;
+there's no standalone `xpcd` process on real macOS either. launchd is
+already the ancestor of every process on this system, so this is also the
+only place a shared registry can sit "for free" via the kernel's existing
+`ipc_task_init()` bootstrap-port inheritance.
+
+**Protocol** (`mach/bootstrap.h`, wire structs in the new private
+`mach/bootstrap_priv.h`, client stubs in the new
+`userland/libc/src/mach_bootstrap.c`): `bootstrap_register()`/
+`bootstrap_look_up()`, hand-marshaled in exactly `mach_special_ports.c`'s
+style (own `NDR_record_t`, `mach_msg_overwrite()` with a separate reply
+buffer) but with this project's own `msgh_id` numbering and struct shapes
+-- there's no real xnu-generated server header to ground-truth against
+here, since real Darwin's bootstrap protocol is served by launchd in
+userland, not a kernel MIG subsystem, and this project doesn't attempt to
+replicate Apple's actual (version-jumbled: register/register2/look_up/
+look_up2/look_up3) wire format. Same "our own design, nothing outside this
+OS's own process pairs ever needs to decode it" precedent as libxpc's own
+TLV wire format (Phase 26). `bootstrap_register`'s request is a COMPLEX
+message (one `mach_msg_port_descriptor_t`, `COPY_SEND`) + a fixed 128-byte
+name field; `bootstrap_look_up`'s reply is the same success/error union
+shape `task_get_special_port`'s reply already uses. No kernel changes were
+needed anywhere in this phase -- port descriptors in complex messages were
+already proven in both directions by `mach_special_ports.c`'s existing
+`task_get_special_port`/`task_set_special_port`; this phase only adds
+userland code building/parsing the same kind of message for a protocol
+this project defines itself.
+
+**Server** (`userland/launchd/bootstrap_server.c`, called from `launchd.c`'s
+`main()` before `load_all_daemons()`): installs launchd's own
+`TASK_BOOTSTRAP_PORT` (every process forked afterward inherits a send right
+to it automatically, exactly `userland/mach_test/machtest_main.c`'s
+original single-service mechanism, just applied once at the top of the
+whole process tree instead of ad hoc per daemon), then a dedicated
+`pthread_create()`'d thread loops `mach_msg(MACH_RCV_MSG)` on it forever,
+demuxing `REGISTER`/`LOOKUP` against a plain mutex-guarded singly-linked
+list (`struct bs_service`) -- same "simple over premature" tradeoff as
+`dispatch_queue.c`'s runnable list and libxpc's own dictionary. Real
+pthreads (Phase 16) turned out to already be usable from launchd's fully
+static, no-dyld binary with zero extra wiring -- `pthread.c` lives in
+`userland/libc/src`, which the Makefile's `$(wildcard userland/libc/src/*.c
+...)` rule already compiles into the same `libc_obj` launchd links
+statically, confirmed by a real `nm` check on the built binary
+(`_pthread_create` present, no `LC_LOAD_DYLINKER`). Reply construction
+(`msgh_remote_port` = the received request's own `msgh_remote_port` field,
+`MOVE_SEND_ONCE`) is ground-truthed against `machtest_main.c`'s own reply
+code, which already empirically confirmed this exact kernel field-swap live
+in QEMU.
+
+**libxpc** (`xpc_connection.c`): the listener branch no longer clobbers its
+own `TASK_BOOTSTRAP_PORT` (that port is now launchd's shared registry,
+inherited at fork time -- every other daemon needs it left alone); it
+`bootstrap_register()`s its receive-derived send right under
+`xpc_connection_create_mach_service()`'s real `name` argument instead. The
+client branch replaced its old "the bootstrap port itself IS the service"
+shortcut with `bootstrap_look_up()` by that same name.
+
+**Verified live in QEMU, not just recompiled:** extended
+`userland/libxpc/test/xpctest.c` to register a *second*, independently-named
+listener (`"com.asteros.xpctest.second"`) alongside the original, with a
+deliberately different reply shape (`value*3`+`"pong2"` vs. the original's
+`value*2`+`"pong"`) so a passing test has to prove the two names actually
+resolved to two different ports, not just that "a reply arrived." A third
+lookup against a name that was never registered
+(`"com.asteros.xpctest.nonexistent"`) confirms failure is real, not a
+silent match-anything: screen-captured via QEMU monitor `screendump`,
+`xpc: client bootstrap_look_up("com.asteros.xpctest.nonexistent") failed
+kr=15` (`KERN_INVALID_NAME`) printed exactly where expected, followed by
+`XPCTEST PASS (child side)` and `XPCTEST PASS`. Full regression suite
+alongside it, same boot, all green: `MACHTEST PASS`, `SECURITYTEST PASS`,
+`PTHREADTEST PASS`, `FOUNDATIONTEST PASS`, `DISPATCHTEST PASS`,
+`HELLO_OBJC PASS` -- no regression to anything this builds on top of. A
+second `screendump` ~20s later showed an unchanged, idle console (steady
+state, not a hang) with the QEMU process itself back near-idle CPU.
+
+**Known v1 limitations (documented, not oversights):**
+- No `MachServices` plist parsing / on-demand (lazy-launch) service
+  activation. A daemon calls `bootstrap_register()` itself once it's
+  already running (via `xpc_connection_create_mach_service(..., LISTENER)`),
+  same as before this phase.
+- No dead-name/no-more-senders notification. A registry entry for a
+  crashed service isn't pruned automatically -- a later lookup still
+  returns its stale port, and only fails when a client actually tries to
+  send to it.
+
+## Phase 29 — launchctl: DONE, verified live in QEMU
+
+Goal: a real command-line client for launchd -- the commonly-used core of
+modern macOS launchctl's subcommand set (`list`, `start`, `stop`, `load`,
+`unload`), talking to the live launchd process over genuine Mach IPC, not
+a stub that only reads static plist files.
+
+**Protocol** (`userland/launchd/launchd_control.h`, client stubs in the new
+shared `userland/launchd/launchd_control_client.c`): same tier as Phase
+28's bootstrap protocol -- hand-marshaled, own `msgh_id` range (9200+),
+own struct shapes, `MAX_TRAILER_SIZE`-padded reply buffers. Has to live at
+this level rather than as libxpc traffic: launchd is a fully static,
+no-dyld binary (see its Makefile rule), so it can't link libxpc at all.
+**The control service is just another named bootstrap-namespace entry**
+(`LCTL_SERVICE_NAME = "com.asteros.launchd.control"`), published by
+`control_server.c` via the exact same `bootstrap_register()` every other
+daemon uses and reached by launchctl via the exact same
+`bootstrap_look_up()` -- no special-casing, and incidentally a second live
+proof (after Phase 28's own xpctest) that the registry genuinely works for
+an arbitrary named service, including one launchd hosts on itself.
+
+**Server** (`userland/launchd/control_server.c`, started from `launchd.c`'s
+`main()` right after `bootstrap_server_start()`): a second dedicated
+`pthread_create()`'d thread, same shape as `bootstrap_server.c`'s own,
+demuxing `LIST`/`START`/`STOP`/`LOAD`/`UNLOAD` into `launchd_ops.h`'s
+`lc_*()` functions -- real operations against launchd's own live daemon
+table (`g_daemons[]`), not a separate/shadow copy. This required actually
+making that table thread-safe for the first time (`g_daemons_lock`, a
+`pthread_mutex_t`): the main supervision loop's reap/respawn path,
+`start_runatload_daemons()`, `do_shutdown()`, and the new `lc_*()` ops all
+now hold it around every table access, with `find_by_pid()`/
+`find_by_label()`/`running_count()`/`spawn_daemon()` as small assume-the-
+lock-is-already-held helpers underneath. `lc_unload()` uses a per-slot
+`unloaded` flag rather than physically compacting the fixed `g_daemons[]`
+array (other code holds pointers into it) -- set under the same lock
+*before* the `SIGTERM` that stops the job, so the exit/respawn race a
+`KeepAlive` job could otherwise hit (reaped after being unloaded, then
+respawned anyway) can't happen: by the time the reap loop sees the exit,
+`unloaded` is already visible.
+
+**launchctl itself** (`userland/launchctl/`): a static, raw-syscall binary
+(no dyld), same build shape as launchd/busybox -- real launchctl is a
+lightweight standalone tool with no actual need for
+libxpc/Foundation/dyld, and launchd (which this shares its client-stub
+source file with) is static for the same reason. Ships at `/bin/launchctl`
+(`userland/mkrootfs.sh`).
+
+**Verified live in QEMU, not just recompiled:** the new
+`userland/launchd/test/launchctltest.c` (a `RunAtLoad` daemon,
+`com.asteros.launchctltest`) drives the exact same client stubs launchctl
+itself uses through a full real lifecycle against a job it defines itself
+at runtime (writes a plist to `/tmp`, `Label
+com.asteros.launchctltest.dynamic`, `ProgramArguments /bin/busybox cat` --
+`cat` with no arguments blocks reading from its inherited `/dev/console`
+stdin indefinitely, a long-running child using only an applet this
+project's busybox build actually has compiled in, since Phase 9's
+enabled-applet list has no `sleep`; a first attempt using `sleep 9999`
+was tried and immediately caught by this test itself, live in QEMU --
+`sleep: applet not found`, the child exiting before the "is it running"
+check could observe it, a real bug in the test's own design, not in the
+mechanism, fixed before the passing run below): `load` (job appears,
+`pid==0`) -> `start` (job appears, `pid>0`) -> a second `start` on the
+now-running job (`status==-2`, the documented already-running no-op, not
+a second fork) -> `stop` -> bounded poll for launchd's own reap loop to
+actually collect the exit -> `unload` (job disappears from `list`) ->
+`start` on a label that was never loaded at all (`status==-1`, the real
+not-found path, not a silent success). `LAUNCHCTLTEST PASS` printed
+exactly once every step succeeded, confirmed via QEMU monitor
+`screendump` alongside a full, unregressed boot-time suite: `MACHTEST
+PASS`, `HELLO_OBJC PASS`, `CFTEST PASS`, `SECURITYTEST PASS`, `XPCTEST
+PASS (child side)`/`XPCTEST PASS`, `PTHREADTEST PASS`, `FOUNDATIONTEST
+PASS`, `DISPATCHTEST PASS` -- no regression to anything this builds on
+top of, console settled to idle afterward (steady state, not a hang).
+
+**Known v1 limitations (documented, not oversights):**
+- Only `list`/`start`/`stop`/`load`/`unload` -- not real macOS
+  launchctl's full modern surface (`bootstrap`/`bootout`/`print`/
+  `kickstart`/domain targeting/etc). This project's launchd has one flat
+  namespace (no per-user/per-session domains to target in the first
+  place), so the domain-qualified subcommands wouldn't map to anything
+  real here.
+- `list` with no arguments shows current pid only, not real launchctl's
+  last-exit-status column -- `struct daemon` doesn't track that yet.
+- `load`/`unload` operate on an in-memory table only; a dynamically
+  loaded job doesn't persist across reboot the way copying a plist into
+  `/etc/launchd/daemons` would (matches real launchctl's own `load`/
+  `unload` semantics, for what it's worth -- those were always runtime-
+  only too, `/Library/LaunchDaemons` is the persistence mechanism there).
+
 ## Known deviations from a literal reading of the task (documented, not oversights)
 - ~~BusyBox → our own tiny multicall static binary~~ — superseded, see Phase 9 above.
 - ~~Root filesystem → MOCKFS + RAMDisk~~ — superseded: the actual root filesystem is

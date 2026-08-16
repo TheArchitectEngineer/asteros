@@ -8,24 +8,32 @@
  * (userland/libc/src/mach_msg.c) and libdispatch (userland/libdispatch)
  * -- see xpc/connection.h.
  *
+ * xpc_connection_create_mach_service()'s `name` is real: it round-trips
+ * through launchd's own bootstrap-namespace registry
+ * (bootstrap_register()/bootstrap_look_up(), mach/bootstrap.h; server side
+ * userland/launchd/bootstrap_server.c) rather than being discarded in
+ * favor of the old one-well-known-port-per-process-tree hack
+ * userland/mach_test/machtest_main.c originally established -- multiple
+ * independently-named services can coexist in the same process tree now.
+ *
  * Deliberately out of v1 (documented, not oversights -- see TODO.md's
  * libxpc phase for the full reasoning):
  *   - No OOL Mach descriptors. Every message is a single inline mach_msg
  *     send capped at XPC_WIRE_MAX_PAYLOAD (xpc_internal.h) -- userland OOL
  *     send/receive is unwritten anywhere in this tree (kernel-side copyin/
  *     copyout is real and unmodified, but no userland code has ever built
- *     a MACH_MSGH_BITS_COMPLEX message with an OOL descriptor yet).
+ *     a MACH_MSGH_BITS_COMPLEX message with an OOL *memory* descriptor yet
+ *     -- port descriptors, a different descriptor kind, are real, see
+ *     bootstrap_register()/bootstrap_look_up()).
  *   - No xpc_fd_t/xpc_shmem_t/xpc_uuid_t/xpc_date_t/xpc_endpoint_t --
  *     each needs either OOL/rights plumbing or a service this OS doesn't
  *     have yet.
- *   - No named multi-service bootstrap lookup. Only the same
- *     one-well-known-port-per-process-tree pattern
- *     userland/mach_test/machtest_main.c already established (a listener
- *     installs its receive right as its own TASK_BOOTSTRAP_PORT; children
- *     forked afterward inherit a send right to it automatically). Real
- *     xpc_connection_create_mach_service()'s "look up an arbitrary named
- *     service in a shared namespace" semantics need a bootstrap daemon
- *     this OS doesn't have (that's Phase 25's configd groundwork).
+ *   - No MachServices plist / on-demand (lazy-launch) service activation --
+ *     a daemon calls xpc_connection_create_mach_service() with the
+ *     LISTENER flag itself once it's already running, same as before; no
+ *     dead-name pruning either, so a registry entry for a crashed service
+ *     isn't removed automatically (see bootstrap_server.c's own limitations
+ *     note).
  *   - No code-signing / entitlement peer-requirement checks (no
  *     code-signing subsystem to check against).
  */

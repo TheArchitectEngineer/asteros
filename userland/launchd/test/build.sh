@@ -22,3 +22,15 @@ CFLAGS=(-target x86_64-apple-macos10.15 -ffreestanding -fno-stack-protector
 
 echo "built: $OUT/echotest"
 file "$OUT/echotest"
+
+# launchctltest: same client stubs launchctl itself uses (Phase 29), see
+# launchctltest.c's file header.
+LCTL_CFLAGS=("${CFLAGS[@]}" -I "$ROOT/userland/launchd")
+"$CLANG" "${LCTL_CFLAGS[@]}" -c launchctltest.c -o "$OUT/launchctltest_main.o"
+"$CLANG" "${LCTL_CFLAGS[@]}" -c "$ROOT/userland/launchd/launchd_control_client.c" -o "$OUT/launchd_control_client.o"
+
+"$CLANG" -target x86_64-apple-macos10.15 -nostdlib -static -e _start \
+	"$OUT/launchctltest_main.o" "$OUT/launchd_control_client.o" "$ROOT"/build/libc_obj/*.o -o "$OUT/launchctltest"
+
+echo "built: $OUT/launchctltest"
+file "$OUT/launchctltest"

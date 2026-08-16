@@ -20,16 +20,17 @@ LIBC_STAMP  := build/libc_obj/.stamp
 BUSYBOX_BIN := src/busybox/busybox_unstripped
 NEATVI_BIN  := build/neatvi_obj/neatvi
 LAUNCHD_BIN := build/launchd/launchd
+LAUNCHCTL_BIN := build/launchctl_obj/launchctl
 
 TOOLCHAIN_CLANG := build/llvm-static-build/bin/clang
 TOOLCHAIN_LD    := build/ld64_bin/ld64
 
-.PHONY: all kernel bootloader libc busybox neatvi launchd toolchain image run clean help kernel-build busybox-build
+.PHONY: all kernel bootloader libc busybox neatvi launchd launchctl toolchain image run clean help kernel-build busybox-build
 
 all: image
 
 help:
-	@echo "targets: all, kernel, bootloader, libc, busybox, neatvi, launchd, toolchain, image, run, clean"
+	@echo "targets: all, kernel, bootloader, libc, busybox, neatvi, launchd, launchctl, toolchain, image, run, clean"
 
 # --- kernel -----------------------------------------------------------
 # `kernel-build` always delegates to build-kernel.sh, which itself calls
@@ -89,7 +90,11 @@ $(NEATVI_BIN): $(wildcard src/neatvi/*.c src/neatvi/*.h) $(LIBC_STAMP)
 # (ground-truthed in src/xnu/bsd/kern/kern_exec.c), so this ships at
 # /sbin/launchd -- see userland/mkrootfs.sh.
 launchd: $(LAUNCHD_BIN)
-$(LAUNCHD_BIN): userland/launchd/launchd.c userland/launchd/plist.c userland/launchd/plist.h $(LIBC_STAMP)
+$(LAUNCHD_BIN): userland/launchd/launchd.c userland/launchd/plist.c userland/launchd/plist.h \
+    userland/launchd/bootstrap_server.c userland/launchd/bootstrap_server.h \
+    userland/launchd/control_server.c userland/launchd/control_server.h \
+    userland/launchd/launchd_control.h userland/launchd/launchd_control_client.c \
+    userland/launchd/launchd_ops.h $(LIBC_STAMP)
 	mkdir -p build/launchd
 	$(CLANG) -target x86_64-apple-macos10.15 -ffreestanding -fno-stack-protector -fno-builtin \
 	    -nostdlibinc -isystem userland/libc/include -O1 -g \
@@ -97,8 +102,25 @@ $(LAUNCHD_BIN): userland/launchd/launchd.c userland/launchd/plist.c userland/lau
 	$(CLANG) -target x86_64-apple-macos10.15 -ffreestanding -fno-stack-protector -fno-builtin \
 	    -nostdlibinc -isystem userland/libc/include -O1 -g \
 	    -c userland/launchd/plist.c -o build/launchd/plist.o
+	$(CLANG) -target x86_64-apple-macos10.15 -ffreestanding -fno-stack-protector -fno-builtin \
+	    -nostdlibinc -isystem userland/libc/include -O1 -g \
+	    -c userland/launchd/bootstrap_server.c -o build/launchd/bootstrap_server.o
+	$(CLANG) -target x86_64-apple-macos10.15 -ffreestanding -fno-stack-protector -fno-builtin \
+	    -nostdlibinc -isystem userland/libc/include -O1 -g \
+	    -c userland/launchd/control_server.c -o build/launchd/control_server.o
+	$(CLANG) -target x86_64-apple-macos10.15 -ffreestanding -fno-stack-protector -fno-builtin \
+	    -nostdlibinc -isystem userland/libc/include -O1 -g \
+	    -c userland/launchd/launchd_control_client.c -o build/launchd/launchd_control_client.o
 	$(CLANG) -target x86_64-apple-macos10.15 -nostdlib -static -e _start \
-	    build/launchd/launchd.o build/launchd/plist.o build/libc_obj/*.o -o $(LAUNCHD_BIN)
+	    build/launchd/launchd.o build/launchd/plist.o build/launchd/bootstrap_server.o \
+	    build/launchd/control_server.o build/launchd/launchd_control_client.o \
+	    build/libc_obj/*.o -o $(LAUNCHD_BIN)
+
+# --- launchctl (launchd's control CLI) ---------------------------------
+launchctl: $(LAUNCHCTL_BIN)
+$(LAUNCHCTL_BIN): userland/launchctl/launchctl.c userland/launchctl/build.sh \
+    userland/launchd/launchd_control.h userland/launchd/launchd_control_client.c $(LIBC_STAMP)
+	bash userland/launchctl/build.sh
 
 # --- native toolchain (never built here -- see docs/architecture.md) ------
 # LLVM/clang/ld64 are cross-built by hand over many hours (Phase 10 in
@@ -121,7 +143,7 @@ toolchain:
 # them when a prerequisite's mtime genuinely changed, not on every run.
 image: $(ESP_IMG)
 
-$(ROOTFS_IMG): $(BUSYBOX_BIN) $(NEATVI_BIN) $(LAUNCHD_BIN)
+$(ROOTFS_IMG): $(BUSYBOX_BIN) $(NEATVI_BIN) $(LAUNCHD_BIN) $(LAUNCHCTL_BIN)
 	bash userland/mkrootfs.sh
 
 $(ESP_IMG): $(BOOTX64) $(KERNEL_BIN) $(ROOTFS_IMG)
@@ -149,7 +171,7 @@ run: image
 # Makefile doesn't own and never rebuilds on its own.
 clean:
 	rm -f $(KERNEL_BIN) $(BOOTX64) boot/boot.o boot/transition.o
-	rm -rf build/libc_obj build/neatvi_obj build/launchd
+	rm -rf build/libc_obj build/neatvi_obj build/launchd build/launchctl_obj
 	-$(MAKE) -C src/busybox clean
 	rm -f $(BUSYBOX_BIN)
 	rm -f $(ROOTFS_IMG) $(ESP_IMG)

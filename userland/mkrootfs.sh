@@ -46,6 +46,7 @@ mmd -i "$ROOTFS_IMG" ::/private/var/vm
 
 mcopy -i "$ROOTFS_IMG" src/busybox/busybox_unstripped ::/bin/busybox
 mcopy -i "$ROOTFS_IMG" build/launchd/launchd ::/sbin/launchd
+mcopy -i "$ROOTFS_IMG" build/launchctl_obj/launchctl ::/bin/launchctl
 
 mmd -i "$ROOTFS_IMG" ::/etc/launchd
 mmd -i "$ROOTFS_IMG" ::/etc/launchd/daemons
@@ -57,6 +58,11 @@ fi
 if [ -f build/launchd_test/echotest ]; then
 	echo "echotest found in build/ -- including it in the rootfs"
 	mcopy -i "$ROOTFS_IMG" build/launchd_test/echotest ::/bin/echotest
+fi
+if [ -f build/launchd_test/launchctltest ]; then
+	echo "launchctltest found in build/ -- including it in the rootfs"
+	mcopy -i "$ROOTFS_IMG" build/launchd_test/launchctltest ::/bin/launchctltest
+	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.launchctltest.plist ::/etc/launchd/daemons/com.asteros.launchctltest.plist
 fi
 if [ -f build/corefoundation_obj/cftest ]; then
 	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.cftest.plist ::/etc/launchd/daemons/com.asteros.cftest.plist

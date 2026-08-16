@@ -9,11 +9,16 @@
  * sender/receiver reply-port field swap).
  *
  * Bootstrap: a listener allocates a receive right, mints a send right at
- * the same name, and installs that send right as its own
- * TASK_BOOTSTRAP_PORT -- children forked afterward inherit a send right
- * to it automatically via the kernel's ipc_task_init(), exactly
- * machtest's mechanism (see xpc.h's scope note on why this isn't a named
- * multi-service lookup).
+ * the same name, and publishes it under xpc_connection_create_mach_service()'s
+ * `name` argument via bootstrap_register() (mach/bootstrap.h) against
+ * launchd's real bootstrap-namespace registry (userland/launchd/
+ * bootstrap_server.c) -- a client reaches the same port by name via
+ * bootstrap_look_up(), not by reading TASK_BOOTSTRAP_PORT directly. Both
+ * calls go through TASK_BOOTSTRAP_PORT only to *reach* launchd's registry
+ * (every process inherits a send right to it via the kernel's
+ * ipc_task_init(), exactly machtest's original single-service mechanism,
+ * just now pointed at a real multi-service registry instead of at an
+ * individual daemon's own port).
  *
  * Full-duplex addressing: xpc_connection_activate() mints ourselves a
  * self-held send right to our own local_port once (mach_port_insert_right,
@@ -73,9 +78,12 @@ _xpc_connection_destroy(struct xpc_connection_data *cd)
 xpc_connection_t
 xpc_connection_create_mach_service(const char *name, dispatch_queue_t targetq, uint64_t flags)
 {
-	(void)name; /* no named bootstrap namespace to look up against -- see xpc.h's scope note */
 	xpc_connection_t conn = _xpc_connection_alloc();
 	struct xpc_connection_data *cd = conn->u.conn;
+	if (name) {
+		strncpy(cd->service_name, name, sizeof(cd->service_name) - 1);
+		cd->service_name[sizeof(cd->service_name) - 1] = '\0';
+	}
 	cd->targetq = targetq ? targetq : dispatch_get_main_queue();
 	cd->is_listener = (flags & XPC_CONNECTION_MACH_SERVICE_LISTENER) != 0;
 	return conn;
@@ -413,34 +421,46 @@ xpc_connection_activate(xpc_connection_t connection)
 			fprintf(stderr, "xpc: listener mach_port_allocate failed kr=%d\n", kr);
 			return;
 		}
-		/* Mint a send right to install as the bootstrap port -- MOVE_SEND
-		 * semantics inside task_set_special_port() consume it, so this
-		 * first one is single-use. */
+		/* Mint a send right to publish via bootstrap_register() --
+		 * COPY_SEND there leaves this one intact, so it doubles as the
+		 * "self-held" send right send_wire() COPY_SENDs on every
+		 * outgoing message (see its own comment for why that's COPY_SEND
+		 * rather than a fresh MAKE_SEND per send). */
 		kr = mach_port_insert_right(mach_task_self(), recv_name, recv_name, MACH_MSG_TYPE_MAKE_SEND);
 		if (kr != KERN_SUCCESS) {
 			fprintf(stderr, "xpc: listener mach_port_insert_right failed kr=%d\n", kr);
 			return;
 		}
-		kr = task_set_special_port(mach_task_self(), TASK_BOOTSTRAP_PORT, recv_name);
-		if (kr != KERN_SUCCESS) {
-			fprintf(stderr, "xpc: listener task_set_special_port failed kr=%d\n", kr);
-			return;
-		}
-		/* Mint a second, separate send right that this task keeps for
-		 * itself -- see send_wire()'s comment on why every outgoing
-		 * message COPY_SENDs this one instead of re-deriving a fresh
-		 * MAKE_SEND from the receive right each time. */
-		kr = mach_port_insert_right(mach_task_self(), recv_name, recv_name, MACH_MSG_TYPE_MAKE_SEND);
-		if (kr != KERN_SUCCESS) {
-			fprintf(stderr, "xpc: listener self mach_port_insert_right failed kr=%d\n", kr);
-			return;
-		}
 		cd->local_port = recv_name;
+
+		/* Publish under our own name against launchd's registry instead
+		 * of clobbering our own TASK_BOOTSTRAP_PORT -- that port is now
+		 * launchd's shared registry port, inherited from launchd at
+		 * fork time, and every other daemon needs it left alone. */
+		mach_port_t bp = MACH_PORT_NULL;
+		kr = task_get_special_port(mach_task_self(), TASK_BOOTSTRAP_PORT, &bp);
+		if (kr != KERN_SUCCESS) {
+			fprintf(stderr, "xpc: listener task_get_special_port failed kr=%d\n", kr);
+			return;
+		}
+		kr = bootstrap_register(bp, cd->service_name, (mach_port_t)recv_name);
+		mach_port_deallocate(mach_task_self(), bp);
+		if (kr != KERN_SUCCESS) {
+			fprintf(stderr, "xpc: listener bootstrap_register(\"%s\") failed kr=%d\n", cd->service_name, kr);
+			return;
+		}
 	} else {
-		mach_port_t send_port = MACH_PORT_NULL;
-		kr = task_get_special_port(mach_task_self(), TASK_BOOTSTRAP_PORT, &send_port);
+		mach_port_t bp = MACH_PORT_NULL;
+		kr = task_get_special_port(mach_task_self(), TASK_BOOTSTRAP_PORT, &bp);
 		if (kr != KERN_SUCCESS) {
 			fprintf(stderr, "xpc: client task_get_special_port failed kr=%d\n", kr);
+			return;
+		}
+		mach_port_t send_port = MACH_PORT_NULL;
+		kr = bootstrap_look_up(bp, cd->service_name, &send_port);
+		mach_port_deallocate(mach_task_self(), bp);
+		if (kr != KERN_SUCCESS) {
+			fprintf(stderr, "xpc: client bootstrap_look_up(\"%s\") failed kr=%d\n", cd->service_name, kr);
 			return;
 		}
 		cd->remote_port = send_port;

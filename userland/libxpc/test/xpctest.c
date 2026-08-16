@@ -21,6 +21,19 @@
  * path: the parent's handler flips a flag the parent's own main()
  * observes after waitpid(), off the real dispatch_async_f() delivery a
  * background worker thread drains, not the receive thread itself.
+ *
+ * Real named multi-service bootstrap lookup (mach/bootstrap.h,
+ * userland/launchd/bootstrap_server.c) replaced the old single-ambient-
+ * port mechanism this file's history refers to above -- proven here by
+ * registering a *second*, independently-named listener
+ * ("com.asteros.xpctest.second") with an observably different reply
+ * (value*3 + "pong2" instead of value*2 + "pong") alongside the first,
+ * and having the child look both up by name and get back two genuinely
+ * different connections. A third lookup against a name that was never
+ * registered ("com.asteros.xpctest.nonexistent") confirms a failed
+ * lookup doesn't silently resolve to *any* service -- no reply ever
+ * arrives, checked with the same bounded-poll idiom as the oneway
+ * notify check below.
  */
 #include <xpc/xpc.h>
 #include <dispatch/dispatch.h>
@@ -31,6 +44,7 @@
 #include <sys/wait.h>
 
 static volatile int g_got_oneway = 0;
+static volatile int g_got_nonexistent_reply = 0;
 
 static void
 test_object_model(void)
@@ -128,6 +142,48 @@ run_service(void)
 	xpc_connection_activate(listener);
 }
 
+/* A second, independently-named service registered against the same
+ * shared launchd registry -- its handler is deliberately observably
+ * different (value*3 + "pong2") from service_handle_event()'s (value*2 +
+ * "pong") so the client can tell the two names apart by their replies,
+ * not just by "a reply arrived at all". */
+static void
+service_handle_event_second(xpc_object_t event)
+{
+	if (xpc_get_type(event) != XPC_TYPE_DICTIONARY) {
+		return;
+	}
+	const char *cmd = xpc_dictionary_get_string(event, "cmd");
+	if (!cmd || strcmp(cmd, "ping") != 0) {
+		return;
+	}
+	int64_t value = xpc_dictionary_get_int64(event, "value");
+	xpc_object_t reply = xpc_dictionary_create_reply(event);
+	xpc_dictionary_set_string(reply, "response", "pong2");
+	xpc_dictionary_set_int64(reply, "value", value * 3);
+	xpc_connection_send_message(xpc_dictionary_get_remote_connection(event), reply);
+	xpc_release(reply);
+}
+
+static void
+run_service_second(void)
+{
+	xpc_connection_t listener = xpc_connection_create_mach_service(
+	    "com.asteros.xpctest.second", NULL, XPC_CONNECTION_MACH_SERVICE_LISTENER);
+
+	xpc_connection_set_event_handler(listener, ^(xpc_object_t peer_obj) {
+		if (xpc_get_type(peer_obj) != XPC_TYPE_CONNECTION) {
+			return;
+		}
+		xpc_connection_t peer = peer_obj;
+		xpc_connection_set_event_handler(peer, ^(xpc_object_t event) {
+			service_handle_event_second(event);
+		});
+		xpc_connection_activate(peer);
+	});
+	xpc_connection_activate(listener);
+}
+
 static int
 run_client(void)
 {
@@ -177,6 +233,68 @@ run_client(void)
 	}
 	xpc_release(reply);
 
+	/* Second, independently-named service: proves the name actually
+	 * resolves to a *different* port through the shared registry, not
+	 * the same one every lookup used to return under the old single-
+	 * ambient-slot mechanism. */
+	xpc_connection_t client2 = xpc_connection_create_mach_service("com.asteros.xpctest.second", NULL, 0);
+	xpc_connection_set_event_handler(client2, ^(xpc_object_t event) {
+		(void)event;
+	});
+	xpc_connection_activate(client2);
+
+	xpc_object_t msg2 = xpc_dictionary_create_empty();
+	xpc_dictionary_set_string(msg2, "cmd", "ping");
+	xpc_dictionary_set_int64(msg2, "value", 21);
+	xpc_object_t reply2 = xpc_connection_send_message_with_reply_sync(client2, msg2);
+	xpc_release(msg2);
+
+	if (!reply2 || xpc_get_type(reply2) != XPC_TYPE_DICTIONARY) {
+		printf("XPCTEST FAIL (child): second service gave no dictionary reply\n");
+		return 1;
+	}
+	const char *resp2 = xpc_dictionary_get_string(reply2, "response");
+	if (!resp2 || strcmp(resp2, "pong2") != 0) {
+		printf("XPCTEST FAIL (child): second service bad response string %s\n", resp2 ? resp2 : "(null)");
+		return 1;
+	}
+	if (xpc_dictionary_get_int64(reply2, "value") != 63) {
+		printf("XPCTEST FAIL (child): second service bad echoed value %lld\n",
+		    (long long)xpc_dictionary_get_int64(reply2, "value"));
+		return 1;
+	}
+	xpc_release(reply2);
+
+	/* A name that was never registered anywhere: bootstrap_look_up()
+	 * fails, xpc_connection_activate() logs and returns without starting
+	 * a receive thread, and no reply -- from this or any other service --
+	 * should ever arrive. Uses the async send + bounded poll (not the
+	 * sync variant) since a lookup failure leaves nothing to ever wake a
+	 * blocking wait. */
+	xpc_connection_t client3 = xpc_connection_create_mach_service(
+	    "com.asteros.xpctest.nonexistent", NULL, 0);
+	xpc_connection_set_event_handler(client3, ^(xpc_object_t event) {
+		(void)event;
+		g_got_nonexistent_reply = 1;
+	});
+	xpc_connection_activate(client3);
+
+	xpc_object_t msg3 = xpc_dictionary_create_empty();
+	xpc_dictionary_set_string(msg3, "cmd", "ping");
+	xpc_connection_send_message_with_reply(client3, msg3, NULL, ^(xpc_object_t event) {
+		(void)event;
+		g_got_nonexistent_reply = 1;
+	});
+	xpc_release(msg3);
+
+	for (int i = 0; i < 10; i++) {
+		usleep(20000);
+	}
+	if (g_got_nonexistent_reply) {
+		printf("XPCTEST FAIL (child): got a reply from a name that was never registered\n");
+		return 1;
+	}
+
 	xpc_object_t notif = xpc_dictionary_create_empty();
 	xpc_dictionary_set_string(notif, "cmd", "notify");
 	xpc_connection_send_message(client, notif);
@@ -191,6 +309,7 @@ main(void)
 	test_object_model();
 
 	run_service();
+	run_service_second();
 
 	pid_t pid = fork();
 	if (pid < 0) {

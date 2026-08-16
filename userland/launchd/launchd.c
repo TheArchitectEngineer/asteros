@@ -26,7 +26,11 @@
 #include <stdarg.h>
 #include <time.h>
 #include <sys/sysctl.h>
+#include <pthread.h>
 #include "plist.h"
+#include "bootstrap_server.h"
+#include "control_server.h"
+#include "launchd_ops.h"
 
 #define MAX_DAEMONS      64
 #define DAEMONS_DIR      "/etc/launchd/daemons"
@@ -37,7 +41,23 @@ struct daemon {
 	struct daemon_config cfg;
 	pid_t pid; /* 0 if not currently running */
 	long long last_spawn_ms;
+	int unloaded; /* lc_unload()'d -- excluded from listing/respawn/shutdown,
+	               * and its label becomes loadable again via lc_load(). Not
+	               * physically removed from g_daemons[]: this is a fixed
+	               * array other code holds pointers into (find_by_pid()'s
+	               * return value in particular), so a flag avoids every
+	               * index-stability hazard a real compaction would add for
+	               * no real benefit at this scale. */
 };
+
+/* Guards every access to g_daemons[]/g_ndaemons -- both the main
+ * supervision loop (below) and control_server.c's dedicated thread (which
+ * drives the lc_* functions on launchctl's behalf) touch this table now.
+ * Contract: find_by_pid()/find_by_label()/running_count()/spawn_daemon()
+ * assume the lock is already held by their caller (small helpers, not
+ * worth making individually self-locking); the lc_* functions and every
+ * other direct table access take it themselves. */
+static pthread_mutex_t g_daemons_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static long long
 monotonic_ms(void)
@@ -189,6 +209,7 @@ load_all_daemons(void)
 
 	qsort(names, (size_t)nnames, sizeof(names[0]), cmp_str);
 
+	pthread_mutex_lock(&g_daemons_lock);
 	for (int i = 0; i < nnames; i++) {
 		if (g_ndaemons >= MAX_DAEMONS) {
 			llog_console("launchd", "MAX_DAEMONS reached, ignoring %s", names[i]);
@@ -200,6 +221,7 @@ load_all_daemons(void)
 		struct daemon *dm = &g_daemons[g_ndaemons];
 		if (plist_parse_daemon(path, &dm->cfg) == 0) {
 			dm->pid = 0;
+			dm->unloaded = 0;
 			g_ndaemons++;
 			llog_console("launchd", "loaded %s (label=%s)", names[i], dm->cfg.label);
 		} else {
@@ -207,32 +229,53 @@ load_all_daemons(void)
 		}
 		free(names[i]);
 	}
+	pthread_mutex_unlock(&g_daemons_lock);
 }
 
+/* Assumes g_daemons_lock is already held -- see its declaration comment. */
 static struct daemon *
 find_by_pid(pid_t pid)
 {
 	for (int i = 0; i < g_ndaemons; i++) {
-		if (g_daemons[i].pid == pid) {
+		if (!g_daemons[i].unloaded && g_daemons[i].pid == pid) {
 			return &g_daemons[i];
 		}
 	}
 	return NULL;
 }
 
+/* Assumes g_daemons_lock is already held. */
+static struct daemon *
+find_by_label(const char *label)
+{
+	for (int i = 0; i < g_ndaemons; i++) {
+		if (!g_daemons[i].unloaded && strcmp(g_daemons[i].cfg.label, label) == 0) {
+			return &g_daemons[i];
+		}
+	}
+	return NULL;
+}
+
+/* Assumes g_daemons_lock is already held. */
 static int
 running_count(void)
 {
 	int n = 0;
 	for (int i = 0; i < g_ndaemons; i++) {
-		if (g_daemons[i].pid > 0) {
+		if (!g_daemons[i].unloaded && g_daemons[i].pid > 0) {
 			n++;
 		}
 	}
 	return n;
 }
 
-/* Forks+execs d. If the previous run of this same daemon exited less
+/* Forks+execs d. Assumes g_daemons_lock is already held by the caller --
+ * deliberately not self-locking (the respawn-throttle sleep below can
+ * take up to RESPAWN_THROTTLE_MS, and every caller needs `d`'s fields
+ * left undisturbed by a concurrent lc_* call for that whole span, not
+ * just around the individual field writes).
+ *
+ * If the previous run of this same daemon exited less
  * than RESPAWN_THROTTLE_MS ago, sleeps out the remainder first --
  * ground-truthed as necessary, not theoretical: an early version of
  * echotest.c (see test/) exits in well under a millisecond, and without
@@ -303,6 +346,7 @@ reveal_console(void)
 static void
 start_runatload_daemons(void)
 {
+	pthread_mutex_lock(&g_daemons_lock);
 	for (int i = 0; i < g_ndaemons; i++) {
 		if (g_daemons[i].cfg.run_at_load) {
 			if (strcmp(g_daemons[i].cfg.label, "com.asteros.shell") == 0) {
@@ -311,6 +355,125 @@ start_runatload_daemons(void)
 			spawn_daemon(&g_daemons[i]);
 		}
 	}
+	pthread_mutex_unlock(&g_daemons_lock);
+}
+
+/* ---- launchd_ops.h: driven by control_server.c on launchctl's behalf ---- */
+
+int
+lc_list(struct lc_job_info *out, int max)
+{
+	if (max > LC_MAX_LIST) {
+		max = LC_MAX_LIST;
+	}
+	pthread_mutex_lock(&g_daemons_lock);
+	int n = 0;
+	for (int i = 0; i < g_ndaemons && n < max; i++) {
+		if (g_daemons[i].unloaded) {
+			continue;
+		}
+		strncpy(out[n].label, g_daemons[i].cfg.label, sizeof(out[n].label) - 1);
+		out[n].label[sizeof(out[n].label) - 1] = '\0';
+		out[n].pid = g_daemons[i].pid;
+		out[n].keep_alive = g_daemons[i].cfg.keep_alive;
+		out[n].run_at_load = g_daemons[i].cfg.run_at_load;
+		n++;
+	}
+	pthread_mutex_unlock(&g_daemons_lock);
+	return n;
+}
+
+int
+lc_start(const char *label)
+{
+	pthread_mutex_lock(&g_daemons_lock);
+	struct daemon *d = find_by_label(label);
+	if (!d) {
+		pthread_mutex_unlock(&g_daemons_lock);
+		return -1;
+	}
+	if (d->pid > 0) {
+		pthread_mutex_unlock(&g_daemons_lock);
+		return -2;
+	}
+	spawn_daemon(d);
+	pthread_mutex_unlock(&g_daemons_lock);
+	return 0;
+}
+
+int
+lc_stop(const char *label)
+{
+	pthread_mutex_lock(&g_daemons_lock);
+	struct daemon *d = find_by_label(label);
+	if (!d) {
+		pthread_mutex_unlock(&g_daemons_lock);
+		return -1;
+	}
+	if (d->pid <= 0) {
+		pthread_mutex_unlock(&g_daemons_lock);
+		return -2;
+	}
+	kill(d->pid, SIGTERM);
+	pthread_mutex_unlock(&g_daemons_lock);
+	return 0;
+}
+
+int
+lc_load(const char *path, char *label_out, size_t label_out_sz)
+{
+	struct daemon_config cfg;
+	if (plist_parse_daemon(path, &cfg) != 0) {
+		return -1;
+	}
+
+	pthread_mutex_lock(&g_daemons_lock);
+	if (find_by_label(cfg.label)) {
+		pthread_mutex_unlock(&g_daemons_lock);
+		return -2;
+	}
+	if (g_ndaemons >= MAX_DAEMONS) {
+		pthread_mutex_unlock(&g_daemons_lock);
+		return -3;
+	}
+	struct daemon *d = &g_daemons[g_ndaemons++];
+	d->cfg = cfg;
+	d->pid = 0;
+	d->last_spawn_ms = 0;
+	d->unloaded = 0;
+	llog("launchd", "loaded %s (label=%s) via launchctl", path, cfg.label);
+	if (cfg.run_at_load) {
+		spawn_daemon(d);
+	}
+	pthread_mutex_unlock(&g_daemons_lock);
+
+	if (label_out) {
+		strncpy(label_out, cfg.label, label_out_sz - 1);
+		label_out[label_out_sz - 1] = '\0';
+	}
+	return 0;
+}
+
+int
+lc_unload(const char *label)
+{
+	pthread_mutex_lock(&g_daemons_lock);
+	struct daemon *d = find_by_label(label);
+	if (!d) {
+		pthread_mutex_unlock(&g_daemons_lock);
+		return -1;
+	}
+	/* Set unloaded before signaling: by the time the child actually
+	 * exits and the main reap loop reclaims its pid, it already sees
+	 * unloaded==1 (both under this same lock) and won't respawn it even
+	 * if KeepAlive is set -- no exit/respawn race. */
+	d->unloaded = 1;
+	if (d->pid > 0) {
+		kill(d->pid, SIGTERM);
+	}
+	llog("launchd", "unloaded %s via launchctl", label);
+	pthread_mutex_unlock(&g_daemons_lock);
+	return 0;
 }
 
 /* SIGTERM handler: signal every supervised child, then drain exits with
@@ -362,6 +525,17 @@ main(void)
 {
 	bootstrap_console();
 	llog_console("launchd", "starting");
+
+	/* Must happen before the first spawn_daemon() (inside
+	 * start_runatload_daemons() below) -- every daemon forked afterward
+	 * inherits launchd's TASK_BOOTSTRAP_PORT via the kernel's
+	 * ipc_task_init() parent-copy, so this has to be in place first. */
+	bootstrap_server_start();
+	/* Can start any time after bootstrap_server_start() -- launchctl
+	 * invocations only ever happen post-boot, not via fork inheritance,
+	 * so unlike bootstrap_server_start() this has no ordering
+	 * requirement relative to load_all_daemons()/start_runatload_daemons(). */
+	control_server_start();
 
 	load_all_daemons();
 	start_runatload_daemons();
