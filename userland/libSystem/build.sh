@@ -65,6 +65,13 @@ for f in "$BLOCKSRT_DIR/runtime.c" "$BLOCKSRT_DIR/data.c"; do
 	OBJS+=("$OUT/$base.o")
 done
 
+# _dyld_stub_binder: see dyld_stub_binder_stub.c's own header comment --
+# real Darwin's libSystem exports this, ours needs to too for ld64 (ours
+# and, in some configurations, the host's) to resolve the linker-
+# synthesized eager bind of _fast_lazy_bind.
+"$CLANG" "${CFLAGS[@]}" -c "$ROOT/userland/libSystem/dyld_stub_binder_stub.c" -o "$OUT/dyld_stub_binder_stub.o"
+OBJS+=("$OUT/dyld_stub_binder_stub.o")
+
 # The host's ld64 hard-refuses to link a dylib with itself, and also
 # hard-refuses to build any dynamic Mach-O with an empty dependency list
 # at all (see userland/dyld/build.sh's own placeholder for the first time

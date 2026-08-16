@@ -1964,6 +1964,242 @@ optional framework already is.
   blocks before invoking the handler) rather than pausing the underlying
   Mach receive itself.
 
+## Phase 27 — Objective-C cross-compilation toolchain: DONE, verified live in QEMU
+
+Goal: `clang hello.m -o hello` compiling real Objective-C, generating real
+ObjC runtime metadata, and linking a genuine AsterOS Mach-O that AsterOS's
+own dyld loads and runs -- using the existing clang, libobjc, libSystem,
+dyld, and headers, with no fake wrapper and no special-casing of `.m`
+files in a script. This is the host-side cross-compilation half of Phase
+10's goal (the on-target self-hosted `build/llvm-static-build`/
+`build/ld64_bin` toolchain staged under `userland/toolchain/` is a
+separate, not-yet-verified-this-session effort); every previous phase's
+`.m` regression test (`objctest`, `foundationtest`, ...) already proved
+the runtime/dyld/ABI side of this by hand-writing the full clang
+CFLAGS/link line per test (see e.g. `userland/libobjc/test/build.sh`) --
+the actual gap this phase closes is turning that hand-written recipe into
+one the *real* clang driver applies on its own, the same way a real SDK's
+own defaults do.
+
+**Mechanism: clang's own `--config`/auto-discovery feature, not a
+wrapper script.** `userland/toolchain/host_cross_clang.cfg.in` is a
+tracked template (`@ROOT@`-substituted); `userland/toolchain/
+setup_host_cross_toolchain.sh` renders it to `build/tools/asteros-sdk/
+bin/clang.cfg` and hard-links the host's real Xcode clang to `build/
+tools/asteros-sdk/bin/clang` alongside it (a *hard* link, not a symlink
+-- clang resolves symlinks before searching for a colocated config file,
+which would then point it at Xcode's own toolchain directory instead of
+this one; a hard link keeps the file's own directory entry, which is
+what clang's "`<prog-name>.cfg` beside the executable" auto-discovery
+actually keys on). The rendered config sets `--target=x86_64-apple-
+macos10.15`, `-fobjc-runtime=macosx`, `-nostdlibinc -nostdlib` plus
+explicit full paths to `crt0.o`/`libc_start.o`/`libobjc.A.dylib`/
+`libSystem.B.dylib` and `-Wl,-no_pie -Wl,-bind_at_load -Wl,-e,_start` --
+the exact same recipe every earlier phase's test build.sh spelled out by
+hand, just applied by real clang default-argument injection instead of
+copy-paste. `-nostdlib` (not `-nostartfiles`) was deliberate: clang's
+Darwin driver auto-adds `-framework Foundation` for *any* ObjC-runtime-
+linked build (`isObjCRuntimeLinked`, `Darwin.cpp`) regardless of whether
+Foundation is used, which fails against this SDK's flat (non-`.framework`
+-bundle) headers -- `-nostdlib` suppresses clang's own default-library
+injection entirely so the config's own explicit dylib paths are the only
+things linked, avoiding that quirk without patching the driver.
+`-resource-dir`/`-Wl,-lto_library` are also pinned to the real Xcode
+install's paths explicitly, since clang derives both relative to its own
+binary path by default and the hard link moved that.
+
+**Verified, not assumed:** `userland/toolchain/hello_crosscc.m` (a fresh
+`Greeter : Object` class -- ivar, synthesized property, instance method
+-- `Object` forward-declared the same way `objctest`'s does, resolving at
+link time to libobjc.A.dylib's real root class) built with exactly
+`clang hello_crosscc.m -o helloobjc` (`userland/toolchain/
+build_hello_crosscc.sh`) and nothing else. `otool -l`: real
+`LC_LOAD_DYLINKER=/usr/lib/dyld`, `LC_LOAD_DYLIB=/usr/lib/libobjc.A.dylib`
++ `/usr/lib/libSystem.B.dylib`, `LC_MAIN` (same load-command shape as the
+already-proven `objctest`/`dyntest`). `otool -oV`: correctly formed
+nonfragile-ABI2 metadata -- `__objc_classlist`/`__OBJC_CLASS_RO_$_Greeter`
+with the right `instanceSize`, method list (`greet:`/`timesGreeted`/
+`setTimesGreeted:` with correct type-encoding strings), ivar list with a
+real `_OBJC_IVAR_$_Greeter._timesGreeted` offset symbol, property list.
+`nm`: `_OBJC_CLASS_$_Greeter` defined, `_OBJC_CLASS_$_Object` and
+`_objc_msgSend` correctly left undefined for dyld to bind at load time.
+
+Deployed as `/bin/helloobjc` + a `RunAtLoad` launchd daemon
+(`com.asteros.helloobjc.plist`), wired into `userland/mkrootfs.sh` the
+same conditional-on-build-artifact pattern as every other optional test
+binary. Booted in QEMU headlessly (`-display none`, a QEMU-monitor Unix
+socket for `sendkey`/`screendump` instead of an interactive window,
+serial log for kernel boot messages) -- the bootloader's "Boot arguments"
+prompt was answered via `sendkey ret` over the monitor socket, and
+`screendump` after boot captured the GOP framebuffer console (where
+launchd daemon output actually lands -- serial only carries kernel `-v`
+messages, see the Phase 3 entry above) showing, verbatim: `Hello,
+AsterOS! (class=Greeter, greeting #1)`, `Hello, Objective-C! (class=
+Greeter, greeting #2)`, `timesGreeted property = 2`, and `HELLO_OBJC
+PASS` -- real class instantiation (`[[Greeter alloc] init]`), two
+message sends through `objc_msgSend`, and a synthesized property
+getter, all executing correctly through AsterOS's own dyld and
+libobjc.A.dylib. The same screen capture also shows `DISPATCHTEST PASS`,
+`PTHREADTEST PASS`, `SECURITYTEST PASS`, `XPCTEST PASS`, and
+`cfOUNDATIONTEST PASS` (character-interleaved with other daemons'
+concurrent console writes, a pre-existing cosmetic effect of several
+`RunAtLoad` daemons sharing one console with no output locking, not a
+regression) -- confirming this phase didn't disturb anything it built on
+top of.
+
+**On-target follow-up (same phase, same session): the self-hosted
+`build/llvm-static-build`/`build/ld64_bin` toolchain staged at
+`/usr/bin/clang`+`/usr/bin/ld` (Phase 10) genuinely linking a dynamic
+Objective-C executable *for the first time* -- a real bug found and
+fixed, plus a second, separate, pre-existing filesystem bug found,
+root-caused, and (in a follow-up session) fixed too -- see below.
+
+**Bug 1 (fixed): this on-target `ld64`'s own `dyld_stub_binder`
+resolution is broken.** Typing `sh /tmp/b.sh` at the AsterOS shell (the
+same recipe as `build_hello_crosscc_ontarget.sh`, using the on-target
+compiler+linker instead of the host's) failed at link time: `ld: symbol
+dyld_stub_binder not found (normally in libSystem.dylib)`. Ground-
+truthed against `src/ld64/src/ld/Resolver.cpp`: every dynamic executable
+gets a stub-helper section regardless of `-bind_at_load` (`needsStub
+Helper` doesn't check it), which needs `dyld_stub_binder` resolvable;
+`fillInHelpersInInternalState()`'s own search for it across linked
+dylibs runs *before* the general `resolveUndefines()` pass and, ground-
+truthed empirically (adding a real, correctly-exported `_dyld_stub_
+binder` to `libSystem.B.dylib` alone didn't fix it, nor did forcing it
+via `-u`), never succeeds here even though `libSystem.B.dylib`
+genuinely exports it. The actual, deeper root cause, also ground-truthed
+empirically: that whole mechanism is keyed on the *literal, unmangled*
+string `dyld_stub_binder` -- no leading underscore -- a completely
+different symbol-table entry from what any C function named
+`dyld_stub_binder` compiles to (`_dyld_stub_binder`, standard ABI name
+mangling), which is why every C-based attempt (a plain reference, a
+weak definition, a strong definition, in libc_start.o and standalone)
+kept failing identically. Fixed with `userland/toolchain/
+dyld_stub_binder_ref.S`, a **hand-written assembly** file (the only way
+to produce a symbol without the compiler's own automatic underscore)
+defining literally `dyld_stub_binder`, precompiled once on the host
+(`build_dyld_stub_binder_ref.sh`) and shipped as a stable SDK object at
+`/usr/lib/dyld_stub_binder_ref.o` -- not compiled on-target per build,
+since doing that compile on-target (an earlier version of this fix)
+intermittently hit Bug 2 below. `userland/libSystem/dyld_stub_binder_
+stub.c`'s real, correctly-named-and-exported `_dyld_stub_binder` (added
+first, before the real root cause was found) is kept for SDK
+completeness/accuracy -- real Darwin's libSystem does export that name
+-- even though it turned out not to be what this specific mechanism
+needed.
+
+**Bug 2 (found, root-caused, fixed): fat16lite could hand back a stale
+vnode -- wrong physical mapping, correct bookkeeping -- when a
+directory slot got recycled.** The same *class* of bug TODO.md Phase 9
+item 3 already documented for busybox's cluster fragmentation, now
+confirmed to affect arbitrary freshly-created files generally, not just
+that one deploy-time case. With Bug 1's fix in place, `sh /tmp/b.sh`
+compiled and *linked* successfully (`ONTARGET_BUILD_OK` -- itself proof
+Bug 1 is really fixed) but then failed to **execute** the freshly-linked
+`/tmp/hc`: busybox ash's classic ENOEXEC-fallback pattern (binary
+content interpreted as a shell script, "line 1: ...: not found").
+Ground-truthed, not guessed: `src/xnu/bsd/kern/kern_exec.c` only
+returns `ENOEXEC` when *every* image activator in `execsw[]` returns
+"unclaimed" (`error == -1`), and `exec_mach_imgact`'s only two `-1`
+returns are its magic-number and `MH_EXECUTE`-filetype checks -- both
+of which this binary's own `otool -h` (read via the host,
+independently) shows passing fine, meaning the kernel's in-memory copy
+of the file's first page must have been reading something other than
+its real header. Confirmed with an isolation test, not left as a guess:
+`hc_prestaged` -- the byte-identical output of AsterOS's own
+`clang-20`+`ld64` (run via Rosetta on the host instead of inside QEMU,
+see `build_hello_ontarget_via_host_repro.sh` -- both are real, static,
+raw-syscall AsterOS x86_64 binaries against genuine unmodified xnu
+syscalls, so they happen to also run under Rosetta) -- staged into the
+disk image as a **pre-built** file by `userland/mkrootfs.sh` (not
+created live) ran correctly (`HELLO_OBJC PASS`) every time, isolating
+the variable to freshness, not the compiler/linker/binary structure.
+
+Root cause, found via targeted kernel instrumentation (temporary
+`printf`s in `fat16lite_create`/`fat16lite_write`/`fat16lite_read`/
+`fat16lite_blockmap`/`fat16lite_fsnode_find_or_create`, added, used to
+capture one live `sh /tmp/b.sh` run in QEMU, then fully removed once the
+bug was nailed down): `fat16lite_fsnode_find_or_create()`'s "recycled
+directory slot" path (`bsd/miscfs/fat16lite/fat16lite_fsnode.c`) only
+cleared a dirent_key's stale cached vnode when the recycled slot's
+`is_dir` flag changed -- e.g. a directory reused for a file. It refreshed
+`fsnp->first_cluster`/`size`/`reserved_size` unconditionally either way,
+but left `fsnp->vp` (and, critically, that vnode's pager -- already
+mapped to physical memory at *its own* creation time via
+`pager_map_to_phys_contiguous()`, back when it belonged to whatever file
+previously occupied this slot) untouched whenever the recycled slot's
+new occupant was, like its predecessor, a plain regular file. `ld`
+creating `/tmp/hc` landed on exactly this case: the traced run showed
+`find_or_create(refresh)` for `/tmp/hc`'s own dirent_key firing with
+`had_vp=1` *immediately after* `fat16lite_create()` allocated it a fresh
+cluster -- a stale fsnode, from something else this same build had
+already created and removed at that slot, was still resident with a
+live vnode. `fat16lite_write()` (which recomputes its target address
+directly from `fsnp->first_cluster` on every call) wrote the real
+Mach-O bytes to the *correct*, newly-reserved cluster. But
+`fat16lite_fsnode_vnode()`'s cached-vnode fast path
+(`if (fsnp->vp) { vnode_get(); goto done; }`) doesn't re-derive anything
+from `first_cluster` -- it just hands back the existing vnode, pager
+mapping and all, meaning every *read* (including exec's) went through
+the stale vnode's pager, still pointing at the *previous* occupant's
+physical memory. Writes and reads were each individually correct, just
+against two different locations -- which is exactly why the ENOEXEC
+fallback's output wasn't random garbage but a jumble of real strings
+(the previous occupant's own Objective-C runtime symbol names).
+
+Fixed by widening the existing stale-vnode-clear condition in
+`fat16lite_fsnode_find_or_create()` from `fsnp->is_dir != is_dir` alone
+to `fsnp->is_dir != is_dir || fsnp->first_cluster != first_cluster` --
+a slot whose occupant's backing cluster has moved gets its cached vnode
+(and therefore its pager mapping) torn down and rebuilt fresh next time
+`fat16lite_fsnode_vnode()` runs, exactly like the `is_dir`-change case
+already did. Deliberately narrow: a plain repeat lookup of a file that
+hasn't moved (busybox's own re-resolution of `/bin`, `/usr`, etc.) keeps
+seeing the same `first_cluster` every time, so the normal vnode-cache
+hit this check exists to preserve (see the comment on why unconditional
+clearing hung boot the first time it was tried) is untouched. A second,
+independent latent bug was also found and fixed while investigating (not
+the actual cause of this failure, since resident pages never reach it,
+but real and worth closing): `fat16lite_blockmap()` computed device
+block numbers as `foffset / blksize`, copied from mockfs's blockmap
+where that's correct (mockfs's one exposed file *is* the whole backing
+device) but wrong here, where a file lives at an arbitrary
+`first_cluster` offset within the image -- any *actual* page-in miss
+(as opposed to the fast resident-page path this driver relies on for
+its normal boot-critical files) would have silently served device
+offset 0 onward regardless of the file's real location. Both fixes
+verified together: full kernel+image rebuild, fresh QEMU boot, boot-time
+regression suite (CFTEST/SECURITYTEST/MACHTEST/DISPATCHTEST/PTHREADTEST/
+FOUNDATIONTEST/`hc_prestaged`'s `HELLO_OBJC PASS`) still all green, and
+`sh /tmp/b.sh` now runs `/tmp/hc` immediately after linking it and
+prints the full `Hello, AsterOS!` / `Hello, Objective-C!` /
+`HELLO_OBJC PASS` sequence with no ENOEXEC fallback.
+
+**Practical upshot**: `clang hello.m -o hello` fully works, verified
+live in QEMU, via host cross-compilation (the main phase result above).
+The identical command run *inside* AsterOS against its own self-hosted
+toolchain now genuinely compiles, links (Bug 1 fixed), and *runs
+immediately* (Bug 2 fixed) in the same live shell session -- the full
+write (via `neatvi`) → compile → link → run loop now works entirely
+on-target, no host round-trip required.
+
+- No ARC in the smoke test (matches real clang's own default -- ARC is
+  opt-in via `-fobjc-arc`, not implied by `.m`). ARC itself isn't
+  disabled by this toolchain; `-nostdlib` specifically avoids the
+  Foundation-framework auto-link quirk that *would* otherwise fire once
+  ARC (or any `-fobjc-link-runtime` use) is requested.
+- `libobjc.A.dylib`/`libSystem.B.dylib` are unconditionally linked into
+  every binary this config produces, including plain C ones -- harmless
+  (small fixed load-time cost, no behavior change for non-ObjC code) but
+  a real simplification versus real clang's finer-grained auto-linking,
+  chosen to keep the config's link recipe a single unconditional list
+  rather than something that special-cases `.m` inputs.
+- No CoreFoundation/Foundation/Security/xpc headers or dylibs in this
+  particular config (unlike the on-target SDK deployed under
+  `/usr/include` per Phase 18/19/20/26) -- straightforward to add the
+  same way `userland/mkrootfs.sh` already does for the on-target case,
+  just not needed for this phase's plain-libobjc smoke test.
+
 ## Known deviations from a literal reading of the task (documented, not oversights)
 - ~~BusyBox → our own tiny multicall static binary~~ — superseded, see Phase 9 above.
 - ~~Root filesystem → MOCKFS + RAMDisk~~ — superseded: the actual root filesystem is

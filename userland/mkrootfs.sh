@@ -108,6 +108,15 @@ if [ -f "$DYLD_BIN" ]; then
 		mcopy -i "$ROOTFS_IMG" build/libobjc_obj/libobjc.A.dylib ::/usr/lib/libobjc.A.dylib
 		mcopy -i "$ROOTFS_IMG" build/libobjc_obj/objctest ::/bin/objctest
 	fi
+	if [ -f build/helloobjc_obj/helloobjc ]; then
+		echo "helloobjc (Phase 27 cross-toolchain regression test) found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/helloobjc_obj/helloobjc ::/bin/helloobjc
+		mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.helloobjc.plist ::/etc/launchd/daemons/com.asteros.helloobjc.plist
+	fi
+	if [ -f build/helloobjc_ontarget_obj/hc_prestaged ]; then
+		echo "hc_prestaged (on-target-ld64-built binary, staged pre-built for a fat16lite-freshness isolation test) found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/helloobjc_ontarget_obj/hc_prestaged ::/bin/hc_prestaged
+	fi
 	if [ -f build/corefoundation_obj/libCoreFoundation.dylib ] && [ -f build/corefoundation_obj/cftest ]; then
 		echo "CoreFoundation found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/corefoundation_obj/libCoreFoundation.dylib ::/usr/lib/libCoreFoundation.dylib
@@ -183,6 +192,7 @@ if [ -x "$CLANG_BIN" ] && [ -x "$LD_BIN" ] && [ -f "$LIBCXX" ] && [ -f "$LIBCXXA
 	# the host's.
 	mcopy -i "$ROOTFS_IMG" build/libc_obj/crt0.o ::/usr/lib/crt0.o
 	mcopy -i "$ROOTFS_IMG" build/libc_obj/libc_start.o ::/usr/lib/libc_start.o
+	mcopy -i "$ROOTFS_IMG" build/toolchain_obj/dyld_stub_binder_ref.o ::/usr/lib/dyld_stub_binder_ref.o
 
 	# SDK smoke test: a real .m source file plus the exact clang/ld
 	# invocation needed to compile+link it against the just-installed
@@ -190,6 +200,13 @@ if [ -x "$CLANG_BIN" ] && [ -x "$LD_BIN" ] && [ -f "$LIBCXX" ] && [ -f "$LIBCXXA
 	# to prove the whole chain end to end, not just that headers parse.
 	mcopy -i "$ROOTFS_IMG" userland/Foundation/examples/hello.m ::/tmp/hello.m
 	mcopy -i "$ROOTFS_IMG" userland/toolchain/build-hello.sh ::/tmp/build-hello.sh
+
+	# Phase 27 on-target follow-up: same idea, plain libobjc (no
+	# Foundation) this time, staged under short names so it's practical
+	# to type at the guest shell prompt during QEMU-monitor sendkey
+	# verification (`sh /tmp/b.sh`).
+	mcopy -i "$ROOTFS_IMG" userland/toolchain/hello_crosscc.m ::/tmp/hello_crosscc.m
+	mcopy -i "$ROOTFS_IMG" userland/toolchain/build_hello_crosscc_ontarget.sh ::/tmp/b.sh
 else
 	echo "no prebuilt native toolchain in build/ -- deploying core rootfs only"
 	mcopy -i "$ROOTFS_IMG" build/neatvi_obj/neatvi ::/bin/neatvi

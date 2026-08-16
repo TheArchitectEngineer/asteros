@@ -1,0 +1,33 @@
+# AsterOS host-side cross-compilation default config, auto-loaded by clang
+# whenever it's invoked as "clang" from the directory this template is
+# installed into (clang's own config-file mechanism: it looks for
+# "<prog-name>.cfg" beside the executable -- see
+# https://clang.llvm.org/docs/UsersManual.html#configuration-files).
+# This is what makes `clang hello.m -o hello` produce a real AsterOS
+# Mach-O without spelling out every flag by hand each time -- same recipe
+# every previous phase's test/build.sh used explicitly (crt0.o +
+# libc_start.o statically bring in _start, everything else resolved by
+# AsterOS's own dyld at runtime against the real dylibs), just promoted to
+# clang's own default-args mechanism instead of copy-pasted per test. Not
+# a wrapper: this is still the real, unmodified clang driver/frontend/
+# codegen and the real, unmodified host ld64 -- the config file only
+# supplies default arguments, same as any real SDK's own defaults do.
+#
+# Template, not the real config: @ROOT@/@XCODE_CLANG_DIR@ get substituted
+# by setup_host_cross_toolchain.sh into build/tools/asteros-sdk/bin/clang.cfg
+# (build/ is always regenerated, never hand-edited -- this .in file is the
+# tracked source of truth).
+--target=x86_64-apple-macos10.15
+-resource-dir=@XCODE_RESOURCE_DIR@
+-fobjc-runtime=macosx
+-nostdlibinc
+-nostdlib
+-isystem @ROOT@/userland/libc/include
+-Wl,-no_pie
+-Wl,-bind_at_load
+-Wl,-e,_start
+-Wl,-lto_library,@XCODE_LIBLTO@
+@ROOT@/build/libc_obj/crt0.o
+@ROOT@/build/libc_obj/libc_start.o
+@ROOT@/build/libobjc_obj/libobjc.A.dylib
+@ROOT@/build/libSystem_obj/libSystem.B.dylib
