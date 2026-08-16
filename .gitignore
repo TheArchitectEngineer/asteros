@@ -52,3 +52,8 @@ boot/OVMF_VARS.fd
 build/llvm-*
 *.swp
 .DS_Store
+
+# Claude Code session/tooling state and the project website -- not part
+# of the OS source tree, kept out of the public repo.
+.claude/
+website/
