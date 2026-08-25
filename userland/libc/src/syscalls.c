@@ -15,6 +15,7 @@ void __mach_init_task_self(void); /* mach_msg.c, Phase 21 -- re-cache the
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/mount.h>
+#include <sys/fileport.h>
 #include <poll.h>
 #include <termios.h>
 #include <errno.h>
@@ -332,6 +333,8 @@ ioctl(int fd, unsigned long request, ...)
 int gettimeofday(struct timeval *tp, void *tzp) { return (int)sys_result(raw_syscall3(SYS_gettimeofday, (long)tp, (long)tzp, 0)); }
 int settimeofday(const struct timeval *tp, const struct timezone *tzp) { return (int)sys_result(raw_syscall2(122 /* SYS_settimeofday */, (long)tp, (long)tzp)); }
 int poll(struct pollfd *fds, unsigned int nfds, int timeout) { return (int)sys_result(raw_syscall3(230 /* SYS_poll */, (long)fds, nfds, timeout)); }
+int fileport_makeport(int fd, mach_port_t *portnamep) { return (int)sys_result(raw_syscall2(430 /* SYS_fileport_makeport */, fd, (long)portnamep)); }
+int fileport_makefd(mach_port_t port) { return (int)sys_result(raw_syscall1(431 /* SYS_fileport_makefd */, (long)port)); }
 int utimes(const char *path, const struct timeval times[2]) { return (int)sys_result(raw_syscall2(SYS_utimes, (long)path, (long)times)); }
 int getrusage(int who, struct rusage *ru) { return (int)sys_result(raw_syscall2(SYS_getrusage, who, (long)ru)); }
 int setpriority(int which, int who, int prio) { return (int)sys_result(raw_syscall3(96 /* SYS_setpriority */, which, who, prio)); }

@@ -38,6 +38,11 @@ extern kern_return_t mach_port_insert_right(
 	mach_port_name_t poly,
 	mach_msg_type_name_t polyPoly);
 
+extern kern_return_t mach_port_insert_member(
+	mach_port_name_t task,
+	mach_port_name_t name,
+	mach_port_name_t pset);
+
 __END_DECLS
 
 #endif /* _MACH_MACH_PORT_H_ */

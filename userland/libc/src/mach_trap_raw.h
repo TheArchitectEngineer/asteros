@@ -34,6 +34,9 @@
 #define MACH_TRAP_kernelrpc_mach_port_deallocate     18
 #define MACH_TRAP_kernelrpc_mach_port_mod_refs       19
 #define MACH_TRAP_kernelrpc_mach_port_insert_right   21
+#define MACH_TRAP_kernelrpc_mach_port_insert_member  22
+#define MACH_TRAP_kernelrpc_mach_vm_allocate         10
+#define MACH_TRAP_kernelrpc_mach_vm_deallocate       12
 
 static inline long
 raw_mach_trap0(unsigned num)

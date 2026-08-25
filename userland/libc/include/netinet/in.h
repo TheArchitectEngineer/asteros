@@ -43,6 +43,13 @@ struct sockaddr_in6 {
 #define IPPROTO_TCP 6
 #define IPPROTO_UDP 17
 
+/* IPPROTO_IP-level setsockopt options -- ground-truthed against
+ * src/xnu/bsd/netinet/in.h. */
+#define IP_HDRINCL       2   /* int; header is included with data */
+#define IP_TTL           4   /* int; IP time to live */
+#define IP_MULTICAST_IF  9   /* u_char; set/get IP multicast i/f */
+#define IP_MULTICAST_TTL 10  /* u_char; set/get IP multicast ttl */
+
 /* htons/ntohs/htonl/ntohl come from the #include <sys/_endian.h> above --
  * this used to redefine them here as static inline functions, which
  * collided (redefinition errors) whenever some other header in the same

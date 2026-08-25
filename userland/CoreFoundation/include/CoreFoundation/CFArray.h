@@ -47,6 +47,7 @@ CF_EXPORT void CFArrayInsertValueAtIndex(CFMutableArrayRef theArray, CFIndex idx
 CF_EXPORT void CFArraySetValueAtIndex(CFMutableArrayRef theArray, CFIndex idx, const void *value);
 CF_EXPORT void CFArrayRemoveValueAtIndex(CFMutableArrayRef theArray, CFIndex idx);
 CF_EXPORT void CFArrayRemoveAllValues(CFMutableArrayRef theArray);
+CF_EXPORT void CFArrayReplaceValues(CFMutableArrayRef theArray, CFRange range, const void **newValues, CFIndex newCount);
 CF_EXPORT void CFArrayAppendArray(CFMutableArrayRef theArray, CFArrayRef otherArray, CFRange otherRange);
 CF_EXPORT void CFArraySortValues(CFMutableArrayRef theArray, CFRange range, CFComparatorFunction comparator, void *context);
 

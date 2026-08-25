@@ -9,7 +9,15 @@ extern "C" {
 #include <sys/types.h>
 
 typedef unsigned int socklen_t;
-typedef unsigned short sa_family_t;
+/* Real xnu's sa_family_t is __uint8_t (bsd/sys/_types/_sa_family_t.h), not
+ * a 16-bit type -- ground-truthed against src/xnu/bsd/sys/socket.h. Getting
+ * this wrong silently shifts every sockaddr_in/sockaddr_un field after
+ * sa_family by a byte on the wire (2-byte alignment padding this project's
+ * old `unsigned short` version would need, that the real 1-byte kernel
+ * struct doesn't), which nothing had caught yet since no AF_INET or AF_UNIX
+ * sockaddr had actually round-tripped through a syscall before the Phase 24
+ * networking milestone. */
+typedef unsigned char sa_family_t;
 
 struct sockaddr {
 	unsigned char sa_len;
@@ -42,6 +50,8 @@ struct sockaddr_storage {
 #define SO_REUSEADDR  0x0004
 #define SO_BROADCAST  0x0020
 #define SO_KEEPALIVE  0x0008
+#define SO_SNDBUF     0x1001
+#define SO_RCVBUF     0x1002
 #define SO_ERROR      0x1007
 
 int socket(int domain, int type, int protocol);

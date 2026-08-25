@@ -65,6 +65,13 @@
 #define _NETINET_IP_H_
 #include <sys/appleapiopts.h>
 #include <sys/types.h>          /* XXX temporary hack to get u_ types */
+/* Real BSD gets bare BYTE_ORDER/LITTLE_ENDIAN/BIG_ENDIAN transitively via
+ * sys/types.h; this project's own (minimal, hand-written) sys/types.h
+ * doesn't pull those in, which used to leave both of struct ip's
+ * BYTE_ORDER-guarded bitfield branches below compiling at once (an
+ * undefined-macro `#if X == Y` is `0 == 0`, true either way) -- pulled in
+ * explicitly here instead. */
+#include <machine/endian.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 
@@ -229,5 +236,31 @@ struct  ip_timestamp {
 #define IPTTLDEC        1               /* subtracted when forwarding */
 
 #define IP_MSS          576             /* default maximum segment size */
+
+/* Linux-style struct iphdr, byte-for-byte the same wire layout as BSD's
+ * own struct ip above (both represent the same RFC 791 20-byte header,
+ * just with different field names/bitfield order convention) -- busybox's
+ * networking/ping.c casts a raw receive buffer straight to `struct
+ * iphdr *` and reads ->ihl/->ttl, so this needs to exist under that name
+ * too rather than only as struct ip. */
+struct iphdr {
+#if BYTE_ORDER == LITTLE_ENDIAN
+	u_int   ihl:4,
+	    version:4;
+#endif
+#if BYTE_ORDER == BIG_ENDIAN
+	u_int   version:4,
+	    ihl:4;
+#endif
+	u_int8_t  tos;
+	u_int16_t tot_len;
+	u_int16_t id;
+	u_int16_t frag_off;
+	u_int8_t  ttl;
+	u_int8_t  protocol;
+	u_int16_t check;
+	u_int32_t saddr;
+	u_int32_t daddr;
+};
 
 #endif

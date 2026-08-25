@@ -20,10 +20,37 @@ extern "C" {
 #define CF_EXPORT extern
 #define CF_INLINE static __inline__
 
+/* No-op nullability/bridging annotation macros -- real CF headers
+ * (vendored verbatim for Phase 25's SystemConfiguration) use these
+ * throughout; this project doesn't do static nullability analysis or
+ * Objective-C bridging, so they expand to nothing rather than being
+ * reimplemented. */
+#define CF_ASSUME_NONNULL_BEGIN
+#define CF_ASSUME_NONNULL_END
+#define CF_IMPLICIT_BRIDGING_ENABLED
+#define CF_IMPLICIT_BRIDGING_DISABLED
+#define CF_BRIDGED_TYPE(T)
+#define CF_BRIDGED_MUTABLE_TYPE(T)
+#define CF_RETURNS_RETAINED
+#define CF_RETURNS_NOT_RETAINED
+#define CF_FORMAT_FUNCTION(F, A)
+#define CF_FORMAT_ARGUMENT(A)
+#ifndef __nullable
+#define __nullable
+#endif
+#ifndef __nonnull
+#define __nonnull
+#endif
+
 typedef unsigned long CFTypeID;
 typedef unsigned long CFOptionFlags;
 typedef unsigned long CFHashCode;
 typedef signed long CFIndex;
+
+/* Standard "not found" sentinel real CF collection/search APIs return
+ * (CFArrayGetFirstIndexOfValue, CFStringFind's real by-value overload,
+ * ...). */
+#define kCFNotFound -1
 
 typedef const void *CFTypeRef;
 
@@ -77,6 +104,23 @@ CF_EXPORT void *CFAllocatorReallocate(CFAllocatorRef allocator, void *ptr, CFInd
 CF_EXPORT void CFAllocatorDeallocate(CFAllocatorRef allocator, void *ptr);
 CF_EXPORT CFAllocatorRef CFAllocatorGetDefault(void);
 CF_EXPORT void CFAllocatorSetDefault(CFAllocatorRef allocator);
+
+/* ---- CFRunLoop (type only) ----
+ *
+ * CFRunLoop itself doesn't exist in this project (see TODO.md's
+ * CoreFoundation phase entry). CFRunLoopSourceRef is declared here only
+ * so real vendored headers that mention it in a signature (e.g.
+ * SCDynamicStoreCreateRunLoopSource) still compile -- no function
+ * actually returns a real, usable instance of one; callers needing
+ * runloop-based notification delivery are a documented v1 gap, see
+ * Phase 25's own notes. */
+typedef struct __CFRunLoopSource *CFRunLoopSourceRef;
+typedef struct __CFRunLoop *CFRunLoopRef;
+
+/* CFMachPort (type only) -- same rationale as CFRunLoopSourceRef just
+ * above: real vendored headers mention it in a signature
+ * (configdCallback), nothing here creates a real, usable instance. */
+typedef struct __CFMachPort *CFMachPortRef;
 
 /* ---- CFNull ---- */
 typedef const struct __CFNull *CFNullRef;

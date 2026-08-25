@@ -253,6 +253,21 @@ void CFArrayRemoveAllValues(CFMutableArrayRef theArray)
 	a->count = 0;
 }
 
+void CFArrayReplaceValues(CFMutableArrayRef theArray, CFRange range, const void **newValues, CFIndex newCount)
+{
+	/* Built on the existing remove/insert primitives above rather than
+	 * a bespoke memmove -- this project's real callers (pattern.c,
+	 * vendored for Phase 25) only ever use this to delete a range
+	 * (newValues == NULL, newCount == 0), so simplicity wins over a
+	 * single-pass implementation here. */
+	for (CFIndex i = 0; i < range.length; i++) {
+		CFArrayRemoveValueAtIndex(theArray, range.location);
+	}
+	for (CFIndex i = 0; i < newCount; i++) {
+		CFArrayInsertValueAtIndex(theArray, range.location + i, newValues[i]);
+	}
+}
+
 void CFArrayAppendArray(CFMutableArrayRef theArray, CFArrayRef otherArray, CFRange otherRange)
 {
 	const struct __CFArray *o = (const struct __CFArray *)otherArray;

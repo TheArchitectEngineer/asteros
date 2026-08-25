@@ -220,7 +220,7 @@
 - (NSRange)rangeOfString:(NSString *)needle
 {
 	CFRange r;
-	if (!CFStringFind((CFStringRef)self, (CFStringRef)needle, 0, &r)) {
+	if (!CFStringFindWithOptions((CFStringRef)self, (CFStringRef)needle, 0, &r)) {
 		return NSMakeRange(NSIntegerMax, 0);
 	}
 	return NSMakeRange((NSUInteger)r.location, (NSUInteger)r.length);
@@ -229,7 +229,7 @@
 - (BOOL)containsString:(NSString *)needle
 {
 	CFRange r;
-	return CFStringFind((CFStringRef)self, (CFStringRef)needle, 0, &r) ? YES : NO;
+	return CFStringFindWithOptions((CFStringRef)self, (CFStringRef)needle, 0, &r) ? YES : NO;
 }
 
 - (NSString *)substringFromIndex:(NSUInteger)from

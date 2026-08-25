@@ -75,6 +75,15 @@
 #define __END_DECLS
 #endif
 
+/* Real Darwin: hides a symbol from a dylib's exported-symbols list
+ * (still has external linkage within the same link unit) -- this
+ * project has no exported-symbol-list mechanism for its own dylibs, so
+ * this is a no-op rather than reimplemented. First needed vendoring real
+ * Phase 25 (SystemConfiguration/configd) source, which uses it throughout. */
+#ifndef __private_extern__
+#define __private_extern__ extern
+#endif
+
 /* This SDK is designed to work with clang and specific versions of
  * gcc >= 4.0 with Apple's patch sets */
 #if !defined(__GNUC__) || __GNUC__ < 4

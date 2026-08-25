@@ -84,6 +84,20 @@ struct  arphdr {
 #define ARPHRD_FRELAY   15      /* frame relay hardware format */
 #define ARPHRD_IEEE1394 24      /* IEEE1394 hardware address */
 #define ARPHRD_IEEE1394_EUI64 27 /* IEEE1394 EUI-64 */
+/* Linux/glibc <net/if_arp.h> values busybox's networking/interface.c
+ * references for its hardware-type display table -- not part of real
+ * BSD's if_arp.h (whose ARPHRD_* set above is deliberately small), but
+ * the same numeric values Linux assigns, so kept as plain compatibility
+ * constants rather than remapped to anything BSD-specific. */
+#define ARPHRD_CSLIP    257
+#define ARPHRD_CSLIP6   259
+#define ARPHRD_PPP      512
+#define ARPHRD_LOOPBACK 772
+#define ARPHRD_SIT      776
+#define ARPHRD_INFINIBAND 32
+/* Linux spelling of ETHER_ADDR_LEN (net/ethernet.h) -- busybox's
+ * interface.c/in_ether.c use this name directly. */
+#define ETH_ALEN        6
 	u_short ar_pro;         /* format of protocol address */
 	u_char  ar_hln;         /* length of hardware address */
 	u_char  ar_pln;         /* length of protocol address */

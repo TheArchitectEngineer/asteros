@@ -64,11 +64,33 @@
 #ifndef _NETINET_IP_ICMP_H_
 #define _NETINET_IP_ICMP_H_
 #include <sys/appleapiopts.h>
+/* Real BSD relies on the includer having already pulled these in before
+ * ip_icmp.h (in_systm.h for n_short/n_time, in.h for struct in_addr,
+ * ip.h for struct ip); this project's vendored busybox calls
+ * `#include <netinet/ip_icmp.h>` standalone, so pull the real dependency
+ * chain in here instead of patching busybox's include list. */
+#include <sys/types.h>
+#include <netinet/in_systm.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 
 /*
  * Interface Control Message Protocol Definitions.
  * Per RFC 792, September 1981.
  */
+
+/* Linux/glibc spellings busybox's ping.c uses -- same values, this
+ * project's own struct/constant definitions above keep the BSD names. */
+#define ICMP_DEST_UNREACH       ICMP_UNREACH
+#define ICMP_SOURCE_QUENCH      ICMP_SOURCEQUENCH
+#define ICMP_TIME_EXCEEDED      ICMP_TIMXCEED
+#define ICMP_PARAMETERPROB      ICMP_PARAMPROB
+#define ICMP_TIMESTAMP          ICMP_TSTAMP
+#define ICMP_TIMESTAMPREPLY     ICMP_TSTAMPREPLY
+#define ICMP_INFO_REQUEST       ICMP_IREQ
+#define ICMP_INFO_REPLY         ICMP_IREQREPLY
+#define ICMP_ADDRESS            ICMP_MASKREQ
+#define ICMP_ADDRESSREPLY       ICMP_MASKREPLY
 
 /*
  * Internal of an ICMP Router Advertisement

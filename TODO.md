@@ -2386,6 +2386,172 @@ top of, console settled to idle afterward (steady state, not a hang).
   `unload` semantics, for what it's worth -- those were always runtime-
   only too, `/Library/LaunchDaemons` is the persistence mechanism there).
 
+## Phase 24 — Networking: IN PROGRESS, Milestone 1 (loopback TCP/IP) DONE, verified live in QEMU
+
+Goal: BSD sockets + a minimal TCP/IP stack. Broken into four milestones,
+Milestone 1 first because it's independent of the still-stuck Phase 23
+prelinked-kext pipeline and de-risks the IP stack itself before any NIC
+driver work begins.
+
+### Milestone 1 — loopback TCP/IP: DONE
+
+`lo0` was already compiled in (`pseudo-device loop` in `config/MASTER`,
+gated by `<networking,inet,inet6>`, already enabled via the `NETWORKING_DEV`
+bundle) and `loopattach()` already ran at boot (`bsd_init.c`) -- nothing
+had ever actually driven `AF_INET` traffic through it before. Getting a
+real `NETWORKTEST` (`userland/network_test/networktest.c`, wired in via
+`com.asteros.networktest.plist`) to do a genuine loopback TCP
+listen/connect/accept/send/recv round trip plus a UDP sendto/recvfrom
+round trip (with sender-address verification) surfaced three real,
+previously-latent bugs -- none guessed, all root-caused from live panic
+backtraces:
+
+**Bug 1 -- `sa_family_t` was the wrong width.** `userland/libc/include/
+sys/socket.h` typedef'd it as `unsigned short` (2 bytes); real xnu's is
+`__uint8_t` (1 byte, `bsd/sys/_types/_sa_family_t.h`). This silently
+shifted every field after `sa_family` in `struct sockaddr_in`/
+`sockaddr_un` by a byte relative to what the kernel actually expects --
+never caught before because nothing had round-tripped a real `AF_INET` or
+`AF_UNIX` sockaddr through a syscall yet (the "X11 milestone" comment in
+`socket.c` was aspirational, not yet exercised). Fixed by matching the
+real kernel type exactly.
+
+**Bug 2 -- `struct ifreq`'s union size changed `SIOCSIFADDR`'s own numeric
+value.** Every `_IOW`/`_IOWR` `SIOC*` macro bakes `sizeof(struct ifreq)`
+directly into the ioctl command's 32-bit value (`<sys/ioccom.h>`). Adding
+a Linux-compat `struct ifmap` member (needed so busybox's `interface.c`
+would compile) with `unsigned long` fields grew the union from the real
+kernel's 16 bytes to 24, inflating `sizeof(struct ifreq)` from 32 to 40 --
+so this project's own `SIOCSIFADDR` no longer numerically matched any case
+in `in_control()`'s switch at all, and every `ifconfig`/`networktest`
+address-assignment ioctl silently fell through to `EOPNOTSUPP` (errno 102)
+instead of failing to compile or erroring obviously. Fixed by shrinking
+`ifmap`'s fields to `unsigned int`, keeping the union at exactly the real
+kernel's 16 bytes (`userland/libc/include/net/if.h`).
+
+**Bug 3 -- `tcp_init()` had been permanently stubbed to a no-op**, predating
+any phase in this file, with an inline comment explaining the real
+upstream `tcp_init()` panics during `bsd_init()` and networking wasn't
+needed yet. Restoring the real body (ground-truthed against the pristine
+`xnu-6153.141.1` import, `git show 5cb76f8:bsd/netinet/tcp_subr.c`, along
+with three small static helpers -- `scale_to_powerof2`, `tcp_tfo_init`,
+`tcp_cleartaocache` -- that had been deleted as unreferenced dead code
+alongside the stub) reproduced the original panic exactly as documented,
+then a second one: both are the same root cause already documented
+separately in `osfmk/vm/vm_kern.c`'s `vm_kernel_addrhash_internal()`
+(SHA256) -- `g_crypto_funcs` (`libkern/crypto/register_crypto.c`) is
+*permanently* NULL in this project, since no kext ever calls
+`register_crypto_functions()` and there's no real corecrypto algorithm
+implementation linked in at all. `tcp_tfo_init()`'s `aes_encrypt_key128()`
+call and `tcp_new_isn()`'s active-connect MD5-based RFC1948 ISN path both
+dereference it unconditionally. Fixed the same way the existing SHA256
+call site already does: fall back to a non-cryptographic path when
+`g_crypto_funcs` is NULL -- TFO key generation is skipped entirely (TFO is
+never actually negotiated by anything in this project) and ISN generation
+falls back to the same `RandomULong()` the passive LISTEN/TIME_WAIT branch
+already uses (an unpredictable ISN either way, just not RFC1948's specific
+MD5 construction) -- consistent with this project's established "minimal,
+non-adversarial system" stance on corecrypto-dependent code paths.
+
+**Verified live in QEMU, not just recompiled:** boot proceeds past
+`domaininit()` cleanly (previously an unconditional panic once `tcp_init()`
+was restored, before either crypto guard landed), `NETWORKTEST` brings
+`lo0` up with `127.0.0.1/8`, does a real bind/listen/connect/accept
+TCP round trip and a sendto/recvfrom UDP round trip (verifying the UDP
+peer's source port, not just that bytes arrived), and prints
+`NETWORKTEST PASS` -- confirmed via QEMU monitor `screendump`, alongside a
+full unregressed boot: `MACHTEST PASS`, `SECURITYTEST PASS`,
+`PTHREADTEST PASS`, `FOUNDATIONTEST PASS`, `DISPATCHTEST PASS`,
+`HELLO_OBJC PASS`, `XPCTEST PASS (child side)`/`XPCTEST PASS`,
+`LAUNCHCTLTEST PASS`.
+
+`inet_pton`/`inet_ntop`/`inet_addr`/`inet_aton`/`inet_ntoa`
+(`userland/libc/src/net_stub.c`) are now real (`AF_INET` only; `AF_INET6`
+honestly returns `EAFNOSUPPORT`) -- pure format conversion, no kernel
+dependency. `getservbyport`/`if_nametoindex`/`if_indextoname` are new,
+honest stubs (no real backing mechanism exists yet -- no routing socket,
+no `SIOCGIFINDEX` anywhere in this kernel, ground-truthed by grep, not
+assumed). BusyBox's `ifconfig`/`ping`/`netstat` applets are now enabled
+and linked (`CONFIG_IFCONFIG`, `CONFIG_FEATURE_IFCONFIG_STATUS`,
+`CONFIG_PING`, `CONFIG_FEATURE_FANCY_PING`, `CONFIG_NETSTAT`,
+`CONFIG_FEATURE_NETSTAT_WIDE`) -- getting them to compile against this
+project's BSD-flavored headers required adding the Linux-compat surface
+busybox's networking code assumes unconditionally (no `__APPLE__`/BSD
+portability branches exist in busybox's own `networking/interface.c`,
+`ping.c`, `in_ether.c`): `ARPHRD_LOOPBACK`/`PPP`/`CSLIP`/`CSLIP6`/`SIT`/
+`INFINIBAND`, `ETH_ALEN`, `IFF_SLAVE`/`IFF_MASTER` (unused placeholder
+bits, no real BSD driver sets them), `ifr_netmask`/`ifr_hwaddr`/`ifr_map`
+aliases onto the real `ifr_ifru` union, a Linux-style `struct iphdr`
+(byte-identical wire layout to BSD's own `struct ip`, just different field
+names/bitfield order), `SIOCGIFHWADDR`/`SIOCSIFHWADDR`/`SIOCGIFMAP` (real
+Linux-only ioctls with no BSD kernel case at all -- given unused command
+numbers in the same `'i'` group so they fail safely with `ENOTTY` rather
+than colliding with a real command), and Linux/glibc `ICMP_*`/`u_intN_t`
+naming aliased onto this project's existing BSD-named constants. Also
+fixed two unrelated but adjacent header bugs this surfaced:
+`netinet/ip_icmp.h` was missing its real dependency chain
+(`in_systm.h`/`in.h`/`ip.h`, needed for `n_short`/`n_time`/`struct
+in_addr`/`struct ip`) and `netinet/ip.h`'s `struct ip` bitfield was
+silently compiling both `BYTE_ORDER` branches at once (an undefined-macro
+`#if X == Y` is `0 == 0`) for want of a `<machine/endian.h>` include.
+
+**Known v1 limitations (documented, not oversights):**
+- No DNS/name resolution (`gethostbyname`/`getaddrinfo` stay stubbed) --
+  static IPs only, matching this project's existing "simple over
+  premature" convention.
+- No `AF_INET6` support in the new `inet_*` conversion functions --
+  IPv4-only scope for this milestone, even though `INET6` itself is
+  compiled into the kernel.
+- No kqueue/event loop (unchanged from before this phase, see
+  `docs/architecture.md`) -- `NETWORKTEST` uses plain blocking sockets.
+
+### Milestones 2-4 — not started
+
+Per explicit project direction: finish Phase 23's stuck prelinked-kext
+pipeline first (a real, unresolved page fault -- see Phase 23's own
+section above), then build virtio-net as a genuine `IOService`-derived
+kext (not a PS/2-style direct-linked driver, and not `IOEthernetController`
+-- confirmed absent from this tree, that family was never vendored here)
+wired into `bsd/net/kpi_interface.h`'s `ifnet`/`dlil` surface, then bring
+up a real off-box address and verify `ping` through it.
+
+## Phase 25 — SystemConfiguration/configd: DONE (all six milestones, verified live in QEMU -- `SCTEST PASS`, no regressions)
+
+Goal: real `SCDynamicStore` (the core of Apple's `SystemConfiguration.framework`) plus a real `configd` daemon -- vendored from Apple's actual open-source `configd` project (`apple-oss-distributions/configd`, tag `configd-963.270.3`), not reinterpreted from scratch, per explicit user direction to stay "as close to macOS as possible." Six milestones planned; this entry covers where the first four currently stand.
+
+**Milestone 1 (real `mig`) -- DONE.** `src/bootstrap_cmds/` newly vendored (`bootstrap_cmds-121`, the separate Apple project `mig` actually ships from -- `configd` itself doesn't include it). `userland/toolchain/mig/build.sh` builds `migcom` (real compiler: `bison`+`flex`+11 vendored `.c` files, `handler.c` correctly excluded -- ground-truthed against the vendored `.pbxproj`'s actual `Sources` build phase, not guessed) as a host tool, installed at `build/tools/bin/{mig,migcom}`. Verified against a trivial `.defs` file producing real MIG boilerplate, then against the real, unmodified `SystemConfiguration.fproj/config.defs` producing real `config.h`/`configUser.c`/`configServer.c`. See `patches/0018-vendor-real-mig-as-host-tool.md`.
+
+**Milestone 2 (`CFPropertyList` XML) -- DONE.** New `userland/CoreFoundation/CFPropertyList.{h,c}` -- `CFPropertyListCreateXMLData`/`CreateFromXMLData`, hand-written (real CF's own XML plist code is CFRunLoop-adjacent internally; no single upstream file to port). Base64 verified against RFC 4648 reference vectors standalone; full integration not yet verified live (that's Milestone 6). See `patches/0019-cfpropertylist-xml.md`.
+
+**Milestone 3 (`fileport_makeport`/`fileport_makefd`) -- DONE.** Real syscalls 430/431, ground-truthed against `syscalls.master`, wrapped in `syscalls.c`. See `patches/0020-fileport-syscalls.md`.
+
+**Milestone 4 (vendor + adapt `configd.tproj`) -- DONE, real `configd` binary linked and runnable.** `src/configd/` newly vendored (`configd-963.270.3`). Real, largely-unmodified server logic compiles and links against the real generated MIG stubs: `session.c` (rewritten -- see below), `configd_server.c` (rewritten -- see below), every `_config{open,close,add,list,get,set,remove,notify,unlock}.c`, all seven `_notify{add,cancel,changes,remove,viafd,viaport,viasignal}.c`, `_snapshot.c`, and `pattern.c` -- 21 files total. `_notifyviaport.c`/`_notifyviasignal.c` are honest stubs (real routines still need a slot in the real MIG dispatch table since `notifyviaport`/`notifyviasignal` aren't `skip;` in `config.defs`, but return failure and release the port/task they're handed -- v1 scope is `notifyviafd` only, see `SCDynamicStoreInternal.h`'s comment). `_snapshot.c` keeps its real store/pattern/session-dump behavior, trimmed of the CFRunLoop-thread dump line and switched to `CFPropertyListCreateXMLData` (Milestone 2) instead of the real binary-plist call, matching `SCDPrivate.c`'s own precedent. `_SCD.c` (session watchers + `pushNotifications()`) is real and mostly unmodified; `pushNotifications()` itself is trimmed to the fd-only notify branch, dropping the Mach-port and BSD-signal delivery branches (out of v1 scope, same as the two stub files above). `main.c` is this project's own (not vendored) trimmed replacement for real `configd.m`'s Objective-C `main()` -- no CFBundle plugin loading, no CFRunLoop-driven signal handling, no daemonizing (launchd's RunAtLoad already supervises it); just `server_init()` then `server_loop()`. Linked into a real Mach-O executable at `build/configd_obj/configd` (`userland/configd/build.sh`), against `libCoreFoundation.dylib` + `libSystem.B.dylib`, matching every other daemon's dependency shape in this tree.
+
+Adaptations, all documented inline at their own call sites (search each file for "AsterOS (Phase 25)"):
+- **`session.h`/`session.c` rewritten, not vendored.** Real `session.c` is entangled with `Security.framework`/`SecTaskCopyValueForEntitlement`, `bsm/libbsm.h` audit tokens, and `sandbox_check()` -- none of which exist here. Every session gets unconditional root-equivalent access instead (`hasRootAccess`/`hasWriteAccess`/`hasPathAccess` all return `TRUE`), matching this project's already-established "minimal, single-user, non-adversarial system" stance (`osfmk/vm/vm_kern.c`'s SHA256 fallback). Per-session `CFMachPortRef`/`CFRunLoopSourceRef` (CFRunLoop doesn't exist in this project) replaced by a **Mach port set** (`sessionPortSet`, real trap -- `mach_port_insert_member`, new in `userland/libc/src/mach_port.c`, trap 22 ground-truthed against `syscall_sw.c`): every open session's receive right becomes a member, so a single `mach_msg(MACH_RCV_MSG)` against the set fans in all of them, the standard Mach idiom for this and arguably closer to the kernel's own primitives than CFRunLoop's bookkeeping.
+- **`configd_server.c` rewritten, not vendored.** `config_demux()`/`configdCallback()` (the real message-handling core) kept essentially verbatim -- confirmed, by reading, to have zero CFRunLoop dependency. `server_init()` no longer calls `bootstrap_check_in()` (expects launchd to pre-create the service port from a plist, a launchd feature Phase 28 doesn't implement); it allocates its own receive right and `bootstrap_register()`s it under `com.asteros.configd`, the exact pattern already proven by `userland/libxpc/xpc_connection.c`'s listener path. `server_loop()` replaces `CFRunLoopRunInMode` with a plain blocking loop on `sessionPortSet`. `notify_server.c` (real configd's MIG dispatch for the kernel's own `MACH_NOTIFY_NO_SENDERS` message) dropped entirely, along with it.
+- **Dead-name notification not implemented.** Real `_configopen.c` calls `mach_port_request_notification()` so a session gets cleaned up automatically if its client crashes without closing cleanly. Not implemented here -- the exact same documented v1 limitation Phase 28's bootstrap registry already carries ("no dead-name/no-more-senders notification"), not a new gap.
+- **`SC_log`/`SC_trace` are plain `printf`, not `os_log`** (new `os/log.h` shim, `userland/libc/include/os/log.h`) -- no `%@` CFString-aware formatting. The small number of real call sites that used `%@` (7 `SC_trace`, 1 `SC_log`) were adapted to `%s` + `CFStringGetCStringPtr()` at their exact call sites.
+- **New shared serialization layer**, `src/configd/SystemConfiguration.fproj/SCDPrivate.c` + trimmed `SCPrivate.h`: real function signatures/behavior for `_SCSerialize`/`_SCUnserialize`/`_SCSerializeString`/`_SCUnserializeString`/`_SCSerializeData`/`_SCUnserializeData`/`_SC_cfstring_to_cstring`, adapted to call Milestone 2's `CFPropertyListCreateXMLData`/`CreateFromXMLData` instead of real `CFPropertyListCreateData(...kCFPropertyListBinaryFormat_v1_0...)` -- this vintage's real implementation had already drifted to binary plist even though `config.defs`' own wire-type name (`xmlData`) still says XML; this project's version is, if anything, more faithful to the `.defs` file's own documented contract. `_SCSerializeData`/`_SCUnserializeData` use real `vm_allocate`/`vm_deallocate` (two new raw-trap wrappers, `userland/libc/src/mach_vm.c`, traps 10/12) rather than CF's private `__CFDataCopyVMData`, since MIG's `dealloc` convention for `xmlDataOut` needs a genuine `vm_allocate`'d region to safely `vm_deallocate` afterward -- a `malloc`'d pointer isn't safe there.
+- New small real-Apple-header additions this surfaced, all documented at their own definitions: `CFRuntime.h` (was CoreFoundation-internal-only; now also public, matching real CF, since `SCDynamicStorePrivate` needs to embed a real `CFRuntimeBase`), `CFRunLoopRef` (type-only, alongside the existing `CFRunLoopSourceRef` stub -- real vendored `SCD.h` declares several `_SC_schedule`/`_SC_isScheduled`/`_SC_unschedule` prototypes that mention it even though nothing in this project's v1 scope calls them), `CFPropertyList.h`'s `kCFPropertyListXMLFormatVersion1_0` singleton pattern note, `CFSTR`/`CFStringFind`/`CFStringFindWithOptions`/`CFStringCreateWithSubstring`/`CFStringGetBytes`/`CFArrayReplaceValues` added to CoreFoundation (the existing project-original 4-arg `CFStringFind` was renamed to `CFStringFindWithOptions`, its real closer name, freeing the real name for the genuine 3-arg/by-value `CFStringFind` this vendored code calls -- `userland/Foundation/NSString.m`'s two call sites updated to match), `mach_error_string`/`mach_msg_destroy` (`userland/libc/src/mach_error.c` -- the latter is a documented no-op, real error-path-only cleanup this project's own successful round trips never reach), `fileport_t` typedef, `task_t`/`CFMachPortRef`/`CFRunLoopSourceRef` (type-only, no working CFRunLoop or CFMachPort implementation, same treatment as Phase 24's earlier `CFRunLoopSourceRef` stub). `mach/bootstrap.h` gained the real `BOOTSTRAP_SUCCESS`/`NOT_PRIVILEGED`/`NAME_IN_USE`/`UNKNOWN_SERVICE`/`SERVICE_ACTIVE`/`BAD_COUNT`/`NO_MEMORY`/`NO_CHILDREN` status codes (this project's own `bootstrap_register`/`look_up` never actually return them -- only plain `kern_return_t` -- so real vendored code that switches on them always falls through to its own default case, but the names need to exist to compile). `mach/vm_map.h` now pulls in `mach/vm_statistics.h` for `VM_FLAGS_ANYWHERE`. New `userland/libc/src/ndr.c` (a one-line wrapper `#include`ing the real, already-vendored `mach/i386/ndr_def.h`) gets the real `NDR_record` global -- which that header defines, not just declares, despite its `.h` extension -- into `libSystem.B.dylib`; every real generated MIG client/server stub references it directly. New `userland/libc/src/mig_support.c`: real per-thread-cached `mig_get_reply_port`/`mig_dealloc_reply_port`/`mig_put_reply_port` (the same recipe real Darwin's libsyscall uses, via this project's own real `pthread_getspecific`/`mach_reply_port`), plus a `voucher_mach_msg_set` stub (this project has no real Mach voucher subsystem, so it always reports "nothing to attach" -- matching a thread that never carries a voucher) needed because this project's static host-ld64-based linking can't leave a `weak_import`-annotated symbol unresolved the way real dyld can.
+
+**Milestone 5 (vendor + adapt the `SystemConfiguration.fproj` client library) -- DONE, `libSystemConfiguration.dylib` linked.** Real, vendored client-side files, several shared verbatim with `configd` itself (`SCD.c`/`SCDOpen.c`/`SCDPrivate.c`/`SCDNotifierCancel.c` -- real Apple's own project structure compiles these into both `configd.tproj` and `SystemConfiguration.fproj` targets; `SCDOpen.c`'s header comment explains why in detail) plus the client-only `SCDGet.c`/`SCDSet.c`/`SCDRemove.c`/`SCDKeys.c`/`SCDNotifierSetKeys.c`/`SCDNotifierInformViaFD.c`, built into `build/SystemConfiguration_obj/libSystemConfiguration.dylib` (`userland/SystemConfiguration/build.sh`) against the real generated `configUser.c` MIG client stubs + `libCoreFoundation.dylib` + `libSystem.B.dylib`.
+- **`SCDOpen.c`** (`__SCDynamicStoreCreatePrivate`/the `CFRuntimeClass` registration/`SCDynamicStoreCreate`/`__SCDynamicStoreAddSession`/`__SCDynamicStoreCheckRetryAndHandleError`) is real and heavily trimmed: every RunLoop/dispatch-queue/BSD-signal/disconnect-callback code path (`pushDisconnect`, `__SCDynamicStoreReconnectNotifications`, `SCDynamicStoreSetDisconnectCallBack`) is dropped -- all reference `SCDynamicStorePrivate` fields (`rlsFunction`, `rls`, `rlList`, `dispatchQueue`, `dispatchSource`, `disconnectFunction`, ...) that don't exist in this project's v1-scoped struct, and nothing outside the file called any of the three. `__SCDynamicStoreServerPort()` fetches the bootstrap port via `task_get_special_port(TASK_BOOTSTRAP_PORT)` before `bootstrap_look_up()`, instead of the real global `bootstrap_port` variable this project's libc ships but never actually populates at process startup -- the same established pattern `userland/libxpc/xpc_connection.c` already uses. The `CFRuntimeClass` initializer is reshaped for this project's real (smaller, 5-field: `className`/`finalize`/`equal`/`hash`/`copyFormattingDesc`) struct instead of real Apple's 9-field one.
+- **`SCD.c`** trimmed to exactly what `SCDOpen.c` needs -- per-thread error state (`__SCGetThreadSpecificData`/`_SCErrorSet`/`SCError`/`SCErrorString`). Real `_SCCopyDescription`/`__SCLog`/`__SCPrint`/`__SC_Log`/`SCLog`/`SCPrint` (real CF `%@`-aware formatting via a CoreFoundation-private export this project doesn't have, plus real `os_log_with_args`) are dropped -- nothing vendored calls them, everything uses the printf-based `SC_log`/`SC_trace` macros instead (now available client-side too, via a guarded fallback added to `SCPrivate.h`, matching `configd.h`'s own server-side copy without a macro-redefinition warning when both get included).
+- **`SCDGet.c`/`SCDSet.c`** drop `SCDynamicStoreCopyMultiple`/`SCDynamicStoreSetMultiple` -- both call `_SCSerializeMultiple`/`_SCUnserializeMultiple`, real internal per-entry-re-encode helpers not implemented in this project's trimmed `SCDPrivate.c`. `SCDynamicStoreCopyValue`/`SCDynamicStoreSetValue` need none of that and are otherwise unmodified. `SCDRemove.c`/`SCDNotifierSetKeys.c` needed no changes at all.
+- **`SCDKeys.c`** drops `SCDynamicStoreKeyCreateNetworkGlobalEntity`/`NetworkInterface`/`NetworkInterfaceEntity`/`NetworkServiceEntity` -- all four need the `kSCComp*` schema-key constants (`SCSchemaDefinitions.c`, part of `SCNetworkConfiguration`), explicitly out of v1 scope. The general-purpose `SCDynamicStoreKeyCreate(allocator, fmt, ...)` is unmodified.
+- **`SCDNotifierInformViaFD.c`** unmodified beyond added includes (`sys/fileport.h`/`errno.h`/`string.h`). `SCDynamicStoreNotifyFileDescriptor`/`SCDynamicStoreNotifyCancel` are declared in this project's `SCPrivate.h` (real Apple declares both in `SCDynamicStorePrivate.h`, an SPI header not part of the public SDK -- grepped the real vendored SDK headers to confirm neither is in the public `SCDynamicStore.h`).
+
+**Milestone 6 (verification) -- DONE, `SCTEST PASS` confirmed live in QEMU (see the verification note below for the two real bugs this surfaced and fixed).** `userland/SystemConfiguration/test/sctest.c`: two real `SCDynamicStoreCreate()` sessions against the real daemon, a real `SCDynamicStoreSetValue()`→`SCDynamicStoreCopyValue()` round trip with an equality check, then a real async-notification test -- `SCDynamicStoreSetNotificationKeys()` + `SCDynamicStoreNotifyFileDescriptor()` on the reader session, `SCDynamicStoreSetValue()` on the writer session, then a real `poll()`/`read()` on the notification fd proving it genuinely becomes readable (not just that values can be get/set synchronously), plus `SCDynamicStoreRemoveValue()` cleanup. Includes a short bounded retry-with-backoff around the first `SCDynamicStoreCreate()` call, since this project's launchd (Phase 28) has no on-demand-launch/readiness contract between RunAtLoad daemons -- `sctest` and `configd` can race at boot, unlike real Darwin where `bootstrap_look_up()` would block until `configd` finishes registering. Built at `build/SystemConfiguration_obj/sctest` (`userland/SystemConfiguration/test/build.sh`); wired into `userland/mkrootfs.sh` (conditional-on-build-artifact, same pattern as every other test binary) alongside new `com.asteros.configd.plist`/`com.asteros.sctest.plist` RunAtLoad daemons and a new `::/var/tmp` rootfs directory (`_snapshot.c`'s debug-dump target path).
+
+**Live QEMU verification: DONE -- `SCTEST PASS`, confirmed on-screen, no regressions.** (An earlier attempt this session misdiagnosed a boot failure as a pre-existing `vstart_trap_handler` crash; that was actually just an incomplete ad hoc QEMU invocation missing `-cpu Haswell` -- the real invocation is `make run`, i.e. `-machine q35 -cpu Haswell -m 2048` against `boot/esp.img` alone, which boots fine. Noted here only so a future session doesn't repeat the same false lead.)
+
+Booting the real image surfaced one genuine bug, found and fixed this session:
+- **`configd`'s `server_loop()` was missing the audit-trailer receive flags.** Every routine in `config.defs` declares `ServerAuditToken audit_token : audit_token_t`, which makes the real, vendored `migcom` emit mandatory trailer validation into the generated server dispatcher (`configServer.c`'s `_Xconfigopen`/etc.: checks `TrailerP->msgh_trailer_type`/size and `MIG_RETURN_ERROR`s with `MIG_TRAILER_ERROR` -- kern_return_t **-309** -- if the trailer wasn't actually populated). `server_loop()`'s `mach_msg()` receive requested no trailer at all (`MACH_RCV_MSG | MACH_RCV_LARGE` only), so the kernel's own `ipc_kmsg_add_trailer()` correctly took its "caller didn't ask for one" early-return path (honoring the request exactly as specified -- not a kernel bug) and left the trailer unpopulated, so *every single request* failed this check deterministically. Real `mach_msg_server()` sets this up automatically for any MIG subsystem built with `ServerAuditToken`; this project's hand-rolled loop needed the same two flags added explicitly: `MACH_RCV_TRAILER_TYPE(MACH_MSG_TRAILER_FORMAT_0) | MACH_RCV_TRAILER_ELEMENTS(MACH_RCV_TRAILER_AUDIT)` OR'd into the receive `option`. Root-caused by tracing the full trap-number/arg-marshaling path (confirmed correct) and the complex-message/OOL-descriptor receive path (also confirmed correct) before finding the real cause in the generated server dispatcher's own trailer check -- see `configd_server.c`'s inline comment for the full chain of evidence.
+- Fixing the trailer flags exposed a second, smaller issue: the now-larger receive (request + ~52-byte `mach_msg_audit_trailer_t`) no longer fit in the 128-byte stack buffer `server_loop()`/`configdCallback()` share, so every receive then failed `MACH_RCV_TOO_LARGE` instead. `MACH_MSG_BUFFER_SIZE` bumped 128 -> 512 (comfortable margin; OOL payload bytes never count against this buffer, only the small fixed header/descriptor/trailer shape does, so this covers every routine in the subsystem regardless of any individual request's actual data size).
+
+With both fixes, a full boot (`make run`) shows, verbatim, on the GOP console: `SCTEST: real get/set round trip OK`, `SCTEST: real async notification wakeup OK (identifier=0)`, and `SCTEST PASS` -- a real `SCDynamicStoreCreate()` -> `SetValue()` -> `CopyValue()` round trip through the real daemon over the real generated MIG wire protocol, plus a real `SetNotificationKeys()`/`NotifyFileDescriptor()` async wakeup proven via an actual `poll()`/`read()` on the notification fd, not just a synchronous get/set. Alongside it, every existing regression check still shows its own real `PASS`: `LAUNCHCTLTEST`, `NETWORKTEST`, `XPCTEST` (both sides), `PTHREADTEST`, `FOUNDATIONTEST`, `DISPATCHTEST`, `SECURITYTEST`, `HELLO_OBJC` -- zero regressions from this phase's work.
+
 ## Known deviations from a literal reading of the task (documented, not oversights)
 - ~~BusyBox → our own tiny multicall static binary~~ — superseded, see Phase 9 above.
 - ~~Root filesystem → MOCKFS + RAMDisk~~ — superseded: the actual root filesystem is

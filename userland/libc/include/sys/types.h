@@ -41,6 +41,13 @@ typedef unsigned short u_short;
 typedef unsigned char u_char;
 typedef long key_t;
 typedef char *caddr_t;
+/* BSD legacy fixed-width aliases (src/xnu/bsd/sys/_types/_u_intNN_t.h) --
+ * distinct from <stdint.h>'s uintN_t (no underscore): several vendored
+ * xnu netinet headers (ip_icmp.h, if.h) use these directly. */
+typedef unsigned char u_int8_t;
+typedef unsigned short u_int16_t;
+typedef unsigned int u_int32_t;
+typedef unsigned long long u_int64_t;
 
 #ifdef __cplusplus
 }

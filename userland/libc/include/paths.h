@@ -11,6 +11,7 @@ extern "C" {
 #define _PATH_DEVNULL  "/dev/null"
 #define _PATH_TTY      "/dev/tty"
 #define _PATH_CONSOLE  "/dev/console"
+#define _PATH_VARTMP   "/var/tmp/"
 
 #ifdef __cplusplus
 }

@@ -176,5 +176,22 @@
 #define SIOCSIF6LOWPAN  _IOW('i', 196, struct ifreq)    /* set 6LOWPAN config */
 #define SIOCGIF6LOWPAN  _IOWR('i', 197, struct ifreq)   /* get 6LOWPAN config */
 
+/*
+ * Linux-only ioctls busybox's networking/interface.c calls (SIOCGIFHWADDR/
+ * SIOCSIFHWADDR for link-layer address, SIOCGIFMAP for driver resource
+ * info) that this kernel's real, unmodified in_control() (src/xnu/bsd/
+ * netinet/in.c) has no case for at all -- real Darwin gets a link-layer
+ * address via AF_LINK/getifaddrs(), not an ioctl. Rather than patch
+ * busybox to route around code paths it doesn't have, these are given
+ * command numbers in the unused 200+ range of the same 'i' group every
+ * other SIOC* here uses, so they encode as well-formed but unrecognized
+ * ioctl commands -- in_control()'s default case returns ENOTTY/EOPNOTSUPP
+ * for them exactly like it would for any other unknown command, and
+ * busybox's own `if (ioctl(...) >= 0)` checks already treat that as
+ * "unavailable, skip" rather than a fatal error.
+ */
+#define SIOCGIFHWADDR   _IOWR('i', 200, struct ifreq)   /* no real BSD equivalent */
+#define SIOCSIFHWADDR    _IOW('i', 201, struct ifreq)   /* no real BSD equivalent */
+#define SIOCGIFMAP      _IOWR('i', 202, struct ifreq)   /* no real BSD equivalent */
 
 #endif /* !_SYS_SOCKIO_H_ */

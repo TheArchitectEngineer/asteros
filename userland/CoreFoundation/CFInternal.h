@@ -31,28 +31,14 @@
 #define COREFOUNDATION_CFINTERNAL_H
 
 #include <CoreFoundation/CoreFoundation.h>
+#include <CoreFoundation/CFRuntime.h>
 
 #define CF_MAX_RUNTIME_CLASSES 32
 
-typedef struct __CFRuntimeBase {
-	void *isa;		/* NULL until Foundation calls _CFRuntimeBridgeClasses for this typeID; objc_object-layout-compatible */
-	CFTypeID typeID;
-	Boolean isConstant;	/* statically-allocated singletons (kCFBooleanTrue, kCFNull, ...): CFRetain/CFRelease are no-ops */
-	volatile CFIndex retainCount;	/* touched only via __atomic_* builtins -- see pthread.c for the same convention */
-} CFRuntimeBase;
-
-typedef struct {
-	const char *className;
-	void (*finalize)(CFTypeRef cf);
-	Boolean (*equal)(CFTypeRef cf1, CFTypeRef cf2);
-	CFHashCode (*hash)(CFTypeRef cf);
-	CFStringRef (*copyFormattingDesc)(CFTypeRef cf);
-} CFRuntimeClass;
-
-CFTypeID _CFRuntimeRegisterClass(const CFRuntimeClass *cls);
-const CFRuntimeClass *_CFRuntimeGetClass(CFTypeID typeID);
-CFTypeRef _CFRuntimeCreateInstance(CFAllocatorRef allocator, CFTypeID typeID, CFIndex extraBytes);
-void _CFRuntimeInitStaticInstance(void *memory, CFTypeID typeID);
+/* CFRuntimeBase/CFRuntimeClass/_CFRuntime* moved to the public
+ * CoreFoundation/CFRuntime.h (Phase 25 needs them from outside this
+ * directory, for SCDynamicStorePrivate -- see its own header comment);
+ * this file keeps using the same names via that include. */
 
 /* Toll-free bridging registration: Foundation calls this once per bridged
  * CF/NS pair (e.g. CFStringGetTypeID(), &_OBJC_CLASS_$_NSCFString) at load

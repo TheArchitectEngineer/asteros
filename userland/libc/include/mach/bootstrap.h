@@ -46,6 +46,23 @@
 
 #define BOOTSTRAP_MAX_NAME_LEN 128
 
+/* Real Apple bootstrap status codes (servers/bootstrap_defs.h), kept
+ * here since this project has no separate bootstrap_defs.h. This
+ * project's own bootstrap_look_up()/bootstrap_register() (see the
+ * header comment above) never actually return any of these -- only
+ * plain kern_return_t values -- so real callers that switch on them
+ * (e.g. SCDOpen.c's __SCDynamicStoreServerPort()) always fall through
+ * to their own default case here; the constants exist so that real,
+ * vendored source referencing them by name still compiles. */
+#define BOOTSTRAP_SUCCESS          0
+#define BOOTSTRAP_NOT_PRIVILEGED   1100
+#define BOOTSTRAP_NAME_IN_USE      1101
+#define BOOTSTRAP_UNKNOWN_SERVICE  1102
+#define BOOTSTRAP_SERVICE_ACTIVE   1103
+#define BOOTSTRAP_BAD_COUNT        1104
+#define BOOTSTRAP_NO_MEMORY        1105
+#define BOOTSTRAP_NO_CHILDREN      1106
+
 #define BOOTSTRAP_REGISTER_MSGH_ID 9000
 #define BOOTSTRAP_LOOK_UP_MSGH_ID  9001
 

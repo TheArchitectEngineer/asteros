@@ -246,6 +246,54 @@ Boolean CFStringGetCString(CFStringRef theString, char *buffer, CFIndex bufferSi
 	return true;
 }
 
+/* Real signature supports arbitrary encodings/lossByte substitution;
+ * this project only actually needs ASCII/UTF8 (matching every other
+ * encoding-aware function in this file) -- other encodings just fail,
+ * same "documented, not silent" convention as CFPropertyList's AF_INET6
+ * handling. */
+CFIndex CFStringGetBytes(CFStringRef theString, CFRange range, CFStringEncoding encoding, UInt8 lossByte, Boolean isExternalRepresentation, UInt8 *buffer, CFIndex maxBufLen, CFIndex *usedBufLen)
+{
+	(void)lossByte; (void)isExternalRepresentation;
+	if (encoding != kCFStringEncodingUTF8 && encoding != kCFStringEncodingASCII) {
+		return 0;
+	}
+
+	const struct __CFString *s = (const struct __CFString *)theString;
+	CFIndex byteStart = 0, o = 0, charIdx = 0;
+	while (charIdx < range.location) {
+		int consumed;
+		utf8Decode(s->buffer + o, &consumed);
+		o += consumed;
+		charIdx++;
+	}
+	byteStart = o;
+	CFIndex end = range.location + range.length;
+	while (charIdx < end) {
+		int consumed;
+		utf8Decode(s->buffer + o, &consumed);
+		o += consumed;
+		charIdx++;
+	}
+	CFIndex byteLen = o - byteStart;
+
+	if (encoding == kCFStringEncodingASCII) {
+		for (CFIndex i = 0; i < byteLen; i++) {
+			if ((unsigned char)s->buffer[byteStart + i] >= 0x80) return 0;
+		}
+	}
+
+	if (usedBufLen) *usedBufLen = byteLen;
+	if (buffer == NULL) {
+		/* query-length mode */
+		return (byteLen <= maxBufLen) ? byteLen : 0;
+	}
+	if (byteLen > maxBufLen) {
+		return 0;
+	}
+	memcpy(buffer, s->buffer + byteStart, (size_t)byteLen);
+	return byteLen;
+}
+
 const char *CFStringGetCStringPtr(CFStringRef theString, CFStringEncoding encoding)
 {
 	const struct __CFString *s = (const struct __CFString *)theString;
@@ -302,7 +350,7 @@ Boolean CFStringHasSuffix(CFStringRef theString, CFStringRef suffix)
 	return memcmp(a->buffer + (a->byteLength - b->byteLength), b->buffer, (size_t)b->byteLength) == 0;
 }
 
-Boolean CFStringFind(CFStringRef theString, CFStringRef stringToFind, CFStringCompareFlags compareOptions, CFRange *result)
+Boolean CFStringFindWithOptions(CFStringRef theString, CFStringRef stringToFind, CFStringCompareFlags compareOptions, CFRange *result)
 {
 	(void)compareOptions;	/* v1: plain byte search only, no case-insensitive/backwards find */
 	const struct __CFString *a = (const struct __CFString *)theString;
@@ -333,6 +381,40 @@ Boolean CFStringFind(CFStringRef theString, CFStringRef stringToFind, CFStringCo
 		return true;
 	}
 	return false;
+}
+
+CFRange CFStringFind(CFStringRef theString, CFStringRef stringToFind, CFStringCompareFlags compareOptions)
+{
+	CFRange r;
+	if (!CFStringFindWithOptions(theString, stringToFind, compareOptions, &r)) {
+		return CFRangeMake(kCFNotFound, 0);
+	}
+	return r;
+}
+
+CFStringRef CFStringCreateWithSubstring(CFAllocatorRef alloc, CFStringRef str, CFRange range)
+{
+	const struct __CFString *s = (const struct __CFString *)str;
+	/* translate the character-index range back to a byte range, same
+	 * decode-and-count approach CFStringFindWithOptions uses above */
+	CFIndex byteStart = 0, o = 0, charIdx = 0;
+	while (charIdx < range.location) {
+		int consumed;
+		utf8Decode(s->buffer + o, &consumed);
+		o += consumed;
+		charIdx++;
+	}
+	byteStart = o;
+	CFIndex byteLen = 0;
+	CFIndex end = range.location + range.length;
+	while (charIdx < end) {
+		int consumed;
+		utf8Decode(s->buffer + o, &consumed);
+		o += consumed;
+		charIdx++;
+	}
+	byteLen = o - byteStart;
+	return CFStringCreateWithBytes(alloc, (const UInt8 *)s->buffer + byteStart, byteLen, kCFStringEncodingUTF8, false);
 }
 
 /* ---- more mutation ---- */

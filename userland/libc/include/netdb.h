@@ -66,6 +66,7 @@ int getaddrinfo(const char *node, const char *service,
 void freeaddrinfo(struct addrinfo *res);
 const char *gai_strerror(int errcode);
 struct servent *getservbyname(const char *name, const char *proto);
+struct servent *getservbyport(int port, const char *proto);
 
 #ifdef __cplusplus
 }

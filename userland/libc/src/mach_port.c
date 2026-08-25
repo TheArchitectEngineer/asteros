@@ -69,3 +69,21 @@ mach_port_insert_right(
 	return (kern_return_t)raw_mach_trap4(MACH_TRAP_kernelrpc_mach_port_insert_right,
 	    (long)target, (long)name, (long)poly, (long)polyPoly);
 }
+
+/* Real trap 22 (src/xnu/osfmk/kern/syscall_sw.c:127,
+ * _kernelrpc_mach_port_insert_member_trap, 3 word args) -- adds `name`
+ * (a receive right) as a member of port set `pset`, so a single
+ * mach_msg(MACH_RCV_MSG) on `pset` delivers whichever member port's
+ * message actually arrived. Needed for Phase 25's configd, which fans
+ * in one receive port per open SCDynamicStore session this way instead
+ * of real configd's per-session CFRunLoopSource (CFRunLoop doesn't exist
+ * in this project). */
+kern_return_t
+mach_port_insert_member(
+	mach_port_name_t task,
+	mach_port_name_t name,
+	mach_port_name_t pset)
+{
+	return (kern_return_t)raw_mach_trap3(MACH_TRAP_kernelrpc_mach_port_insert_member,
+	    (long)task, (long)name, (long)pset);
+}

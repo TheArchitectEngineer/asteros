@@ -82,6 +82,11 @@ fi
 if [ -f build/libSystem_obj/machtest ]; then
 	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.machtest.plist ::/etc/launchd/daemons/com.asteros.machtest.plist
 fi
+if [ -f build/network_test/networktest ]; then
+	echo "networktest found in build/ -- including it in the rootfs"
+	mcopy -i "$ROOTFS_IMG" build/network_test/networktest ::/bin/networktest
+	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.networktest.plist ::/etc/launchd/daemons/com.asteros.networktest.plist
+fi
 
 DYLD_BIN="build/dyld_obj/dyld"
 LIBSYSTEM_REAL="build/libSystem_obj/libSystem.B.dylib"
@@ -147,6 +152,18 @@ if [ -f "$DYLD_BIN" ]; then
 		echo "libxpc found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/xpc_obj/libxpc.dylib ::/usr/lib/libxpc.dylib
 		mcopy -i "$ROOTFS_IMG" build/xpc_obj/xpctest ::/bin/xpctest
+	fi
+	if [ -f build/configd_obj/configd ]; then
+		echo "configd found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/configd_obj/configd ::/sbin/configd
+		mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.configd.plist ::/etc/launchd/daemons/com.asteros.configd.plist
+		mmd -i "$ROOTFS_IMG" ::/var/tmp
+	fi
+	if [ -f build/SystemConfiguration_obj/libSystemConfiguration.dylib ] && [ -f build/SystemConfiguration_obj/sctest ]; then
+		echo "SystemConfiguration found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/SystemConfiguration_obj/libSystemConfiguration.dylib ::/usr/lib/libSystemConfiguration.dylib
+		mcopy -i "$ROOTFS_IMG" build/SystemConfiguration_obj/sctest ::/bin/sctest
+		mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.sctest.plist ::/etc/launchd/daemons/com.asteros.sctest.plist
 	fi
 fi
 
