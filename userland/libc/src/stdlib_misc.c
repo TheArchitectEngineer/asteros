@@ -308,6 +308,68 @@ long atol(const char *s) { return strtol(s, (void *)0, 10); }
 long long atoll(const char *s) { return strtoll(s, (void *)0, 10); }
 double atof(const char *s) { return strtod(s, (void *)0); }
 
+/* mblen/mbtowc/wctomb/mbstowcs/wcstombs: C/POSIX-locale semantics --
+ * one byte is one wchar_t, always (see stdlib.h's MB_CUR_MAX comment).
+ * Needed for the X11 milestone (libX11's xlibi18n/modules code). */
+int
+mblen(const char *s, size_t n)
+{
+	if (!s) {
+		return 0; /* stateless in this locale -- no shift state pending */
+	}
+	if (n == 0) {
+		return -1;
+	}
+	return s[0] == '\0' ? 0 : 1;
+}
+
+/* mbtowc() itself already lives in wchar.c, identical semantics. */
+
+int
+wctomb(char *s, wchar_t wc)
+{
+	if (!s) {
+		return 0;
+	}
+	*s = (char)wc;
+	return 1;
+}
+
+size_t
+mbstowcs(wchar_t *dst, const char *src, size_t n)
+{
+	size_t i;
+	if (!dst) {
+		for (i = 0; src[i]; i++) {}
+		return i;
+	}
+	for (i = 0; i < n; i++) {
+		wchar_t c = (unsigned char)src[i];
+		dst[i] = c;
+		if (c == 0) {
+			return i;
+		}
+	}
+	return i;
+}
+
+size_t
+wcstombs(char *dst, const wchar_t *src, size_t n)
+{
+	size_t i;
+	if (!dst) {
+		for (i = 0; src[i]; i++) {}
+		return i;
+	}
+	for (i = 0; i < n; i++) {
+		dst[i] = (char)src[i];
+		if (src[i] == 0) {
+			return i;
+		}
+	}
+	return i;
+}
+
 /* system() -- real fork/exec/waitpid, matching POSIX semantics (a NULL
  * command just probes shell availability; SIGINT/SIGQUIT are ignored
  * and SIGCHLD unblocked in the parent while waiting, per the standard).

@@ -66,6 +66,10 @@ int close(int fd);
 int dup(int fd);
 int dup2(int fd, int fd2);
 int fsync(int fd);
+/* Real Darwin declares getentropy() here (not just sys/random.h) --
+ * added for the X11 milestone (libICE's iceauth.c includes only
+ * unistd.h, not sys/random.h, for it). */
+int getentropy(void *buffer, size_t size);
 int pipe(int fildes[2]);
 off_t lseek(int fd, off_t offset, int whence);
 int ftruncate(int fd, off_t length);

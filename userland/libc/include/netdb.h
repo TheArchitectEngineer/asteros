@@ -11,6 +11,12 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/socket.h>
+/* Real Apple SDK's netdb.h transitively provides MAXHOSTNAMELEN this
+ * way too (some vendored X11 code -- xproto's Xos_r.h -- assumes it's
+ * ambient after #include <netdb.h> on Apple platforms, unlike NetBSD/
+ * FreeBSD/DragonFly, which it includes <sys/param.h> for explicitly).
+ * Added for the X11 milestone (libX11's xlibi18n/xim_trans.c). */
+#include <sys/param.h>
 
 struct hostent {
 	char  *h_name;

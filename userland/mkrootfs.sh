@@ -50,6 +50,16 @@ mmd -i "$ROOTFS_IMG" ::/private/var
 mmd -i "$ROOTFS_IMG" ::/private/var/vm
 
 mcopy -i "$ROOTFS_IMG" src/busybox/busybox_unstripped ::/bin/busybox
+# busybox dispatches its applets by inspecting argv[0], not by file
+# identity -- real installs symlink /bin/sh -> busybox, but FAT16 has
+# no symlinks/hardlinks, so this is a second physical copy under the
+# name "sh". Needed for any real fork+execl("/bin/sh", "sh", "-c", ...)
+# (as opposed to typing "sh" at an already-running ash prompt, which
+# busybox's own shell resolves internally without ever calling exec) --
+# found live via xorg-server's Popen()/System(), which xkbcomp
+# invocation depends on (X11 milestone).
+mcopy -i "$ROOTFS_IMG" src/busybox/busybox_unstripped ::/bin/sh
+mcopy -i "$ROOTFS_IMG" src/busybox/busybox_unstripped ::/bin/sleep
 mcopy -i "$ROOTFS_IMG" build/launchd/launchd ::/sbin/launchd
 mcopy -i "$ROOTFS_IMG" build/launchctl_obj/launchctl ::/bin/launchctl
 
@@ -107,10 +117,24 @@ if [ -f build/unixtest/unixtest ]; then
 	mcopy -i "$ROOTFS_IMG" build/unixtest/unixtest ::/bin/unixtest
 	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.unixtest.plist ::/etc/launchd/daemons/com.asteros.unixtest.plist
 fi
-if [ -f build/xorg-deps-install/bin/Xfbdev ]; then
+if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 	echo "Xfbdev found in build/ -- including it in the rootfs"
-	mcopy -i "$ROOTFS_IMG" build/xorg-deps-install/bin/Xfbdev ::/bin/Xfbdev
+	mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/Xfbdev ::/bin/Xfbdev
 	mcopy -i "$ROOTFS_IMG" userland/startx.sh ::/bin/startx
+	if [ -f build/xorg-target-root/bin/xkbcomp ]; then
+		echo "xkbcomp found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xkbcomp ::/bin/xkbcomp
+	fi
+	if [ -d build/xorg-target-root/usr/share/X11/xkb ]; then
+		echo "xkeyboard-config data found in build/ -- including it in the rootfs"
+		mmd -i "$ROOTFS_IMG" ::/usr/share 2>/dev/null
+		mmd -i "$ROOTFS_IMG" ::/usr/share/X11 2>/dev/null
+		mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/X11/xkb ::/usr/share/X11/
+	fi
+	if [ -f build/xorg-target-root/bin/twm ]; then
+		echo "twm found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/twm ::/bin/twm
+	fi
 fi
 
 DYLD_BIN="build/dyld_obj/dyld"

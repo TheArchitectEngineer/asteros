@@ -1,8 +1,11 @@
-/* Minimal sscanf: %d %i %u %x %o %c %s %f(skip-only) %% plus literal
+/* Minimal sscanf: %d %i %u %x %o %c %s %f %g %e %% plus literal
  * text/whitespace matching and numeric field widths. Good enough for the
  * handful of straightforward numeric/string parses busybox's libbb code
- * does (procps.c /proc field parsing, etc.) -- not a complete C stdio
- * scanf. */
+ * does (procps.c /proc field parsing, etc.) plus xkbcomp's own number
+ * scanner (X11 milestone, xkbscan.c's yyGetNumber -- real floats, not
+ * skip-only, ground-truthed live: geometry files with fractional
+ * measurements like "1.5" were failing to parse) -- not a complete C
+ * stdio scanf. */
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -39,7 +42,11 @@ do_vsscanf(const char *s, const char *fmt, va_list ap)
 			suppress = 1;
 			p++;
 		}
+		int islong = 0;
 		while (*p == 'l' || *p == 'h') {
+			if (*p == 'l') {
+				islong = 1;
+			}
 			p++;
 		}
 		switch (*p) {
@@ -85,6 +92,28 @@ do_vsscanf(const char *s, const char *fmt, va_list ap)
 			}
 			if (!suppress) {
 				*va_arg(ap, int *) = (int)v;
+				assigned++;
+			}
+			s = end;
+			break;
+		}
+		case 'f':
+		case 'g':
+		case 'e': {
+			while (isspace((unsigned char)*s)) {
+				s++;
+			}
+			char *end;
+			double v = strtod(s, &end);
+			if (end == s) {
+				return assigned;
+			}
+			if (!suppress) {
+				if (islong) {
+					*va_arg(ap, double *) = v;
+				} else {
+					*va_arg(ap, float *) = (float)v;
+				}
 				assigned++;
 			}
 			s = end;

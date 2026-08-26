@@ -14,6 +14,11 @@ struct passwd {
 	char  *pw_passwd;
 	uid_t  pw_uid;
 	gid_t  pw_gid;
+	char  *pw_class; /* real Darwin field (user access class); this libc
+	                  * never populates it meaningfully, but the slot has
+	                  * to exist in the right position -- xproto's
+	                  * Xos_r.h (X11 milestone) uses it as extra buffer
+	                  * space in its own thread-safe getpwnam_r wrapper. */
 	char  *pw_gecos;
 	char  *pw_dir;
 	char  *pw_shell;

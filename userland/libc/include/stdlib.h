@@ -7,6 +7,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/wait.h> /* matches real Darwin's stdlib.h -> sys/wait.h -> sys/resource.h chain */
+#include <sys/_types/_wchar_t.h> /* matches real Darwin's stdlib.h -- wchar_t for mbtowc/wctomb/mbstowcs/wcstombs below */
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
@@ -49,6 +50,16 @@ unsigned long long strtoull(const char *nptr, char **endptr, int base);
 double strtod(const char *nptr, char **endptr);
 float strtof(const char *nptr, char **endptr);
 long double strtold(const char *nptr, char **endptr);
+
+/* Multibyte<->wide conversions, C/POSIX-locale (== ASCII-only, see
+ * MB_CUR_MAX above) semantics: one byte is one wchar_t, always.
+ * Needed for the X11 milestone (libX11's xlibi18n/modules code calls
+ * these directly). */
+int    mblen(const char *s, size_t n);
+int    mbtowc(wchar_t *pwc, const char *s, size_t n);
+int    wctomb(char *s, wchar_t wc);
+size_t mbstowcs(wchar_t *dst, const char *src, size_t n);
+size_t wcstombs(char *dst, const wchar_t *src, size_t n);
 
 char  *getenv(const char *name);
 int    setenv(const char *name, const char *value, int overwrite);

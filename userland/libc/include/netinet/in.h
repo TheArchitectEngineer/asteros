@@ -39,6 +39,12 @@ struct sockaddr_in6 {
 };
 
 #define INADDR_ANY ((in_addr_t)0)
+/* Real BSD constants, ground-truthed against src/xnu/bsd/netinet/in.h --
+ * added for the X11 milestone (libxcb's xcb_auth.c checks the peer
+ * address against loopback before allowing a plain "MIT-MAGIC-COOKIE-1"
+ * cookie over a TCP connection). */
+#define INADDR_BROADCAST ((in_addr_t)0xffffffff)
+#define INADDR_LOOPBACK  ((in_addr_t)0x7f000001)
 
 /* Real Darwin text-form address-buffer sizes -- added for Phase 30. */
 #define INET_ADDRSTRLEN  16

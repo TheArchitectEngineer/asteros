@@ -13,6 +13,7 @@ static struct passwd g_root_pw = {
 	.pw_passwd = "*",
 	.pw_uid = 0,
 	.pw_gid = 0,
+	.pw_class = "",
 	.pw_gecos = "root",
 	.pw_dir = "/",
 	.pw_shell = "/bin/sh",

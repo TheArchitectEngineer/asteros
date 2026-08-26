@@ -3008,7 +3008,7 @@ all still correct.
 - lldb kernel-debugging macros (tools/lldbmacros) skipped entirely — Python 2-only,
   no interactive-debugging use case here — see patches/0014.
 
-## Phase 34 — X11 milestone, step 4: vendor a real X server, write the DDX driver: IN PROGRESS, Xfbdev builds and runs live in QEMU up through resource creation, blocked on XKB keymap data
+## Phase 34 — X11 milestone, step 4: vendor a real X server, write the DDX driver: DONE, Xfbdev + XKB + twm all confirmed alive live in QEMU
 
 Goal (fourth step of the X11 effort, following Phase 31's framebuffer
 device, Phase 32's PS/2 event queue, and Phase 33's AF_UNIX sockets):
@@ -3205,9 +3205,122 @@ neither of which is part of this phase's 21 vendored components and
 neither of which has any `--disable-xkb`-style escape hatch in modern
 xorg-server (XKB is not optional).
 
-**Not yet started:** `xkeyboard-config` + `xkbcomp` (blocks a real
-on-screen display), `build.sh` scripts for the 21 newly-vendored
-components (everything so far has been built by hand-run shell
-commands during this phase, not yet turned into the project's usual
-reproducible-script convention), twm, and the eventual real screendump
-proof of pixels actually reaching the display once XKB is unblocked.
+**Update — XKB unblocked, libX11 + twm vendored and built, all three
+confirmed alive live in QEMU (steps 6 and 7 of the original plan, done
+in the same session):**
+
+**Prefix bug found first, before any of the above could even be
+meaningful:** the original Xfbdev build baked in `XKB_BASE_DIRECTORY`/
+`XKB_BIN_DIRECTORY` as this session's *host* build path
+(`/Users/.../build/xorg-deps-install/...`) — harmless for headers/libs
+discovered at build time via `PKG_CONFIG_PATH`, but wrong for anything
+the binary looks up at *runtime inside the guest*, since that path
+doesn't exist there. Reconfigured with `--prefix=/usr --bindir=/bin
+--datadir=/usr/share --with-xkb-path=/usr/share/X11/xkb
+--with-xkb-bin-directory=/bin` and installed via `DESTDIR=build/
+xorg-target-root` (a clean target-rootfs-shaped staging tree,
+`make install`'s normal mechanism for exactly this split) instead of
+`--prefix`-as-staging-dir. `xkbcomp`/`twm` below use the same recipe.
+
+**A second, systemic build-contamination bug found and fixed along the
+way: `PKG_CONFIG_PATH` is additive, not exclusive.** libX11's first
+build attempt silently linked `-I/opt/homebrew/Cellar/xorgproto/.../
+include` — the *host* Mac's own Homebrew-installed xorgproto — because
+`pkg-config` always searches its compiled-in default paths in addition
+to `PKG_CONFIG_PATH`, unlike `PKG_CONFIG_LIBDIR`, which replaces them.
+Every remaining configure in this phase uses `PKG_CONFIG_LIBDIR`
+instead (a real fix; the earlier 21-component build script from this
+phase's first half wasn't retroactively audited for this, since none
+of those errors ever manifested as a build failure — but it's a latent
+risk worth remembering for any future re-vendor).
+
+**Vendored (real upstream, pinned at clone time), in dependency
+order:** `xkeyboard-config` (data-only, Meson) + `xkbcomp` (needs
+`libX11`), then `xcb-proto` + `libXdmcp` + `pthread-stubs` + `libxcb`
++ `libX11` (Xlib no longer builds directly on xtrans alone — modern
+libX11 requires XCB underneath), then `libICE` + `libSM` + `libXext`
++ `libXt` + `libXmu` + `twm`.
+
+**Real, previously-undiscovered libc gaps this surfaced:** `SCM_RIGHTS`
+and `INADDR_LOOPBACK`/`INADDR_BROADCAST` (libxcb's `xcb_auth.c`),
+`select$DARWIN_EXTSN` — real Darwin's `sys/_select.h` renames the
+`select()` symbol callers link against via `__DARWIN_EXTSN_C()`
+whenever `_DARWIN_C_SOURCE` is defined (which `AC_USE_SYSTEM_EXTENSIONS`
+sets automatically on Apple targets), so most autotools X11 packages
+end up wanting this exact symbol; ground-truthed live that this
+project's own `select()` compiles under `_select$1050` (the
+`__DARWIN_1050` branch, LP64 + cancelable), not plain `_select`, so
+the fix is a Mach-O symbol alias (`.globl`/`=`) from
+`$DARWIN_EXTSN` to `$1050`, not to the un-suffixed name a first guess
+would reach for. `mblen`/`wctomb`/`mbstowcs`/`wcstombs` (real
+C/POSIX-locale, one-byte-is-one-wchar_t implementations — `mbtowc`
+already existed in `wchar.c`, reused as-is) and `MAXHOSTNAMELEN`
+(xproto's `Xos_r.h` only pulls in `sys/param.h` for
+`__NetBSD__`/`__FreeBSD__`/`__DragonFly__`, not `__APPLE__`, assuming
+real Apple's own `netdb.h` provides it transitively some other way;
+fixed by making this project's own `netdb.h` do the same, rather than
+patching vendored xproto) — all needed by libX11's `xlibi18n` code.
+A `pw_class` field added to `struct passwd` (real Darwin field, right
+position, never meaningfully populated) since `Xos_r.h`'s thread-safe
+`getpwnam_r` wrapper (enabled for `__APPLE__`) uses it as scratch
+buffer space. `getentropy()` declared in `unistd.h` too, not just
+`sys/random.h` (real Darwin does both; libICE's `iceauth.c` only
+includes the former). Real `%f`/`%g`/`%e` support added to this
+project's `sscanf()` (`userland/libc/src/scanf.c`), previously
+skip-only per its own header comment — found live via `xkbcomp`
+rejecting a real `xkeyboard-config` geometry file's `"1.5"` measurement
+with "Malformed number", traced to `xkbscan.c`'s `yyGetNumber()` doing
+`sscanf(buf, "%g", &tmp)` and getting 0 back unconditionally.
+
+**Two real, live-found process-spawning bugs, both root-caused via
+targeted `fprintf` trace instrumentation added straight into vendored
+`xkb/ddxLoad.c`'s `RunXkbComp()` (removed once diagnosed) since this
+project's `execinfo.h` `backtrace()` is an honest no-op — no real
+unwinding to fall back on:**
+- `Pclose()` was returning exit status 127 (`_exit(127)`, i.e.
+  `execl("/bin/sh", "sh", "-c", cmd, NULL)` itself failing) even though
+  `/bin/sh` "worked" at the interactive prompt — because it didn't:
+  busybox dispatches applets by inspecting `argv[0]`, not file
+  identity, and typing `sh` at an *already-running* ash prompt
+  resolves internally without ever calling `exec()`. A real, separate
+  `fork()+execl("/bin/sh", ...)` (`Popen()`/`system()`, used by
+  `xkbcomp` invocation and later by `twm`) needs `/bin/sh` to exist as
+  an actual file. FAT16 has no symlinks, so `userland/mkrootfs.sh` now
+  `mcopy`s `busybox_unstripped` a second time under the name `sh` (and,
+  found moments later the same way, a third time under `sleep`).
+- `startx.sh`'s own `sleep 3` (added to give Xfbdev+XKB time to come up
+  before launching `twm`) hit `sleep: applet not found` — this
+  busybox build has `CONFIG_SLEEP` off entirely — and, once swapped for
+  a hand-rolled delay loop, `syntax error: support for $((arith)) is
+  disabled` (`CONFIG_ASH_MATH_SUPPORT` off too). Replaced with a
+  POSIX `${var#?}` string-shrinking busy-wait (parameter expansion,
+  needs neither arithmetic expansion nor an external binary) — a real,
+  if inelegant, workaround for two real busybox config gaps, not
+  something to silently paper over.
+
+**Live-tested in QEMU, real boot + `sh /bin/startx` + `sendkey`/
+`screendump` verification:** `xkbcomp` now compiles a real keymap from
+the real `xkeyboard-config` `pc+us` names (confirmed via direct
+`/bin/xkbcomp -R/usr/share/X11/xkb ...` invocation once the `/bin/sh`
+bug was found), the X server proceeds past `XKB: Failed to compile
+keymap` entirely, and `twm` launches successfully afterward. Verified
+alive (not crashed) the same way Phase 4's earlier `-nolock` bug was
+diagnosed: typed characters at the console queue up echoed but
+unprocessed, since no shell is reading `stdin` — the foreground `wait
+$XPID` in `startx.sh` is still blocked on a live `Xfbdev`, and `twm`
+alongside it. Root window renders solid black (twm's real, undecorated
+default with zero client windows mapped — there is nothing to draw a
+titlebar or border around yet) and stayed stable black across repeated
+screendumps; a mouse click briefly showed old console scrollback in
+one screendump, most likely a screendump-timing/buffering artifact
+rather than a crash (no fatal-error text, immediate next screendump
+was back to stable black, shell never regained control throughout).
+
+**Not yet started:** any real client windows (`xterm`, `xclock`, or
+anything else) to actually see twm's titlebars/borders/menus render
+against, `build.sh` scripts for the by-hand-built components in this
+phase (everything so far has been built via ad hoc shell commands, not
+yet turned into the project's usual reproducible-script convention),
+and a real screendump proof of visible decorated window content (as
+opposed to the current "process is alive and not crashing" proof,
+which is real but weaker).

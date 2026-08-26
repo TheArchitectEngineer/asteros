@@ -121,6 +121,13 @@ struct cmsghdr {
 #define CMSG_SPACE(l) (__CMSG_ALIGN(sizeof(struct cmsghdr)) + __CMSG_ALIGN(l))
 #define CMSG_LEN(l)   (__CMSG_ALIGN(sizeof(struct cmsghdr)) + (l))
 
+/* Type field for "socket-level" (SOL_SOCKET) ancillary data, ground-
+ * truthed against src/xnu/bsd/sys/socket.h -- added for the X11
+ * milestone (libxcb's xcb_conn.c, fd-passing for DRI2/DRI3, unused by
+ * this project's own AF_UNIX code but part of the real cmsg API
+ * surface libxcb assumes exists). */
+#define SCM_RIGHTS 0x01
+
 ssize_t sendmsg(int s, const struct msghdr *msg, int flags);
 ssize_t recvmsg(int s, struct msghdr *msg, int flags);
 

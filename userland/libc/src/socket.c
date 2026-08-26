@@ -167,6 +167,18 @@ select(int nfds, fd_set * readfds, fd_set * writefds, fd_set * exceptfds, struct
 	return (int)sys_result(raw_syscall5(93 /* SYS_select */, nfds, (long)readfds, (long)writefds, (long)exceptfds, (long)timeout));
 }
 
+/* select$DARWIN_EXTSN: real Darwin's own sys/_select.h renames the
+ * select() symbol callers link against via __DARWIN_EXTSN_C() whenever
+ * _DARWIN_C_SOURCE or _DARWIN_UNLIMITED_SELECT is defined at compile
+ * time -- which autoconf's AC_USE_SYSTEM_EXTENSIONS sets automatically
+ * on Apple targets, so most autotools-built X11 packages (libxcb here)
+ * end up with an undefined reference to this exact symbol rather than
+ * plain select(). This project's select() takes an already-unlimited
+ * nfds (no FD_SETSIZE clamp in the raw syscall), so the two variants
+ * are identical here -- a plain Mach-O symbol alias, not a second
+ * implementation. */
+__asm__(".globl _select$DARWIN_EXTSN\n_select$DARWIN_EXTSN = _select$1050\n");
+
 /* pselect(2): no dedicated real syscall wired in this project's raw
  * trap layer (real Darwin's own libsyscall implements it as a Libc-side
  * wrapper over the same underlying kernel path select() uses, with the
