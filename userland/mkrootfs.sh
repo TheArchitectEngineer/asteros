@@ -97,6 +97,11 @@ if [ -f build/fbtest/fbtest ]; then
 	mcopy -i "$ROOTFS_IMG" build/fbtest/fbtest ::/bin/fbtest
 	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.fbtest.plist ::/etc/launchd/daemons/com.asteros.fbtest.plist
 fi
+if [ -f build/pstest/pstest ]; then
+	echo "pstest found in build/ -- including it in the rootfs"
+	mcopy -i "$ROOTFS_IMG" build/pstest/pstest ::/bin/pstest
+	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.pstest.plist ::/etc/launchd/daemons/com.asteros.pstest.plist
+fi
 
 DYLD_BIN="build/dyld_obj/dyld"
 LIBSYSTEM_REAL="build/libSystem_obj/libSystem.B.dylib"

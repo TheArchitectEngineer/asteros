@@ -2769,6 +2769,135 @@ this project confirms.
   not re-verified against a non-QEMU/OVMF GOP implementation — this project only
   targets QEMU, so out of scope.
 
+## Phase 32 — X11 milestone, step 2: PS/2 mouse driver + real input-event queue: DONE, verified live in QEMU
+
+Goal (second step of the X11 effort, following Phase 31's framebuffer device):
+real pointer input, plus a genuine structured event queue for userspace -- the
+keyboard's existing ASCII-into-tty path (`osfmk/console/ps2_kbd.c`) gives X
+nothing usable (no key-up/down, no non-printable keys, no way to plug a mouse
+in at all).
+
+**New: `osfmk/console/ps2_mouse.c`** -- a polling PS/2 mouse driver, modeled
+directly on `ps2_kbd.c`'s own shape (`kernel_thread_start_priority()` +
+`assert_wait_deadline()`/`thread_block()` continuation, same 16ms interval, no
+interrupt handler). Real aux-port init sequence: `0xA8` (enable the second
+PS/2 port), a read-modify-write of the controller configuration byte (`0x20`
+read / `0x60` write) to explicitly disable IRQ12 reporting -- this driver
+polls, no IDT entry exists for IRQ12, so leaving it enabled would either be
+silently eaten or fault depending on this kernel's default handler -- then
+`0xD4`-prefixed `0xF4` ("enable data reporting", streaming mode), waiting for
+the real `0xFA` ACK. Decodes standard 3-byte packets: sign/overflow bits from
+byte 0, X/Y deltas from bytes 1-2, byte-0-bit-3-must-be-1 resync framing (self
+corrects within at most 2 bytes if a byte is ever dropped), Y negated to
+convert PS/2's up-positive convention to this project's own down-positive
+screen convention, overflow clamped to +-255 rather than dropped. Button
+edges (not raw state) are posted by diffing against the last-seen button byte,
+same "post transitions, not levels" shape the keyboard driver already
+implies via make/break scan codes.
+
+**New: `bsd/dev/i386/psevent.c`** -- `/dev/psevent`, a real fixed-size
+(256-entry) ring buffer of `struct ps2_event` (own wire format, `bsd/dev/i386/
+psevent.h` / `userland/libc/include/psevent.h` -- this project's own design,
+not a port of Linux evdev or IOHIDEvent, same "nothing outside this OS needs
+to decode it" precedent as libxpc's TLV format), draining via a real blocking
+`read(2)` (`msleep()`/`wakeup()`, same shape `bsd/kern/subr_log.c`'s
+`logread()` uses for the identical "block until the producer has something"
+problem, including its defensive 5s-timeout re-check pattern) or non-blocking
+with `O_NONBLOCK` (`IO_NDELAY` -- real, already-working xnu machinery,
+confirmed by reading `vn_read()`'s `FNONBLOCK` handling, not assumed).
+Registered the modern way this table's own comment recommends:
+`cdevsw_add(-1, ...)` + `devfs_make_node()`, exactly `bsd/vfs/vfs_fsevents.c`'s
+`fsevents_init()` shape, avoiding any static `cdevsw[]` slot-number
+bookkeeping. `psevent_post_key()`/`_button()`/`_motion()` are the only cross-
+component surface: `osfmk` can't `-I` into `bsd/` (same constraint Phase 22's
+`IOPCIDeviceNub` work hit), so both PS/2 drivers forward-declare these three
+`extern`s locally rather than including a shared header -- same pattern
+`fbdevfs_vfsops.c`'s `ml_io_map()` declaration already established.
+
+**`ps2_kbd.c` gained two small, real additions**, not a rewrite: every real
+(non-extended) scan code is now also posted to the event queue via
+`psevent_post_key(scancode, down)`, with genuine make/break-derived up/down
+state -- a second, independent consumer of the same byte stream; the existing
+ASCII-to-tty path is completely unchanged. And a new status-bit-5
+(`PS2_STATUS_AUX`) check before consuming any byte at all: the i8042
+multiplexes keyboard and mouse bytes onto one shared status/data port pair,
+and without this check the keyboard's poll would occasionally steal a mouse
+byte and try to translate it as a scancode. `ps2_mouse.c`'s own poll makes the
+mirror-image check (bit 5 *clear* means "not mine, leave it"). Both drivers
+run as independent polling threads with no shared lock over the hardware
+ports themselves -- a real, understood, very-small residual race remains
+(both threads reading status then data as two separate instructions, not one
+atomic operation), but this project's QEMU target is single-vCPU with no
+`-smp` flag, so the only way to actually hit it is an unlucky context switch
+landing between those two specific instructions; accepted as a documented v1
+gap rather than restructured into one shared dispatcher thread, which would
+have meant touching the already-verified keyboard path more invasively than
+this phase's actual bug budget justified.
+
+**Verified live in QEMU with real, externally-injected hardware input -- not
+just "it compiled" and not synthesized in software:** nothing on this OS can
+generate real i8042 traffic from userspace, so `userland/pstest/pstest.c`
+(opens `/dev/psevent` non-blocking, polls for up to 60s, prints every event as
+it arrives) was driven by genuine QEMU monitor `mouse_move`/`mouse_button`/
+`sendkey` commands -- these inject through the same emulated i8042 hardware
+path a real mouse/keyboard would, exercising the actual polling drivers end
+to end, not a shortcut. One isolated boot (same daemon-stripping technique as
+every prior phase's isolation test), screen-captured: `mouse_move 40 0` ->
+`PSTEST: MOTION dx=40 dy=0`; `mouse_move 0 40` -> `dx=0 dy=40`; `mouse_move
+-20 -20` -> `dx=-20 dy=-20` -- every injected delta reproduced exactly,
+confirming the sign/axis handling (QEMU's own down-positive convention and
+this driver's up-to-down re-inversion of genuine PS/2 wire semantics cancel
+out correctly, not just "some numbers came out"). `mouse_button 1` ->
+`PSTEST: BUTTON 0 down` (left button, correct index). `sendkey a` -> `PSTEST:
+KEY code=0x1e down` then `up` (0x1e is the real Scan Code Set 1 make code for
+'a'); `sendkey shift` -> `code=0x2a down`/`up` (left shift's real make code)
+-- both exactly right, and both are keys `ps2_translate()`'s ASCII path would
+handle very differently (shift specifically produces *zero* ASCII output),
+confirming the new raw-scancode path is genuinely independent of the ASCII
+one, not a wrapper around it. `PSTEST PASS` printed the moment all three
+event types had been seen. The literal `a` typed via `sendkey` also appears
+correctly at the live shell prompt in the same screen capture, confirming
+zero regression to the keyboard's existing ASCII-to-console behavior while
+this was exercised. A full production-image regression boot (every existing
+daemon present, `mkrootfs.sh`/`mkesp.sh`, no isolation) reached the same
+settled steady state every prior phase's full-suite check has: zero panics,
+`FBTEST PASS`, `NETWORKTEST PASS`, `PTHREADTEST PASS`, `LAUNCHCTLTEST PASS`,
+`FOUNDATIONTEST PASS`, `DISPATCHTEST PASS`, `SCTEST` async notification all
+still visible and correct.
+
+Genuinely, not a single real bug was found chasing this live -- the first
+phase in this project's history where "boot it and read exactly where it
+breaks" turned up nothing to fix. Attributed to modeling the mouse driver
+byte-for-byte on the already-verified keyboard driver's exact polling shape,
+and treating the AUX-bit multiplexing hazard and the sign-convention question
+as things to get right by construction (reading the real i8042/PS/2 packet
+spec) rather than by trial and error.
+
+**Known v1 limitations (documented, not oversights):**
+- Extended (`0xE0`-prefixed) keys -- arrows, right Ctrl/Alt, etc. -- are still
+  silently discarded by both the ASCII and the event-queue paths, same
+  established scope decision `ps2_kbd.c` already made pre-this-phase, not
+  newly introduced here. A future phase touching this needs real two-byte
+  scan-code handling.
+- No mouse resolution/sample-rate negotiation (`0xE6`/`0xE8`/`0xF3`) --
+  accepts whatever QEMU's i8042 emulation defaults to at streaming-mode
+  enable time.
+- Ring buffer is fixed at 256 entries, oldest-drop on overflow, no
+  backpressure signal to the producer -- fine for one interactive consumer,
+  would need real flow control for anything else.
+- No `select`/poll/kqueue support on `/dev/psevent` (`eno_select` in the
+  `cdevsw`) -- a consumer either blocks in `read(2)` or polls with
+  `O_NONBLOCK`, matching this tree's existing "no kqueue wired to a real
+  event source anywhere" limitation (Phase 19's own libdispatch writeup).
+- The small residual keyboard/mouse byte-multiplexing race described above --
+  understood, accepted for a single-vCPU target, not something a future
+  SMP-enabled build should inherit without revisiting.
+- One shared global device, no per-open-instance event filtering -- multiple
+  simultaneous readers would each get an arbitrary subset of the stream
+  (whichever `read()` happens to drain a given event first), not a
+  documented multiplexing contract. Fine for this milestone's single-X-server
+  assumption.
+
 ## Known deviations from a literal reading of the task (documented, not oversights)
 - ~~BusyBox → our own tiny multicall static binary~~ — superseded, see Phase 9 above.
 - ~~Root filesystem → MOCKFS + RAMDisk~~ — superseded: the actual root filesystem is
