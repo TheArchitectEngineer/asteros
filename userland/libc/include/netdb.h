@@ -56,6 +56,29 @@ struct servent {
 int getnameinfo(const struct sockaddr *sa, socklen_t salen,
     char *host, size_t hostlen, char *serv, size_t servlen, int flags);
 
+/* Real BSD/Darwin h_errno values -- added for Phase 30 (real vendored
+ * libresolv references these directly). */
+#define NETDB_INTERNAL	-1
+#define NETDB_SUCCESS	0
+#define HOST_NOT_FOUND	1
+#define TRY_AGAIN	2
+#define NO_RECOVERY	3
+#define NO_DATA		4
+#define NO_ADDRESS	NO_DATA
+
+/* Real BSD/Darwin struct protoent -- added for Phase 30 (real vendored
+ * libresolv's res_mkupdate.c looks up protocol names/numbers). No real
+ * /etc/protocols-backed implementation exists (see netdb.c) -- matches
+ * this project's other honest "no such database, but the real API
+ * surface exists to compile against" stubs. */
+struct protoent {
+	char	*p_name;
+	char	**p_aliases;
+	int	p_proto;
+};
+struct protoent *getprotobyname(const char *name);
+struct protoent *getprotobynumber(int proto);
+
 extern int h_errno;
 const char *hstrerror(int err);
 

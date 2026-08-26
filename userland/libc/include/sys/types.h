@@ -13,9 +13,29 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+/* Real Darwin's own sys/types.h transitively provides FD_SETSIZE/fd_set
+ * this way too -- added for Phase 30 (real vendored libresolv uses
+ * FD_SETSIZE after only #include <sys/types.h>, matching real practice). */
+#include <sys/_types/_fd_def.h>
+#include <sys/_types/_fd_setsize.h>
+#include <sys/_types/_fd_set.h>
+#include <sys/_types/_fd_clr.h>
+#include <sys/_types/_fd_isset.h>
+#include <sys/_types/_fd_zero.h>
 
 typedef long ssize_t;
+
+/* Real Darwin guards off_t's definition behind _OFF_T so that whichever
+ * of sys/types.h or sys/_types/_off_t.h (the real, vendored split-header
+ * version some real Apple headers -- e.g. sys/fcntl.h -- include
+ * directly) gets included first wins, instead of the second one
+ * redefining the typedef with a different underlying type and erroring.
+ * This project's own off_t here didn't have that guard (Phase 30
+ * surfaced it: real vendored libresolv pulls in sys/fcntl.h). */
+#ifndef _OFF_T
+#define _OFF_T
 typedef long off_t;
+#endif /* _OFF_T */
 typedef int pid_t;
 typedef unsigned short mode_t;
 typedef unsigned short nlink_t;

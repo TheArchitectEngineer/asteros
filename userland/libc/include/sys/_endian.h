@@ -100,6 +100,25 @@
  * inclusion order. */
 #include <sys/_types.h>
 
+/* Real Darwin can also assume __DARWIN_BYTE_ORDER is already visible
+ * (i386/endian.h always runs first in a real SDK's chain). Some paths
+ * into this header (e.g. netinet/in.h including this directly) never
+ * pull i386/endian.h in first, which left __DARWIN_BYTE_ORDER and
+ * __DARWIN_BIG_ENDIAN both undefined -- the #elif below then compared
+ * undefined-as-0 == undefined-as-0, silently picking the BIG_ENDIAN
+ * (no-op) htons()/htonl() branch on this little-endian target. That
+ * turned every htons()/htonl() call in an affected translation unit
+ * into an identity function -- found via libresolv's res_mkquery()
+ * writing DNS header counts in host byte order instead of network byte
+ * order (Phase 30). Defining these here too, guarded so a real
+ * i386/endian.h include (which sets them unconditionally) always wins,
+ * makes this header actually self-contained instead of just its types. */
+#ifndef __DARWIN_BYTE_ORDER
+#define __DARWIN_LITTLE_ENDIAN  1234
+#define __DARWIN_BIG_ENDIAN     4321
+#define __DARWIN_BYTE_ORDER     __DARWIN_LITTLE_ENDIAN
+#endif /* !__DARWIN_BYTE_ORDER */
+
 /*
  * Macros for network/external number representation conversion.
  */

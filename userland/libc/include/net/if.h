@@ -19,6 +19,7 @@ extern "C" {
 #include <sys/sockio.h>
 
 #define IFNAMSIZ 16
+#define IF_NAMESIZE IFNAMSIZ
 
 #define IFF_UP          0x1             /* interface is up */
 #define IFF_BROADCAST   0x2             /* broadcast address valid */

@@ -63,21 +63,11 @@ mig_put_reply_port(mach_port_t reply_port)
 	/* simple case: leave the port cached for the next call on this thread */
 }
 
-/* voucher_mach_msg_set(): real generated MIG client stubs call this
- * (weakly imported, mach/mig_voucher_support.h -- see config.h's own
- * generated "BEGIN VOUCHER CODE" block) to attach the calling thread's
- * current Mach voucher to an outgoing message. This project has no real
- * voucher subsystem (no importance donation, no per-message QoS/
- * activity-ID propagation -- see the xnu vendoring notes for other
- * documented "no real X" cases like corecrypto), so this always
- * reports "nothing to attach", the same as real Darwin does for a
- * thread carrying no voucher. Unlike a true weak-imported symbol
- * (resolved to NULL by dyld if a dylib doesn't export it, letting
- * real stubs skip calling it entirely), this project's host-ld64-based
- * static linking needs the symbol to actually exist. */
-boolean_t
-voucher_mach_msg_set(mach_msg_header_t *msg)
-{
-	(void)msg;
-	return FALSE;
-}
+/* No voucher_mach_msg_set() stub here: config.defs' generated stubs are
+ * now produced with real mig's -novouchers flag (see
+ * userland/toolchain/mig/gen_config_defs.sh), matching real Apple's own
+ * build practice for non-kernel Mach interfaces (ground-truthed against
+ * this project's own vendored src/xnu/libsyscall/xcodescripts/
+ * mach_install_mig.sh, which passes -novouchers on every one of its real
+ * mig invocations) -- this suppresses the "BEGIN/END VOUCHER CODE"
+ * codegen block entirely, so nothing ever references this symbol. */

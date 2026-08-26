@@ -165,6 +165,12 @@ if [ -f "$DYLD_BIN" ]; then
 		mcopy -i "$ROOTFS_IMG" build/SystemConfiguration_obj/sctest ::/bin/sctest
 		mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.sctest.plist ::/etc/launchd/daemons/com.asteros.sctest.plist
 	fi
+	if [ -f build/libresolv_obj/libresolv.9.dylib ] && [ -f build/libresolv_obj/restest ]; then
+		echo "libresolv found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/libresolv_obj/libresolv.9.dylib ::/usr/lib/libresolv.9.dylib
+		mcopy -i "$ROOTFS_IMG" build/libresolv_obj/restest ::/bin/restest
+		mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.restest.plist ::/etc/launchd/daemons/com.asteros.restest.plist
+	fi
 fi
 
 if [ -x "$CLANG_BIN" ] && [ -x "$LD_BIN" ] && [ -f "$LIBCXX" ] && [ -f "$LIBCXXABI" ] \

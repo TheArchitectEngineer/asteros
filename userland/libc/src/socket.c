@@ -18,6 +18,7 @@
  * the kernel supports; AF_UNIX is the one this project actually
  * exercises. */
 #include "syscall_raw.h"
+#include <stddef.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <errno.h>
@@ -119,6 +120,37 @@ recv(int s, void * buf, size_t len, int flags)
 	return recvfrom(s, buf, len, flags, (struct sockaddr *)0, (socklen_t *)0);
 }
 
+/* sendmsg/recvmsg: real syscall numbers 28/27 (syscalls.master), added
+ * for Phase 30 -- real vendored libresolv's internal_recvfrom() needs
+ * recvmsg()'s ancillary-data (cmsg) support to learn which interface a
+ * UDP response arrived on. */
+ssize_t
+sendmsg(int s, const struct msghdr * msg, int flags)
+{
+	return sys_result(raw_syscall3(28 /* SYS_sendmsg */, s, (long)msg, flags));
+}
+
+ssize_t
+recvmsg(int s, struct msghdr * msg, int flags)
+{
+	return sys_result(raw_syscall3(27 /* SYS_recvmsg */, s, (long)msg, flags));
+}
+
+/* readv/writev: real syscall numbers 120/121 -- added for Phase 30
+ * (real vendored libresolv's res_send.c uses writev() for TCP-framed
+ * queries). */
+ssize_t
+readv(int fd, const struct iovec * iov, int iovcnt)
+{
+	return sys_result(raw_syscall3(120 /* SYS_readv */, fd, (long)iov, iovcnt));
+}
+
+ssize_t
+writev(int fd, const struct iovec * iov, int iovcnt)
+{
+	return sys_result(raw_syscall3(121 /* SYS_writev */, fd, (long)iov, iovcnt));
+}
+
 /* select(2): fd_set is a fixed-size (FD_SETSIZE-bit) bitmask array
  * (sys/_types/_fd_set.h) -- the kernel just wants pointers to caller-
  * allocated arrays (or NULL), same as any other in/out buffer arg. */
@@ -126,4 +158,30 @@ int
 select(int nfds, fd_set * readfds, fd_set * writefds, fd_set * exceptfds, struct timeval * timeout)
 {
 	return (int)sys_result(raw_syscall5(93 /* SYS_select */, nfds, (long)readfds, (long)writefds, (long)exceptfds, (long)timeout));
+}
+
+/* pselect(2): no dedicated real syscall wired in this project's raw
+ * trap layer (real Darwin's own libsyscall implements it as a Libc-side
+ * wrapper over the same underlying kernel path select() uses, with the
+ * sigmask applied/restored around the call) -- added for Phase 30 (real
+ * vendored libresolv's res_send.c uses it). This project's signal model
+ * has no per-call sigmask save/restore machinery, so the sigmask
+ * argument is accepted but unused, matching every other simplification
+ * already made for this project's single-user, non-adversarial scope. */
+int
+pselect(int nfds, fd_set * readfds, fd_set * writefds, fd_set * exceptfds,
+    const struct timespec * timeout, const sigset_t * sigmask)
+{
+	struct timeval tv;
+	struct timeval *tvp = NULL;
+
+	(void)sigmask;
+
+	if (timeout != NULL) {
+		tv.tv_sec = timeout->tv_sec;
+		tv.tv_usec = (long)(timeout->tv_nsec / 1000);
+		tvp = &tv;
+	}
+
+	return select(nfds, readfds, writefds, exceptfds, tvp);
 }

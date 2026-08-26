@@ -5,11 +5,42 @@
 extern "C" {
 #endif
 
+#include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/_types/_uuid_t.h> /* matches real Darwin's unistd.h -> gethostuuid.h chain */
+#include <sys/_types/_sigset_t.h>
 
 struct timespec;
 int gethostuuid(uuid_t out, const struct timespec *wait);
+
+/* Real Darwin declares pselect(2) in both <unistd.h> and <sys/select.h>
+ * (POSIX requires it reachable from unistd.h); added for Phase 30 since
+ * real vendored libresolv's res_send.c includes only <unistd.h>, not
+ * <sys/select.h> directly, and needs the same __DARWIN_1050-decorated
+ * symbol name userland/libc/src/socket.c's definition actually exports
+ * (see sys/select.h's own matching declaration for why the decoration
+ * matters -- an undecorated implicit declaration here would silently
+ * link against the wrong, nonexistent symbol name). */
+#ifndef  __MWERKS__
+int      pselect(int, fd_set * __restrict, fd_set * __restrict,
+    fd_set * __restrict, const struct timespec * __restrict,
+    const sigset_t * __restrict)
+#if defined(_DARWIN_C_SOURCE) || defined(_DARWIN_UNLIMITED_SELECT)
+__DARWIN_EXTSN_C(pselect)
+#else /* !_DARWIN_C_SOURCE && !_DARWIN_UNLIMITED_SELECT */
+#  if defined(__LP64__) && !__DARWIN_NON_CANCELABLE
+__DARWIN_1050(pselect)
+#  else /* !__LP64__ || __DARWIN_NON_CANCELABLE */
+__DARWIN_ALIAS_C(pselect)
+#  endif /* __LP64__ && !__DARWIN_NON_CANCELABLE */
+#endif /* _DARWIN_C_SOURCE || _DARWIN_UNLIMITED_SELECT */
+;
+#endif /* __MWERKS__ */
+
+/* Real Darwin implements this via sysctl(CTL_KERN, KERN_HOSTNAME), not a
+ * syscall -- see src/gethostname.c for why this project just reports the
+ * same fixed "asteros" identity uname(3) already does. */
+int gethostname(char *name, size_t namelen);
 
 #define SEEK_SET 0
 #define SEEK_CUR 1
