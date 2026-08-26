@@ -33,6 +33,11 @@ done
 mmd -i "$ROOTFS_IMG" ::/usr/lib
 mmd -i "$ROOTFS_IMG" ::/var/log
 
+# fbdevfs (bsd/miscfs/fbdevfs/) is mounted here by bsd_init.c right after
+# devfs -- must already exist on the real root filesystem, kernel_mount()
+# looks it up by path (see bsd_init.c's FBDEVFS block).
+mmd -i "$ROOTFS_IMG" ::/fbdev
+
 # xnu's vm_swap_create_file() hardcodes SWAP_FILE_NAME as
 # "/private/var/vm/swapfile" (osfmk/vm/vm_compressor_backing_store.h) --
 # without this directory the compressor's swapfile-create thread just
@@ -86,6 +91,11 @@ if [ -f build/network_test/networktest ]; then
 	echo "networktest found in build/ -- including it in the rootfs"
 	mcopy -i "$ROOTFS_IMG" build/network_test/networktest ::/bin/networktest
 	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.networktest.plist ::/etc/launchd/daemons/com.asteros.networktest.plist
+fi
+if [ -f build/fbtest/fbtest ]; then
+	echo "fbtest found in build/ -- including it in the rootfs"
+	mcopy -i "$ROOTFS_IMG" build/fbtest/fbtest ::/bin/fbtest
+	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.fbtest.plist ::/etc/launchd/daemons/com.asteros.fbtest.plist
 fi
 
 DYLD_BIN="build/dyld_obj/dyld"

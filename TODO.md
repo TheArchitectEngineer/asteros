@@ -1592,7 +1592,7 @@ regression from either the kernel change or the new QEMU device).
   single-function virtio-net target; would need real work for a
   multi-bridge topology to matter.
 
-## Phase 23 — Prelinked-kext build pipeline: IN PROGRESS, whole pipeline works through real OSMetaClass registration, one narrow bug remains before a kext's `start()` can run
+## Phase 23 — Prelinked-kext build pipeline: DONE, verified live in QEMU — a real prelinked kext genuinely loads, matches, and starts
 
 Real, working host-side kxld linker + Mach-O merge tool
 (`userland/toolchain/kextbuild/`) — the third step of the SystemConfiguration
@@ -1797,30 +1797,98 @@ this project has, and the correct one for a permanently-`NO_KEXTD` boot.
 registers via the real `OSMetaClass` machinery, and `probeCandidates()`
 allocates a real instance of it** — verified via `OSMetaClass::
 allocClassWithName()` returning a non-NULL instance pointer live in QEMU, a
-first for this entire project. **Where Phase 23 stops, precisely:** shortly
-after class allocation, walking the IOKit personality-uniquing path
-(`IOCatalogue::addDrivers()` → `OSKext::uniquePersonalityProperties()` →
-`OSSymbol::withString()` → `OSSymbolPool::findSymbol()`) page-faults on a
-"not present" (not NX this time) access at a fixed, deterministic address
-inside the kext's own `__TEXT` — the same address every run, ruling out a
-timing-dependent explanation. Leading hypothesis, not yet confirmed: the
-kext's physical pages, loaded directly by `boot.c` and never routed through
-`vm_page_bootstrap()`'s normal accounting, may not be excluded from the
-kernel's free-page list the way the kernel's own image is (via
-`vm_kernel_top`, itself derived from `&last_kernel_symbol` — a linker
-symbol baked in at the *original* kernel link, before `prelink_merge.py`'s
-post-link growth of `__PRELINK_TEXT`/`__LINKEDIT`, so potentially stale in
-exactly this scenario). An attempted fix along these lines (extending
-`vm_kernel_top` to cover the live, post-merge `__LINKEDIT` end in
-`i386_vm_init.c`) did not resolve it and was reverted rather than left in
-speculatively; the real mechanism needs more live investigation before
-touching `vm_page_bootstrap()` itself. **Not a regression risk either way**:
-all five landed fixes are inert when no kext is prelinked (verified by a
-full clean regression boot with `build/kernel/kernel.development` in its
-un-merged state — see the top of this section), so the kernel ships in that
-safe state; `userland/kexts/HelloKext/` and the whole
-`userland/toolchain/kextbuild/` pipeline remain in the tree as the exact
-reproduction case for whoever continues this.
+first for this entire project. One step later, walking the IOKit
+personality-uniquing path (`IOCatalogue::addDrivers()` → `OSKext::
+uniquePersonalityProperties()` → `OSSymbol::withString()` → `OSSymbolPool::
+findSymbol()`) page-faulted on a "not present" (not NX this time) access at
+a fixed, deterministic address inside the kext's own `__TEXT` — this
+session's investigation found and fixed the real cause (**Bug 7** below),
+and a real prelinked kext now loads and starts cleanly.
+
+**Bug 7 — `KLDBootstrap::readPrelinkedExtensions()` frees the entire
+`__PRELINK_TEXT` segment out from under a still-live, in-place kext.**
+The TODO's own prior leading hypothesis (`vm_kernel_top`/
+`&last_kernel_symbol` staleness) turned out not to be in the causal chain
+at all — re-read live: `vm_kernel_top` is used in exactly one place in the
+whole kernel (`vm_resident.c`, a kalloc-attribution heuristic), unrelated to
+page tables or the free-page list; the boot-time identity map and VM
+free-list exclusion boundary are both derived dynamically from the real,
+on-disk *merged* kernel's actual segment layout at boot time, not a frozen
+linker symbol, so they already correctly cover the grown prelink region.
+Root-caused instead by adding a probe read directly inside
+`OSKextGrantExecute()` (`OSKext.cpp`), immediately after its `pmap_enter()`
+loop: the probe **succeeded** (proving the grant genuinely took effect),
+yet the exact same page still faulted not-present minutes later at
+`OSSymbolPool::findSymbol()` — proof something *between* those two points
+tore the mapping back down, not that it never worked. Both call sites trace
+back to a single `record_startup_extensions_function()` call inside
+`StartIOKit()` (`IOStartIOKit.cpp`), which invokes
+`KLDBootstrap::readStartupExtensions()` → `readPrelinkedExtensions()`
+(`libsa/bootstrap.cpp`) — and near the end of that same function, after the
+per-kext registration loop (where `OSKextGrantExecute()` runs) but before
+`sendAllKextPersonalitiesToCatalog()` is called back in
+`readStartupExtensions()`, sat:
+```c
+#if CONFIG_KEXT_BASEMENT
+    /* On CONFIG_KEXT_BASEMENT systems, kexts are copied to their own
+     * special VM region during OSKext init time, so we can free the whole
+     * segment now. */
+    ml_static_mfree((vm_offset_t) prelinkData, prelinkLength);
+#endif
+```
+`CONFIG_KEXT_BASEMENT` **is** defined for this build
+(`config/MASTER.x86_64`'s x86_64 `MACH_BASE` includes
+`config_kext_basement`), so this always ran — unconditionally freeing the
+*entire* `__PRELINK_TEXT` segment (`prelinkData`/`prelinkLength` are read
+straight from the segment's own `vmaddr`/`vmsize`). The comment's own
+premise doesn't hold in this project, though: the "kexts are copied
+elsewhere" behavior it's describing only happens when a kext's info dict
+carries a `_PrelinkExecutableSourceKey` (see Bug 1 above), and this
+project's `gen_prelink_plist.py` never emits that key — kexts stay live,
+in place, in `__PRELINK_TEXT` permanently, exactly like Bug 1's own fix
+already established (`osdata_prelinked_kext_free()`'s whole justification
+is "this memory is boot-time static and this project never unloads
+kexts"). This `ml_static_mfree()` call was quietly freeing that same
+memory a few function calls later — a second, previously-latent instance
+of the identical wrong assumption Bug 1 already fixed once, just in a
+different function, only ever exercised for the first time by this
+project's first real non-codeless prelinked kext. **Fix:** disabled that
+one `ml_static_mfree()` call (`#if 0`, left in place with a comment
+explaining why, matching how Bug 1's fix is documented) — the segment is
+never freed, matching every other kext-memory-lifetime decision already
+made in this project.
+
+Two smaller hardening fixes landed alongside the real one: `OSKextGrantExecute()`'s
+`pmap_enter()` return value — previously discarded outright — now `panic()`s
+with the exact failing page and reason instead of failing silently; and
+`initWithPrelinkedInfoDict()` now sets `kmod_info->address`/`size` from the
+kext's real, measured load address/size (previously always `0`, since
+`kxld_link_tool` reports the linked `kmod_info` symbol's *address* back to
+its caller but never patches the struct's own fields the way real Apple's
+kextcache does) — inert today since nothing yet reads those fields on the
+working path, but a landmine defused while already in this function.
+
+**The manual build pipeline was also made deterministic**
+(`userland/kexts/HelloKext/build.sh`, new file): compile → link → run
+`kxld_link_tool` (reading the *current* kernel's `__PRELINK_TEXT` `vmaddr`
+directly from the Mach-O rather than a remembered value) → measure the
+real linked-kext file size for `_PrelinkExecutableSize` (previously a
+hand-typed `gen_prelink_plist.py` argument, never cross-checked against
+`prelink_merge.py`'s own independently-computed page-aligned size) → merge.
+This turned out not to be the cause of Bug 7 (both values matched what was
+already on disk when this session started digging), but it closes a real
+two-sources-of-truth gap the investigation surfaced along the way, and
+makes the whole pipeline reproducible in one command going forward.
+
+**Verified live in QEMU, full checklist, zero panics:** boot proceeds all
+the way through `bsd_init`, all 6 `IOPCIDeviceNub` registrations, and a
+live interactive BusyBox shell — a screendump (framebuffer console, not
+serial — userland test daemons print there) shows `HelloKext: real
+prelinked kext loaded and started` plus `PTHREADTEST PASS`,
+`FOUNDATIONTEST PASS`, `DISPATCHTEST PASS`, `NETWORKTEST PASS`, `XPCTEST
+PASS`, `RESTEST PASS`, `SECURITYTELAUNCHCTLTEST PASS`, `HELLO_OBJC PASS`.
+Strictly better than the pre-fix baseline, which never reached `bsd_init`
+at all with a kext merged in.
 
 ## Phase 26 — libxpc: DONE, verified live
 
@@ -2571,6 +2639,135 @@ Real gaps this needed to close, each a small, honest addition (not vendored, pro
 **Verification:** `userland/libresolv/test/restest.c` (`RESTEST PASS`/`FAIL` to stdout, same convention as every other `*TEST`) exercises the real vendored wire-format code entirely offline, since this project has no live NIC yet (same documented Phase 24 limitation) -- (1) `res_mkquery()` builds a real query for `www.example.com`, checked byte-for-byte against the RFC 1035 header layout; (2) `ns_initparse()`/`ns_parserr()` (the real parser) reads that same packet back and recovers the question; (3) a hand-built synthetic DNS response (real compression-pointer-encoded answer name, real TTL/RDLENGTH/RDATA) is parsed back too, proving compression-pointer expansion and answer-record decoding, not just the encode half. Wired into `userland/mkrootfs.sh` (conditional-on-build-artifact) alongside a new `com.asteros.restest.plist` RunAtLoad daemon. Confirmed live in QEMU: `RESTEST PASS`, with every other existing suite (`LAUNCHCTLTEST`, `NETWORKTEST`, `XPCTEST`, `PTHREADTEST`, `FOUNDATIONTEST`, `DISPATCHTEST`, `SECURITYTEST`, `HELLO_OBJC`, `CFTEST`, `SCTEST`) still showing its own real `PASS` alongside it -- zero regressions.
 
 Also landed this phase, independent of the PureDarwin survey: the `mig -novouchers` cleanup identified while investigating Phase 25's MIG pipeline -- real Apple build scripts (`src/xnu/libsyscall/xcodescripts/mach_install_mig.sh`) pass `-novouchers` when generating non-kernel Mach interfaces, which this project's vendored `migcom` already supports (`mig.c`'s `IsVoucherCodeAllowed`) but wasn't being passed. `userland/toolchain/mig/gen_config_defs.sh` now passes it, and the now-dead `voucher_mach_msg_set()` stub was removed from `userland/libc/src/mig_support.c` (the codegen that referenced it is suppressed by the flag). Verified via a full rebuild of the dependent chain (`libSystem` -> `configd` -> `SystemConfiguration` -> `sctest`), all still building clean.
+
+## Phase 31 — X11 milestone, step 1: framebuffer device for userland: DONE, verified live in QEMU
+
+Goal (first step of the X11/twm/startx effort — see the recommended phase order this
+session started from): give userland real `mmap()` access to the GOP linear
+framebuffer, so a future Xorg DDX has something to draw into. `bsd/miscfs/fbdevfs/`
+(`fbdevfs_vfsops.c`/`fbdevfs_vnops.c`/`fbdevfs.h`) already existed on disk from an
+earlier, undocumented session — wired into `bsd/kern/bsd_init.c` (mounts `/fbdev`
+right after `devfs_kernel_mount()`) and gated correctly (`options FBDEVFS` in
+`config/MASTER`, `<fbdevfs>` in `FILESYS_BASE`) — but was never actually verified
+live: no `userland/mkrootfs.sh` entry created the `/fbdev` mount-point directory, no
+userland test program existed, and the code still had leftover `!!!...!!!`-style
+debug `printf`s from whatever session wrote it. This phase closed that loop for
+real: added the missing rootfs directory, wrote a real test program, and found and
+fixed three genuine, independent, previously-unexercised kernel bugs along the way
+— none of them guessed, all root-caused live the same way every prior phase's bugs
+were (kprintf tracing, reading the actual failing code path, not assuming).
+
+**New: `userland/fbtest/fbtest.c`** — `open("/fbdev/fb0", O_RDWR)`, `fstat()` for
+the real size, `mmap(MAP_SHARED)` the whole thing, fills it with a stride-agnostic
+top/cyan-bottom-magenta two-color split (proof of a real, full-range write reaching
+actual video memory, independent of exact width/height/stride since no ioctl for
+geometry exists yet), verifies the readback through the mapping, then independently
+re-verifies via a real `read(2)` at a nonzero offset (proving `fbdevfs_read`
+agrees with what the mmap path wrote — two separate code paths into the same
+physical pages). `userland/mkrootfs.sh` gained the `/fbdev` mount-point `mmd` and
+the conditional-on-build-artifact `fbtest`/`com.asteros.fbtest.plist` wiring, same
+pattern as every other test binary.
+
+**Bug 1 — `VFS_MOUNT()` returns `ENOTSUP` for a 64-bit calling context unless
+`VFC_VFS64BITREADY` is set.** `fbdevfs_kernel_mount()`'s `kernel_mount()` call was
+failing silently (`kern_return_t` 45) before `fbdevfs_mount()` was ever entered —
+confirmed by temporarily kprintf-tracing both functions and seeing the outer one
+return 45 while the inner one never printed anything at all. Root-caused in
+`bsd/vfs/kpi_vfs.c`'s `VFS_MOUNT()`: `if (vfs_context_is64bit(ctx) &&
+!vfs_64bitready(mp)) { error = ENOTSUP; }` — `vfs_context_kernel()`'s proc is
+`kernproc`, genuinely 64-bit, so this gate applies to any `kernel_mount()` caller.
+`fat16lite`/`mockfs` never hit it because they're mounted via their own
+`vfc_mountroot` (a completely different call path that never reaches `VFS_MOUNT()`
+at all), but `fbdevfs` is mounted the exact same way `devfs` is (`kernel_mount()`
+from `bsd_init.c`) — and devfs's own `vfsconf` entries already carry
+`VFC_VFS64BITREADY` for exactly this reason, a fact this phase's own investigation
+surfaced only by comparing the two side by side. Fixed: added
+`VFC_VFS64BITREADY` to fbdevfs's `vfc_vfsflags` in `bsd/vfs/vfs_conf.c`.
+
+**Bug 2 — QEMU/OVMF's GOP framebuffer is real PCI-BAR device MMIO, not RAM, so
+`ml_static_ptovirt()` produces a virtual address with no real page-table entry.**
+With bug 1 fixed, the mount itself succeeded, but the very first `open()` of
+`/fbdev/fb0` panicked: `"fbdevfs_fsnode_vnode: pager_map_to_phys_contiguous failed;
+rvalue = 5"` (`KERN_FAILURE`). Ground-truthed, not guessed: `ml_static_ptovirt()`
+(`osfmk/i386/machine_routines.c`) is pure arithmetic (`paddr | VM_MIN_KERNEL_ADDRESS`)
+— it never returns 0, so the code's own pre-existing "NOTE" comment (guessing this
+might need `ml_io_map()` "if" the framebuffer turned out to be a PCI BAR) had the
+right instinct but the wrong failure signature: instead of a detectable "returns 0,"
+it silently produced a VA with no backing PTE, and `pager_map_to_phys_contiguous()`'s
+own `pmap_find_phys(kernel_pmap, base_vaddr)` correctly found nothing mapped there.
+Confirmed the framebuffer really is device MMIO, not carved-out RAM, directly
+against this kernel's own `[pci]` enumeration log: `00:01.0 vendor=1234 device=1111
+class=03.00.00` (the "bochs" VGA display device) with `BAR0: MEM32 @ 0x80000000`.
+Fixed: `fbdevfs_mount()` now calls `ml_io_map(phys_base, fb_bytes)`
+(`osfmk/i386/machine_routines.h`, wraps `io_map()` with `VM_WIMG_IO`) instead of
+`ml_static_ptovirt()` — this actually establishes a real PTE for the BAR range via
+`pmap_map()`, which is what `pmap_find_phys()` needs to find.
+
+**Bug 3 — `vnode_getattr()`'s `f_bsize`-fallback path calls `VFS_GETATTR()`, which
+also returns `ENOTSUP` for any mount whose `vfsops` has no `.vfs_getattr`.** With
+bugs 1-2 fixed, the mount and the mmap/read/write path all worked, but every single
+`stat()`/`fstat()`/`lstat()` on `/fbdev/fb0` still failed with `ENOTSUP` (45) —
+including `fbtest`'s own `fstat()` call, immediately after a successful `open()`.
+The confusing part, confirmed by kprintf-counting calls: `fbdevfs_getattr()` (the
+per-vnode `VNOP_GETATTR`) was being called and *always* returning 0 — the bug was
+not there at all. Root-caused by reading the whole of `bsd/vfs/kpi_vfs.c`'s
+`vnode_getattr()` end to end: after a successful `VNOP_GETATTR`, it has a
+"synthesise some values that can be reasonably guessed" pass that, when
+`va_total_alloc`/`va_data_alloc`/`va_total_size` are active (which
+`vn_stat_noauth()`, the real code behind every `stat`-family syscall, always wants),
+checks `if (vp->v_mount->mnt_vfsstat.f_bsize == 0) { error = vfs_update_vfsstat(...);
+if (error) goto out; }` — `vfs_update_vfsstat()` calls `vfs_getattr()` →
+`VFS_GETATTR()`, which has the identical "`mnt_op->vfs_getattr == 0` → `ENOTSUP`"
+shape `VFS_MOUNT()` has for `vfs_mount` (same file, same pattern, not previously
+noticed since bug 1 was the first instance of this class found). `fbdevfs_mount()`
+never initialized `mnt_vfsstat.f_bsize` at all (zero-initialized `MALLOC_ZONE`, left
+at 0), so this fallback fired on literally every stat call. `fat16lite`/`mockfs`
+never hit it for the same root-mount-vs-`kernel_mount()` reason as bug 1; `devfs`
+avoids it by implementing a real `.vfs_getattr` (`devfs_vfs_getattr`). Fixed with
+the simpler of the two valid options: `fbdevfs_mount()` now sets
+`mp->mnt_vfsstat.f_bsize = 4096` directly, so the fallback path is never taken at
+all — no `.vfs_getattr` implementation needed for a fixed-size, single-file pseudo-fs.
+
+Also cleaned up as part of closing this out: the two leftover `!!!FBDEVFS_..._ENTERED!!!`
+debug `printf`s (`fbdevfs_mount`/`fbdevfs_kernel_mount`) from whatever prior session
+left this code in an unfinished state — removed, keeping only the real, permanent
+`fbdevfs_mount: mounted, ...`/`fbdevfs_kernel_mount: kernel_mount failed: ...`
+diagnostics that were already there.
+
+**Verified live in QEMU, screen-captured, not just "it compiled":** an isolation
+boot (same "temporarily strip other RunAtLoad daemons down to just this one"
+technique Phase 18's `foundationtest` isolation used) shows, verbatim, on the GOP
+console: a real magenta-top/cyan-bottom split filling the actual screen (the
+literal video memory `fbtest`'s `mmap()` wrote into, not a screenshot of console
+text) with `FBTEST PASS` rendered directly on top of it by the kernel's own,
+completely independent console-text renderer — the same physical framebuffer bytes
+observed through two unrelated code paths at once. A full-suite production boot
+(`make`-equivalent `mkrootfs.sh`/`mkesp.sh`, every existing daemon present)
+confirmed zero regressions: `CFTEST PASS`, `LAUNCHCTLTEST PASS`, `SECURITYTEST
+PASS`, `DISPATCHTEST PASS`, `NETWORKTEST PASS`, `XPCTEST PASS (child side)` all
+visible on-screen alongside `fbtest`'s own colored background and size line
+(`FBTEST: /fbdev/fb0 size = 4096000 bytes`), zero panics, boot reaching a steady,
+non-scrolling state (screendumps 10s apart showing identical content, confirming
+settled steady state rather than a hang) exactly as every other regression check in
+this project confirms.
+
+**Known v1 limitations (documented, not oversights):**
+- No ioctl for real width/height/stride/depth — `fbdevfs_vnodeop_entries` still
+  wires `vnop_ioctl_desc` to `err_ioctl` (`ENOTSUP`). A real DDX will need this;
+  `fbtest` worked around it by only ever doing stride-agnostic whole-buffer fills.
+- No `readdir` on the `/fbdev` root directory (`err_readdir`) — only a direct
+  `lookup("fb0")` works (confirmed live: `ls -la /fbdev` reports `Errno 45`,
+  `ls -la /fbdev/fb0` — a direct stat, no readdir needed — works fine). Matches
+  this file's own header comment ("we have no real namespace, just fixed
+  types/names"), not new to this phase.
+- Fixed 4096-byte `f_bsize` is a placeholder value (bug 3's fix), not derived from
+  anything about the framebuffer's actual geometry — harmless, since nothing here
+  does block-oriented I/O against it, but worth knowing if a future phase ever adds
+  real `statfs()` support.
+- `pager_map_to_phys_contiguous()`'s physical-contiguity assumption is fine here
+  (a single real PCI BAR is physically contiguous by construction) but this was
+  not re-verified against a non-QEMU/OVMF GOP implementation — this project only
+  targets QEMU, so out of scope.
 
 ## Known deviations from a literal reading of the task (documented, not oversights)
 - ~~BusyBox → our own tiny multicall static binary~~ — superseded, see Phase 9 above.
