@@ -2898,6 +2898,104 @@ spec) rather than by trial and error.
   documented multiplexing contract. Fine for this milestone's single-X-server
   assumption.
 
+## Phase 33 — X11 milestone, step 3: real AF_UNIX domain sockets: DONE, verified live in QEMU
+
+Goal (third step of the X11 effort, following Phase 31's framebuffer device
+and Phase 32's PS/2 mouse/event queue): prove AF_UNIX actually works end to
+end, since X11's default transport is a Unix domain socket at
+`/tmp/.X11-unix/X0`. `userland/libc/src/socket.c` already had every syscall
+wrapper needed (`socket`/`bind`/`listen`/`accept`/`connect`/`send`/`recv`/
+`sendto`/`recvfrom`, real ground-truthed syscall numbers) and `struct
+sockaddr_un`/`sa_family_t` were already correct (Phase 24 fixed
+`sa_family_t`'s width for AF_INET; that fix applies identically here) -- but
+per the header comment's own honest caveat, none of it had ever actually
+round-tripped through a real `bind()`/`connect()`, and the kernel's own real,
+unmodified `bsd/kern/uipc_usrreq.c` (compiled in since Phase 24 turned on the
+`sockets` attribute, confirmed present in the built kernel via `nm` before
+writing a single line of new code) had likewise never been exercised by this
+project on a real filesystem path.
+
+**The bug, found by reading the real kernel source before writing the test
+(not live-debugged this time -- the failure mode was predictable in
+advance):** `unp_bind()` (`uipc_usrreq.c`) creates the socket's rendezvous
+vnode via `vn_create(..., VATTR(va_type=VSOCK), ...)`, and `vn_create()`
+(`vfs_subr.c`) dispatches any non-VREG/VDIR type -- `VSOCK`/`VFIFO`/`VBLK`/
+`VCHR` -- to `VNOP_MKNOD`, not `VNOP_CREATE`. `fat16lite`'s vnodeop table
+(`bsd/miscfs/fat16lite/fat16lite_vnops.c`) had `vnop_mknod_desc` wired to the
+generic `err_mknod` stub -- real FAT16 has no on-disk concept of a "special
+file" at all, so this had simply never been implemented, same as it never
+needed to be for anything up through Phase 30. Any `bind()` to a path on this
+project's only real filesystem (`/tmp` included) would fail outright.
+
+**Fix: a real `fat16lite_mknod()`.** Native FAT16's directory-entry attribute
+byte has two bits the real spec marks reserved (must be zero) --
+`0x40`/`0x80`, alongside the six real ones (`RDONLY`/`HIDDEN`/`SYSTEM`/
+`VOLUME_ID`/`DIRECTORY`/`ARCHIVE`). Repurposed `0x40` as
+`FAT16LITE_ATTR_SOCKET`, a project-local marker mtools/real DOS tooling never
+sets -- safe because every socket dirent this driver ever writes is a
+transient runtime artifact created fresh by whatever process calls `bind()`,
+never present in the baked mtools-built image. `fsnode->is_socket` (new field,
+alongside the existing `is_dir`) threads this through
+`fat16lite_fsnode_find_or_create()` (now takes an explicit `is_socket` param,
+all 4 call sites updated: root mount, lookup, `mkdir`, `create`) and
+`fat16lite_fsnode_vnode()`, which now reports `VSOCK` (not `VREG`) for a
+socket fsnode and -- important, not just cosmetic -- skips the regular-file
+pager-mapping block entirely for one: a socket dirent carries no file
+content, `pager_map_to_phys_contiguous()` was never meant to run over it.
+`fat16lite_mknod()` itself mirrors `fat16lite_create()`/`_mkdir()`'s existing
+find-free-slot-then-write-dirent shape, but allocates zero clusters (a socket
+needs no backing storage, just a namespace entry) and rejects anything that
+isn't `VSOCK` with `ENOTSUP` (`VFIFO`/`VBLK`/`VCHR` stay genuinely
+unsupported -- nothing in this tree creates a real device node or named pipe
+on this filesystem). The reuse-invalidation check in
+`fat16lite_fsnode_find_or_create()` (the one that already guards against a
+recycled dirent slot handing back a stale vnode -- see Phase 9 item 3 and
+Phase 27 Bug 2's near-identical bugs) now also fires on a type change
+involving `is_socket`, closing the same class of bug for this new type before
+it could ever be hit live. `readdir`'s `d_type` computation also gained a
+`DT_SOCK` case (a real dirent could always be listed, even before this phase,
+just mis-typed as `DT_REG`).
+
+**Verified live in QEMU, real two-process round trip, not a single-process
+shortcut:** `userland/unixtest/unixtest.c` `fork()`s a genuine parent/child
+pair (same discipline `machtest`/`xpctest` already established) -- the
+parent `bind()`s+`listen()`s on `/tmp/unixtest_stream.sock` and `accept()`s;
+the child (a real, separate process) `connect()`s to that same path,
+`send()`s a request, and reads the parent's reply back, both directions
+verified byte-for-byte. A second, connectionless check (`sendto()`/
+`recvfrom()` over `/tmp/unixtest_dgram.sock`, `SOCK_DGRAM`) covers the other
+socket type AF_UNIX/X11 needs. One isolated boot (same daemon-stripped
+technique as every prior phase's isolation test), screen-captured: `UNIXTEST:
+bind+listen on /tmp/unixtest_stream.sock ok`, `UNIXTEST: child got correct
+reply`, `UNIXTEST: real bind/listen/accept/connect/send/recv round trip
+(SOCK_STREAM) OK`, `UNIXTEST: real sendto/recvfrom round trip (SOCK_DGRAM)
+OK`, `UNIXTEST PASS` -- the fix worked on the first live attempt once the
+root cause was correctly identified from source, no further bugs surfaced.
+A full production-image regression boot (every existing daemon present)
+reached the same settled steady state every prior phase's full-suite check
+has: zero panics, `UNIXTEST` lines visible alongside `XPCTEST PASS`,
+`PTHREADTEST PASS`, `DISPATCHTEST PASS`, `NETWORKTEST` (both TCP and UDP)
+all still correct.
+
+**Known v1 limitations (documented, not oversights):**
+- Only `VSOCK` is handled by `fat16lite_mknod()` -- `VFIFO`/`VBLK`/`VCHR`
+  remain `ENOTSUP`, same as the whole vnop was before this phase for
+  everything. Nothing in this tree needs a real FIFO or device node on this
+  filesystem yet.
+- A socket dirent has no cluster/backing storage and isn't removed by
+  anything but an explicit `unlink()` on its path (standard AF_UNIX
+  semantics -- the same as every other Unix's socket special files) --
+  `unixtest.c` cleans up after itself with `unlink()`, matching that
+  convention rather than relying on any automatic reclamation.
+- No `SOCK_SEQPACKET`, no `LOCAL_PEERCRED`/credential-passing socket
+  options, no ancillary-data (`SCM_RIGHTS` fd-passing) -- `uipc_usrreq.c`
+  itself likely supports at least some of this already (real, unmodified
+  Apple code), just not exercised or needed by this phase's test.
+- `unp_bind()`'s own comment ("SHOULD BE ABLE TO ADOPT EXISTING... ALA
+  FIFO's") documents a real Apple-side limitation, not one of this
+  project's -- a stale socket path from a previous run must be `unlink()`'d
+  before a fresh `bind()`, same requirement real Darwin has.
+
 ## Known deviations from a literal reading of the task (documented, not oversights)
 - ~~BusyBox → our own tiny multicall static binary~~ — superseded, see Phase 9 above.
 - ~~Root filesystem → MOCKFS + RAMDisk~~ — superseded: the actual root filesystem is
