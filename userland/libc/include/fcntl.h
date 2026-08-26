@@ -27,6 +27,11 @@ extern "C" {
 #define O_SYMLINK  0x200000
 #define O_CLOEXEC  0x1000000
 #define O_NDELAY   O_NONBLOCK
+/* Legacy kernel/compat aliases, ground-truthed against
+ * src/xnu/bsd/sys/fcntl.h:229,233 -- added for the X11 milestone
+ * (xorg-server's hw/kdrive/src/kinput.c uses these directly). */
+#define FASYNC     O_ASYNC
+#define FNDELAY    O_NONBLOCK
 
 #define F_DUPFD  0
 #define F_GETFD  1

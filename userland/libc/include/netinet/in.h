@@ -130,6 +130,27 @@ struct in6_pktinfo {
 #ifndef IN6_IS_ADDR_MULTICAST
 #define IN6_IS_ADDR_MULTICAST(a) ((a)->s6_addr[0] == 0xff)
 #endif
+/* Added for the X11 milestone (xorg-server's os/access.c). */
+#ifndef IN6_IS_ADDR_V4MAPPED
+#define IN6_IS_ADDR_V4MAPPED(a)               \
+	((*(const uint32_t *)(const void *)(&(a)->s6_addr[0]) == 0) && \
+	(*(const uint32_t *)(const void *)(&(a)->s6_addr[4]) == 0) && \
+	(*(const uint32_t *)(const void *)(&(a)->s6_addr[8]) == \
+	ntohl(0x0000ffff)))
+#endif
+/* Added for the X11 milestone (xtrans's Xtransutil.c). */
+#ifndef IN6_IS_ADDR_LOOPBACK
+#define IN6_IS_ADDR_LOOPBACK(a)         \
+	((*(const uint32_t *)(const void *)(&(a)->s6_addr[0]) == 0) && \
+	(*(const uint32_t *)(const void *)(&(a)->s6_addr[4]) == 0) && \
+	(*(const uint32_t *)(const void *)(&(a)->s6_addr[8]) == 0) && \
+	(*(const uint32_t *)(const void *)(&(a)->s6_addr[12]) == ntohl(1)))
+#endif
+
+/* Real Darwin's global "any" IPv6 address, ground-truthed against
+ * src/xnu/bsd/netinet6/in6.h -- added for the X11 milestone (xtrans's
+ * Xtranssock.c uses it to bind an IPv6 listening socket). */
+extern const struct in6_addr in6addr_any;
 
 /* IPPROTO_IP-level setsockopt options -- ground-truthed against
  * src/xnu/bsd/netinet/in.h. */

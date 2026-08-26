@@ -29,6 +29,11 @@ extern "C" {
 #define LLONG_MAX  9223372036854775807LL
 #define ULLONG_MAX 18446744073709551615ULL
 
+/* SSIZE_MAX (POSIX, <limits.h>): ssize_t is a signed 64-bit type on this
+ * target, same width as long -- see syscalls.c's ssize_t-returning
+ * wrappers. Needed for the X11 milestone (font-util's bdftruncate.c). */
+#define SSIZE_MAX LONG_MAX
+
 #define PATH_MAX  1024
 #define NAME_MAX  255
 #define MAXPATHLEN PATH_MAX

@@ -107,6 +107,11 @@ if [ -f build/unixtest/unixtest ]; then
 	mcopy -i "$ROOTFS_IMG" build/unixtest/unixtest ::/bin/unixtest
 	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.unixtest.plist ::/etc/launchd/daemons/com.asteros.unixtest.plist
 fi
+if [ -f build/xorg-deps-install/bin/Xfbdev ]; then
+	echo "Xfbdev found in build/ -- including it in the rootfs"
+	mcopy -i "$ROOTFS_IMG" build/xorg-deps-install/bin/Xfbdev ::/bin/Xfbdev
+	mcopy -i "$ROOTFS_IMG" userland/startx.sh ::/bin/startx
+fi
 
 DYLD_BIN="build/dyld_obj/dyld"
 LIBSYSTEM_REAL="build/libSystem_obj/libSystem.B.dylib"

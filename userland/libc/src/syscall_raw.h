@@ -45,6 +45,7 @@
 #define SYS_setpgid       82
 #define SYS_dup2          90
 #define SYS_fcntl         92
+#define SYS_fsync         95
 #define SYS_mkdir         136
 #define SYS_rmdir         137
 #define SYS_mount         167

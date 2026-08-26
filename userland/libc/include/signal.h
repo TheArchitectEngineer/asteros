@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include <sys/types.h>
+#include <machine/signal.h> /* sig_atomic_t -- real Apple header, see i386/signal.h */
 
 #define SIGHUP    1
 #define SIGINT    2
@@ -57,7 +58,15 @@ extern "C" {
 #define SA_NOCLDSTOP 0x0008
 #define SA_NODEFER   0x0010
 #define SA_NOCLDWAIT 0x0020
-#define SA_SIGINFO   0x0040
+/* SA_SIGINFO deliberately not defined: the kernel side (xnu's kern_sig.c
+ * sendsig()) can populate a real siginfo_t and use the 5-arg sa_tramp
+ * calling convention, but our own sigtramp.S never grew that path (see
+ * the siginfo_t stub below) -- if we exposed the flag, portable code
+ * that probes #ifdef SA_SIGINFO (e.g. xorg-server's os/osinit.c) would
+ * register for it and get a silently mismatched trampoline call at
+ * signal-delivery time instead of a build-time error. Leaving it
+ * undefined makes such code correctly fall back to the plain
+ * void(int) handler signature. */
 
 #define SIG_BLOCK   1
 #define SIG_UNBLOCK 2

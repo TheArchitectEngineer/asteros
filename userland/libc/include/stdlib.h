@@ -39,6 +39,7 @@ void   abort(void) __attribute__((noreturn));
 int    atexit(void (*func)(void));
 
 int    atoi(const char *nptr);
+double atof(const char *nptr);
 long   atol(const char *nptr);
 long long atoll(const char *nptr);
 long   strtol(const char *nptr, char **endptr, int base);
@@ -76,6 +77,7 @@ long   random(void);
 void   srandom(unsigned int seed);
 unsigned int arc4random(void);
 
+int    system(const char *command);
 char  *realpath(const char *path, char *resolved_path);
 char  *mktemp(char *tmpl);
 int    mkstemp(char *tmpl);

@@ -66,6 +66,37 @@ void bzero(void *dst, size_t n) { memset(dst, 0, n); }
  * not a typo (same relationship as __memcpy_chk to memcpy). */
 void __bzero(void *dst, size_t n) { memset(dst, 0, n); }
 
+/* bcopy/bcmp -- the real <strings.h> BSD pair, needed for the X11
+ * milestone (old BSD-style X.Org C source uses these in preference to
+ * memcpy/memcmp throughout). bcopy's argument order is swapped from
+ * memcpy's (src, dst -- historically predates ANSI's dst-first
+ * convention) and is safe for overlapping regions, same guarantee
+ * memmove already provides. */
+void bcopy(const void *src, void *dst, size_t n) { memmove(dst, src, n); }
+int bcmp(const void *a, const void *b, size_t n) { return memcmp(a, b, n) != 0; }
+
+/* ffs -- real BSD "find first set bit" (1-based index, 0 if no bits
+ * set), needed alongside bcopy/bcmp for the same reason. */
+int
+ffs(int i)
+{
+	unsigned int u = (unsigned int)i;
+	if (u == 0) {
+		return 0;
+	}
+	int n = 1;
+	while ((u & 1) == 0) {
+		u >>= 1;
+		n++;
+	}
+	return n;
+}
+
+/* index/rindex -- the pre-ANSI BSD names for strchr/strrchr, still used
+ * throughout old BSD-style C (X.Org's own source among it). */
+char *index(const char *s, int c) { return strchr(s, c); }
+char *rindex(const char *s, int c) { return strrchr(s, c); }
+
 int
 memcmp(const void *a, const void *b, size_t n)
 {

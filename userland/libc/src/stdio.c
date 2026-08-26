@@ -93,6 +93,7 @@ fflush(FILE *stream)
  * is no buffer to configure. */
 void setbuf(FILE *stream, char *buf) { (void)stream; (void)buf; }
 int setvbuf(FILE *stream, char *buf, int mode, size_t size) { (void)stream; (void)buf; (void)mode; (void)size; return 0; }
+void setlinebuf(FILE *stream) { (void)stream; }
 
 int
 feof(FILE *stream)

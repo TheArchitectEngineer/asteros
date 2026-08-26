@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <sys/wait.h>
+#include <signal.h>
 
 char *
 getenv(const char *name)
@@ -304,6 +306,39 @@ long double strtold(const char *nptr, char **endptr) { return (long double)strto
 int atoi(const char *s) { return (int)strtol(s, (void *)0, 10); }
 long atol(const char *s) { return strtol(s, (void *)0, 10); }
 long long atoll(const char *s) { return strtoll(s, (void *)0, 10); }
+double atof(const char *s) { return strtod(s, (void *)0); }
+
+/* system() -- real fork/exec/waitpid, matching POSIX semantics (a NULL
+ * command just probes shell availability; SIGINT/SIGQUIT are ignored
+ * and SIGCHLD unblocked in the parent while waiting, per the standard).
+ * Needed for the X11 milestone (xorg-server's hw/kdrive/src/kdrive.c
+ * shells out to run a helper command). */
+int
+system(const char *command)
+{
+	if (!command) {
+		return 1;
+	}
+
+	pid_t pid = fork();
+	if (pid < 0) {
+		return -1;
+	}
+	if (pid == 0) {
+		execl("/bin/sh", "sh", "-c", command, (char *)0);
+		_exit(127);
+	}
+
+	int status;
+	pid_t w;
+	do {
+		w = waitpid(pid, &status, 0);
+	} while (w < 0 && errno == EINTR);
+	if (w < 0) {
+		return -1;
+	}
+	return status;
+}
 
 int abs(int j) { return j < 0 ? -j : j; }
 long labs(long j) { return j < 0 ? -j : j; }

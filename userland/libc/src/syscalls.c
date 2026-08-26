@@ -99,6 +99,7 @@ ssize_t pwrite(int fd, const void *buf, size_t n, off_t offset) { return sys_res
 int close(int fd) { return (int)sys_result(raw_syscall1(SYS_close, fd)); }
 int dup(int fd) { return (int)sys_result(raw_syscall1(SYS_dup, fd)); }
 int dup2(int fd, int fd2) { return (int)sys_result(raw_syscall2(SYS_dup2, fd, fd2)); }
+int fsync(int fd) { return (int)sys_result(raw_syscall1(SYS_fsync, fd)); }
 
 int
 pipe(int fildes[2])
@@ -306,6 +307,70 @@ execvp(const char *file, char *const argv[])
 	}
 	errno = ENOENT;
 	return -1;
+}
+
+/* execl/execle/execlp: varargs argument lists, collected into an argv[]
+ * built on the stack -- needed for the X11 milestone (xorg-server's
+ * os/utils.c shells out via execl("/bin/sh", "sh", "-c", cmd, NULL)). */
+int
+execl(const char *path, const char *arg0, ...)
+{
+	int argc;
+	va_list ap;
+	va_start(ap, arg0);
+	for (argc = 1; va_arg(ap, const char *); argc++) {}
+	va_end(ap);
+
+	char *argv[argc + 1];
+	va_start(ap, arg0);
+	argv[0] = (char *)arg0;
+	for (int i = 1; i < argc; i++) {
+		argv[i] = va_arg(ap, char *);
+	}
+	argv[argc] = (char *)0;
+	va_end(ap);
+	return execv(path, argv);
+}
+
+int
+execle(const char *path, const char *arg0, ...)
+{
+	int argc;
+	va_list ap;
+	va_start(ap, arg0);
+	for (argc = 1; va_arg(ap, const char *); argc++) {}
+	va_end(ap);
+
+	char *argv[argc + 1];
+	va_start(ap, arg0);
+	argv[0] = (char *)arg0;
+	for (int i = 1; i < argc; i++) {
+		argv[i] = va_arg(ap, char *);
+	}
+	argv[argc] = (char *)0;
+	char *const *envp = va_arg(ap, char *const *);
+	va_end(ap);
+	return execve(path, argv, envp);
+}
+
+int
+execlp(const char *file, const char *arg0, ...)
+{
+	int argc;
+	va_list ap;
+	va_start(ap, arg0);
+	for (argc = 1; va_arg(ap, const char *); argc++) {}
+	va_end(ap);
+
+	char *argv[argc + 1];
+	va_start(ap, arg0);
+	argv[0] = (char *)arg0;
+	for (int i = 1; i < argc; i++) {
+		argv[i] = va_arg(ap, char *);
+	}
+	argv[argc] = (char *)0;
+	va_end(ap);
+	return execvp(file, argv);
 }
 
 void _exit(int status) { raw_syscall1(SYS_exit, status); __builtin_unreachable(); }

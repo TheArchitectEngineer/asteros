@@ -3007,3 +3007,207 @@ all still correct.
   NFS — see patches/0005, 0012).
 - lldb kernel-debugging macros (tools/lldbmacros) skipped entirely — Python 2-only,
   no interactive-debugging use case here — see patches/0014.
+
+## Phase 34 — X11 milestone, step 4: vendor a real X server, write the DDX driver: IN PROGRESS, Xfbdev builds and runs live in QEMU up through resource creation, blocked on XKB keymap data
+
+Goal (fourth step of the X11 effort, following Phase 31's framebuffer
+device, Phase 32's PS/2 event queue, and Phase 33's AF_UNIX sockets):
+per the original brief's explicit instruction not to silently pick an
+X11 release/config, the user was asked and chose **Xfbdev (kdrive)**
+over a full Xorg + custom DDX driver — the smaller, framebuffer-native
+X.Org subsystem, still a real unmodified upstream X server.
+
+**Vendored, at pinned tags, each its own git clone under `src/`:**
+`xorg-util-macros`, `xproto`, `randrproto`, `renderproto`, `xextproto`,
+`inputproto`, `kbproto`, `fontsproto`, `fixesproto`, `damageproto`,
+`xcmiscproto`, `bigreqsproto`, `xtrans`, `libxkbfile`, `pixman`,
+`font-util`, `libXau`, `libfontenc`, `libXfont2` (real repo path is
+`xorg/lib/libxfont`, no "2" — the "2" is only the pkg-config module
+name on its newer tags), `zlib`, and `xorg-server` itself — 20
+dependencies plus the server, cross-built in dependency order against
+`build/tools/asteros-sdk/bin/clang` (Phase 27's Darwin-ABI cross clang)
+into a shared staging prefix (`build/xorg-deps-install`), the same
+`--host=x86_64-apple-darwin19` + `ACLOCAL_PATH`/`PKG_CONFIG_PATH`
+recipe established once and reused for every one of them.
+
+**Real, previously-undiscovered libc/header gaps this surfaced (each
+found by reading the actual compiler/linker error, same discipline as
+every prior phase's runtime bugs, just applied to build time):**
+`strings.h` + `bcopy`/`bcmp`/`ffs`/`index`/`rindex` (libxkbfile),
+`ceil`/`trunc`/`round`/`fmod` (pixman), `SSIZE_MAX` (font-util),
+`hypot` — genuinely missing from this libc's math surface, real musl
+source vendored to `userland/libc/src/musl_math/hypot.c` — plus a hand-
+built stub `libm.a` (real Darwin has no separate libm; math lives in
+libSystem, but `AC_CHECK_LIB(m, hypot, ...)` unconditionally links
+`-lm`) for libXfont2, `atof` (libXfont2), `____chkstk_darwin` — Apple's
+stack-probe helper for large frames, ground-truthed to exactly four
+leading underscores from the real linker error (not LLVM's own
+disassembly text, which reads two) and to a `pushfq`/`popfq`-preserving
+ABI from `llvm/test/CodeGen/X86/probe-stack-eflags.ll` — needed by
+zlib and libXfont2's build tools, `sig_atomic_t` (`signal.h` never
+pulled in `machine/signal.h`, the real Apple header that has it),
+`M_PI` and the rest of the `M_*` constants (real Darwin defines these
+unconditionally in `math.h`, not behind a feature-test macro), `fd_mask`/
+`NFDBITS`/`NBBY`/`howmany` (a real XNU `sys/types.h` legacy-compat block,
+ground-truthed against `src/xnu/bsd/sys/types.h:186-189`, that this
+project's trimmed header had dropped), `IN6_IS_ADDR_V4MAPPED`/
+`_LOOPBACK`, `SUN_LEN`, `in6addr_any` (xtrans), `setlinebuf` (a real
+no-op alongside this libc's existing `setbuf`/`setvbuf` stubs — there is
+no buffer to configure), `execl`/`execle`/`execlp` (varargs wrappers
+over the existing `execv`/`execve`/`execvp`, musl-style two-pass
+`va_arg` counting), a real `system()` (fork/execl("/bin/sh")/waitpid,
+POSIX semantics), `fsync` (syscall #95, never wrapped), `FASYNC`/
+`FNDELAY` (real Darwin kernel/compat aliases for `O_ASYNC`/`O_NONBLOCK`),
+and a real from-scratch SHA-1 (`userland/libc/src/sha1.c` +
+`include/sha1.h`, the classic public-domain FIPS 180-1 reference
+implementation, not adapted from any Apple-licensed source) — needed
+because `--with-sha1=libcrypto` auto-detected the *host* Mac's arm64
+Homebrew OpenSSL at configure time, which then failed to link against
+this x86_64 cross target; declaring `SHA1Init` in this project's own
+libc made `--with-sha1=libc` auto-win instead, sidestepping the
+mismatch entirely.
+
+**Two deliberate, documented deviations from unmodified-upstream, both
+because there was no configure-time knob for either:**
+- `miext/rootless` (XQuartz/XWin-only rootless-window embedding,
+  `#include <Xplugin.h>`, a macOS-private WindowServer header with no
+  equivalent here) is gated by `#ifdef __APPLE__` upstream, on the
+  reasonable-for-real-Darwin assumption that `__APPLE__` implies
+  Xplugin.h exists — not true for this project's Darwin-ABI-compatible
+  but not-actually-macOS cross clang. `miext/Makefile.am`'s `SUBDIRS`
+  built it unconditionally regardless of `--enable-xquartz`/`--enable-
+  xwin`, so it came out.
+- `BUSFAULT` (`os/busfault.c`, opportunistic SIGBUS tolerance for
+  truncated mmap'd font files) is auto-enabled by `configure.ac` purely
+  from `AC_CHECK_FUNCS([sigaction])`, on the same reasonable-upstream
+  assumption that any platform with `sigaction()` also delivers a real
+  `siginfo_t` — not true here: this project's `sigtramp.S` never grew
+  the 5-arg `SA_SIGINFO` calling convention (see `signal.h`'s own
+  comment on why `SA_SIGINFO` is deliberately left undefined), so
+  `configure.ac` now also probes `AC_CHECK_DECL([SA_SIGINFO], ...)`
+  before enabling it — a minimal, upstream-style fix (check for the
+  capability you actually need), not a hack.
+
+**The real DDX driver — `hw/kdrive/fbdev/fbdev.c`/`fbdev.h`, rewritten,
+not patched:** upstream's Linux fbdev driver is fundamentally
+Linux-specific (`<linux/fb.h>`'s `FBIOGET_VSCREENINFO`/
+`FBIOPUT_VSCREENINFO`/colormap/DPMS ioctls against `/dev/fb0`), so this
+is a from-scratch replacement for this kernel's actual framebuffer
+model: a single fixed 32bpp packed-truecolor mode set once by firmware,
+with no mode list, no palette hardware, and no DPMS to negotiate —
+considerably shorter than upstream as a result. Pixel layout
+(redMask=`0x00ff0000`, greenMask=`0x0000ff00`, blueMask=`0x000000ff`)
+is ground-truthed against `userland/fbtest/fbtest.c`'s own
+already-verified magenta/cyan write. `/fbdev/fb0` itself (open+mmap,
+Phase 31) needed no kernel changes; a **new second fbdevfs file**,
+`/fbdev/geometry`, did:
+
+**The bug, found live (not predicted in advance) — real Darwin's
+`vn_ioctl()` gates ioctl by vnode type:** an ioctl on `fb0`
+(`FBDEVFS_IOC_GET_SCREENINFO`, real `_IOR`-encoded command, a correctly
+wired `VNOP_IOCTL` in fbdevfs's vnodeop table) was the first design
+tried, since geometry has no way to reach userspace otherwise
+(`fstat()` only gives total byte size). It compiled, linked, and ran —
+and unconditionally failed with errno 25 (`ENOTTY`) on every call. Read
+straight from real, unmodified `bsd/vfs/vfs_vnops.c`: `vn_ioctl()`
+switches on `vp->v_type`, and for `VREG`/`VDIR` only lets `FIONREAD`/
+`FIONBIO`/`FIOASYNC` through — everything else, including this
+project's own custom command, hits `default: error = ENOTTY;` *before
+the call ever reaches a filesystem's own `VNOP_IOCTL`*. This is real,
+correct BSD/Darwin behavior (why real device files are character
+special, not regular) — `fb0` is deliberately `VREG` (matching
+mockfs/fat16lite's own established real-Darwin-style pattern for a
+mmap()-able pseudo-device), so the fix was not to loosen a real kernel
+invariant for every `VREG` file project-wide, nor to reclassify `fb0`
+as `VCHR` and risk its already-proven mmap()/read() path, but to add a
+**second, independent, physically-*un*backed fsnode** exposing the
+same `struct fbdevfs_screeninfo` bytes through the filesystem's
+already-working `VNOP_READ` instead. `fbdevfs_fsnode_vnode()` (which
+unconditionally pager-maps every non-dir fsnode onto the framebuffer's
+physical range) now skips that step for anything that isn't `fb0`
+specifically; `fbdevfs_read()` special-cases the geometry fsnode to
+build its bytes from `fbmnt->fb_width`/`height`/`stride`/`depth` on the
+stack on every read, instead of `uiomove`-ing from the mapped physical
+VA. The dead, unreachable `fbdevfs_ioctl()` was removed (reverted to
+`err_ioctl`) rather than left as misleading dead code. Userland's
+`hw/kdrive/fbdev/fbdev.c` now `open()`+`read()`s `/fbdev/geometry`
+instead of `ioctl()`ing `fb0`.
+
+**A second real bug, also found live via targeted `fprintf`/`fflush`
+trace instrumentation (this project's own `execinfo.h` `backtrace()` is
+an honest no-op stub — no real stack unwinding — so upstream's own
+`(EE) Backtrace:` crash handler prints nothing useful):** SIGSEGV,
+immediately after `fbdevFinishInitScreen` returned successfully. Root
+cause, in real unmodified `hw/kdrive/src/kdrive.c`'s `KdInitScreen`:
+its "enable the hardware" step does `if (kdOsFuncs->Enable) ...` with
+*no* NULL guard on `kdOsFuncs` itself (unlike a sibling call site a few
+lines earlier, which does check). `kdOsFuncs` is only ever set by
+`KdOsInit()`, which every other kdrive backend (`hw/kdrive/fake/os.c`'s
+`FakeOsFuncs`, `hw/kdrive/linux/linux.c`) calls from its own
+`OsVendorInit()` hook — this project's first-pass `OsVendorInit()` was
+an empty no-op (reasoned, incorrectly, that "no VT layer, no raw tty
+mode" meant nothing to install), leaving `kdOsFuncs` NULL. Fixed with a
+real (if mostly empty, matching `FakeOsFuncs`'s own shape exactly)
+`AsterosOsFuncs` in the new input driver file, installed via
+`KdOsInit(&AsterosOsFuncs)`.
+
+**The input driver — new file, `hw/kdrive/fbdev/asteros_input.c`, not
+a port of any upstream kdrive input backend:** upstream's closest
+analog (`hw/kdrive/linux/ps2.c`) only ever handles a mouse, keeping
+keyboard on an entirely separate raw-tty-mode fd; this project's
+`/dev/psevent` (Phase 32) multiplexes key, button, and motion events
+on *one* fd, so both the `KdPointerDriver` and `KdKeyboardDriver` here
+share a single `open()`+`KdRegisterFd()` registration (ref-counted, torn
+down when both disable), with one read callback dispatching to
+`KdEnqueueKeyboardEvent()`/`KdEnqueuePointerEvent()` by event type.
+Keyboard scancodes pass straight through unmodified — `/dev/psevent`
+already delivers real Set-1 scancodes with the break bit stripped
+(`ps2_kbd.c`), exactly what kdrive's own internal keymap tables assume.
+Registered as driver name `"asteros"`, defaulted via
+`KdAddConfigKeyboard("asteros")`/`KdAddConfigPointer("asteros")` in
+`fbinit.c` so no `-keybd`/`-mouse` command-line arguments are needed.
+
+**`/bin/startx`, new file (`userland/startx.sh`):** launches
+`/bin/Xfbdev :0 -nolock`. The `-nolock` is load-bearing, not
+cosmetic — a third live bug: `LockServer()` (`os/utils.c`) uses
+`link()` as its atomic single-instance check, which `fat16lite` cannot
+support (no hard links on FAT, full stop) — confirmed live via
+`Fatal server error: Can't read lock file`. There is only ever one
+display on this single-user OS, so the check has no purpose here
+regardless.
+
+**A fourth real gap, also found live (execve() doesn't understand
+`#!`):** running `startx` (or `/bin/startx`) by name from the busybox
+shell failed with `not found`, even though `ls`/`cat` both confirmed
+the file existed with the right content. Root cause: this kernel's
+`execve()` has no shebang-interpretation support, and unlike bash/dash,
+this busybox ash build's `not found` path doesn't fall back to
+re-invoking the file as a shell script on `ENOEXEC`. Workaround (not a
+kernel fix — out of this phase's scope): invoke explicitly as `sh
+/bin/startx`.
+
+**Live-tested in QEMU, real boot, real keystrokes via the QEMU
+monitor's `sendkey`+`screendump` (not just a successful compile):**
+`sh /bin/startx` → `Xfbdev started, pid N` → server reaches (in order,
+each confirmed via targeted trace output before the traces were
+removed): `fbdevCardInit` (opens `/fbdev/geometry`, reads real
+width/height/stride/depth, opens+mmaps `/fbdev/fb0`) → `fbdevScreenInit`
+→ `fbdevMapFramebuffer` (direct, non-shadow path, since `randr` is
+`RR_Rotate_0` and the format is always packed truecolor) →
+`fbdevFinishInitScreen` (`shadowSetup` + RandR init) → `fbdevEnable` →
+`fbdevCreateResources` — the entire custom-code path (kernel geometry
+API, DDX driver, `kdOsFuncs` wiring) verified correct end to end, with
+zero crashes on the final clean run. The very next thing the real,
+unmodified X server does — `XKB: Failed to compile keymap` — is a real,
+separate, bounded gap: XKB needs an `xkbcomp` binary plus the
+`xkeyboard-config` rules/symbols/keycodes/compat/geometry data package,
+neither of which is part of this phase's 21 vendored components and
+neither of which has any `--disable-xkb`-style escape hatch in modern
+xorg-server (XKB is not optional).
+
+**Not yet started:** `xkeyboard-config` + `xkbcomp` (blocks a real
+on-screen display), `build.sh` scripts for the 21 newly-vendored
+components (everything so far has been built by hand-run shell
+commands during this phase, not yet turned into the project's usual
+reproducible-script convention), twm, and the eventual real screendump
+proof of pixels actually reaching the display once XKB is unblocked.

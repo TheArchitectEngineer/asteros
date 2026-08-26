@@ -21,7 +21,14 @@
 #include <stddef.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <netinet/in.h>
 #include <errno.h>
+
+/* All-zero IPv6 "any" address -- needed for xtrans's Xtranssock.c to
+ * link (it builds a listening IPv6 socket even though this kernel's
+ * INET6 stack, like INET, is unimplemented; see the file comment
+ * above about no real network stack existing). */
+const struct in6_addr in6addr_any;
 
 int
 socket(int domain, int type, int protocol)

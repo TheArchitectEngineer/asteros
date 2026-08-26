@@ -23,6 +23,15 @@ extern "C" {
 #include <sys/_types/_fd_isset.h>
 #include <sys/_types/_fd_zero.h>
 
+/* Legacy select()-bitmask type, ground-truthed against
+ * src/xnu/bsd/sys/types.h:186-189 -- real Darwin keeps this here (not
+ * just in sys/select.h) for historical-compat callers that only include
+ * sys/types.h, which is exactly what xorg-server's os/osdep.h does. */
+#define NBBY    __DARWIN_NBBY
+#define NFDBITS __DARWIN_NFDBITS
+#define howmany(x, y) __DARWIN_howmany(x, y)
+typedef __int32_t fd_mask;
+
 typedef long ssize_t;
 
 /* Real Darwin guards off_t's definition behind _OFF_T so that whichever
