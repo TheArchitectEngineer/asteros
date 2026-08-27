@@ -88,6 +88,7 @@ double ldexp(double x, int n);
 double scalbn(double x, int n);
 double expm1(double x);
 double fabs(double x);
+float fabsf(float x); /* added for the X11 milestone (xclock's Clock.c) */
 double sqrt(double x);
 double floor(double x);
 double ceil(double x);

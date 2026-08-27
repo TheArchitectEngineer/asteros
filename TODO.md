@@ -3324,3 +3324,162 @@ yet turned into the project's usual reproducible-script convention),
 and a real screendump proof of visible decorated window content (as
 opposed to the current "process is alive and not crashing" proof,
 which is real but weaker).
+
+## Phase 35 — X11 milestone, step 5: xterm + xclock, a real kernel pty bug: DONE for process launch, blocked on fonts for visible text
+
+Goal: per the user's explicit request, make `twm` start with 3 `xterm`
+windows and 1 `xclock` window. Both vendored fresh under `src/` —
+`xclock` from `gitlab.freedesktop.org/xorg/app/xclock`, `xterm` from
+`https://github.com/ThomasDickey/xterm-snapshots.git` (the canonical
+maintainer's mirror — the expected `gitlab.freedesktop.org/xorg/app/
+xterm` path 404s in a way that looks like an auth prompt, same
+misleading failure mode as an earlier phase's wrong GitLab path).
+
+**libc gaps found and fixed getting `xterm` to compile (each real,
+ground-truthed against real Darwin headers, not guessed):**
+
+- `xterm`'s `xtermcap.h` unconditionally `#include <curses.h>` whenever
+  `USE_TERMCAP` is the active branch (which it always is here — this
+  project has no terminfo database, so `configure`'s `tigetstr` check
+  correctly reports "no" and `USE_TERMINFO` stays off). Real Darwin's
+  own `curses.h` declares the handful of traditional BSD termcap
+  functions (`tgetent`/`tgetstr`/`tgetnum`/`tgetflag`/`tgoto`/`tputs`)
+  directly, predating terminfo-only curses — added
+  `userland/libc/include/curses.h` as an honest stub in the same style
+  as the pre-existing `regex.h` stub: real declarations, backed by
+  `userland/libc/src/curses_stub.c` implementations that report "no
+  termcap database available" (`tgetent` returns `-1`, the real,
+  documented code for that condition — not a made-up sentinel). Both
+  of `xterm`'s actual call sites (`xtermcap.c`, `resize.c`) already
+  treat `tgetent()` failure as a normal, supported fallback path.
+- `xterm/main.c` needs `openpty()`/`forkpty()`/`login_tty()` from
+  `<util.h>` (real Darwin's home for these, not a separate `pty.h`) —
+  added `userland/libc/include/util.h` and a real implementation in
+  `userland/libc/src/pty.c`, using this kernel's classic BSD
+  `/dev/pty<letter><hex>` + `/dev/tty<letter><hex>` device-pair scheme
+  (ground-truthed against `src/xnu/bsd/kern/tty_pty.c`'s `pty_init()`/
+  `pty_get_name()` — `START_CHAR='p'`, two hex digits per letter) since
+  `xterm`'s own `get_pty()` (`main.c`) defines `USE_OPENPTY` for
+  `__APPLE__` and calls this exact function rather than its
+  `pty_search()`/`/dev/ptmx` fallbacks.
+- `sys/ioctl.h` didn't include `sys/filio.h` (`FIONBIO` et al), unlike
+  real Darwin's, which pulls it in unconditionally — `xterm/main.c`
+  uses `FIONBIO` with only `<sys/ioctl.h>` included, matching real
+  Apple's header layout. Fixed by adding the include; while there,
+  also fixed a latent bug this surfaced: `sys/ioctl.h` was
+  hand-duplicating the `_IOC`/`_IO`/`_IOR`/`_IOW`/`_IOWR`/`IOC_*`
+  macros instead of including `sys/ioccom.h` (their real home,
+  already used identically by `sys/filio.h` and `sys/ttycom.h`),
+  producing harmless-but-real `-Wmacro-redefined` warnings the moment
+  a single translation unit pulled in more than one of these headers
+  — switched to including `sys/ioccom.h` instead of duplicating it.
+- `revoke(2)` was entirely missing (`main.c`'s TTY-hijack-prevention
+  cleanup path) — real syscall, number 56, ground-truthed against
+  `syscalls.master`; added the raw-syscall wrapper (`syscalls.c`,
+  `syscall_raw.h`) and the `unistd.h` declaration.
+- `popen()`/`pclose()` were missing from `stdio.h` entirely (`print.c`,
+  piping formatted output to a printer command) — added a real
+  fork/pipe/exec implementation (`userland/libc/src/popen.c`), reusing
+  the now-fixed `/bin/sh` (see Phase 34's `Popen()`/`Pclose()` bug)
+  rather than anything X-server-specific; tracks child pids in a small
+  static table the way glibc/BSD libc do, since `pclose()` only gets
+  handed the `FILE*`.
+- `P_tmpdir` was undefined (`misc.c`'s `SaveToBuffer`) — added the
+  real Darwin value, `"/var/tmp/"`.
+- `fabsf()` was undefined (`xclock/Clock.c`) — added to `math.h` +
+  `math_builtins.c` (`__builtin_fabsf`, exact per IEEE 754, same
+  pattern as the existing `fabs`/`sqrt`/`floor`/etc wrappers).
+- `xterm`'s own static link line (`Imakefile`-derived `configure`,
+  no `pkg-config` awareness at all — unlike `xkbcomp`'s, which
+  generates its link line via `pkg-config --static`) was missing
+  `-lXpm -lxcb -lXau -lXdmcp`, all real transitive static dependencies
+  of `-lXaw7`/`-lX11` in this statically-linked project. Recovered the
+  exact real set via `pkg-config --static --libs x11 xaw7` and patched
+  directly into the generated `Makefile`'s `LIBS` line (`xterm`'s build
+  system has no clean knob for this, unlike `xkbcomp`'s).
+- A stray reconfigure without `CC=".../asteros-sdk/bin/clang -std=gnu23"`
+  explicitly set (this project's Makefiles bake in the *absolute path*
+  cross-compiler from the first successful `./configure`, but a fresh
+  `./configure` run resolves `CC` fresh via `$PATH`, which doesn't have
+  `asteros-sdk/bin` prepended outside `make`'s own recipes) briefly
+  had `xterm`'s `configure` probing against the *host's* real arm64
+  clang, silently "detecting" a working `tigetstr`/`termcap.h`/`term.h`
+  from the *host Mac's* real ncurses — a real cross-compilation
+  contamination risk, caught before it produced a binary that would
+  have called into nonexistent host-only functionality at runtime.
+  Fixed by always passing `CC="$ROOT/build/tools/asteros-sdk/bin/clang
+  -std=gnu23"` explicitly to any one-off `./configure` re-run, not
+  relying on `$PATH` or cached `config.cache` state.
+
+**A real kernel bug, found and fixed:** with all of the above in place,
+every `xterm` process failed at startup with `get_pty: not enough
+ptys` (`main.c`'s `pty_search()`/`get_pty()` fallback message,
+misleadingly implying resource exhaustion). A minimal, dependency-free
+static probe (`open("/dev/ptyp0", O_RDWR)`, no dyld, no threads, no
+Xlib — same `-nostdlib -static -e _start` recipe as `pstest`) reproduced
+`open() = -1, errno = 35 (EAGAIN)` on the very first attempt, ruling out
+xterm/Xlib/threading entirely. Kernel-side `printf()` traces placed
+directly in `tty_dev.c`'s `ptcopen()` (the master-open handler) never
+fired even though the userland syscall definitely reached the
+character-device dispatch — pointing at the `cdevsw[]` table itself
+rather than the driver logic. Found in `src/xnu/bsd/dev/i386/conf.c`:
+the `[PTC_MAJOR]` (master, `/dev/pty??`) entry was wired to
+`ptsopen`/`ptsclose`/`ptsread`/`ptswrite` (the *slave* functions) and
+`[PTS_MAJOR]` (slave, `/dev/tty??`) was wired to
+`ptcopen`/`ptcclose`/`ptcread`/`ptcwrite` (the *master* functions) —
+swapped. Opening a fresh master therefore actually ran `ptsopen()`
+(`tty_dev.c`), which unconditionally returns `EAGAIN` until
+`PF_UNLOCKED` is set by a real `ptcopen()` call — one that could never
+run, since the swap meant nothing ever dispatched to it. Fixed by
+swapping the two `cdevsw[]` entries back to the correct functions,
+ground-truthed against `tty_pty.c`'s own `_pty_driver.master =
+PTC_MAJOR; _pty_driver.slave = PTS_MAJOR;` and `pty_init()`'s node
+names (`pty*` on `PTC_MAJOR`, `tty*` on `PTS_MAJOR`). All diagnostic
+`printf()` traces (in `ptcopen()`, `devfs_lookup()`, and
+`devfs_dntovn()`) were added, used to isolate the bug, and fully
+removed once root-caused — none of them were the actual fix.
+
+**`userland/libc/src/pty.c`'s `openpty()`** originally also opened the
+master with `O_RDWR | O_NONBLOCK`, on the assumption (correct for a
+`/dev/ptmx`-style clone device, wrong here) that a busy master would
+return `EAGAIN` and the search loop should just move on to the next
+letter/digit. This kernel's legacy pty pairs aren't clone devices —
+each is a distinct static node — and `O_NONBLOCK` on the open request
+itself isn't part of their real contract; removed it once the cdevsw
+swap fix made plain `O_RDWR` opens succeed correctly.
+
+**`userland/mkrootfs.sh`** now copies `xterm`/`xclock` into
+`build/xorg-target-root/bin` the same way as `Xfbdev`/`xkbcomp`/`twm`.
+**`userland/startx.sh`** launches `twm &`, waits (same busy-wait
+pattern as the Xfbdev-startup delay, shorter, to let twm register
+`SubstructureRedirect` on the root window before clients map), then
+launches 3 `xterm &` plus 1 `xclock &`.
+
+**Live-verified in QEMU:** booting `sh /bin/startx` now shows zero
+`get_pty`/`not enough ptys` errors (previously present on every
+attempt) — `xclock` renders its real window (visible clock-face grid,
+confirmed via screendump) and all processes stay alive (same
+queued-unprocessed-keystroke test as Phase 34: typed characters echo
+but never resolve into a new shell prompt). `xterm`, however, never
+produces visible window content — it logs `Warning: Unable to load
+any usable fontset` and the process then goes fully silent (alive, not
+crashed, but nothing further happens). Root cause: this project has
+**zero X11 bitmap font data anywhere** — `font-util`/`fontsproto`/
+`libfontenc`/`libXfont2` are vendored and built (`libXfont2` is what
+Xfbdev links against for glyph rendering), but `font-util` itself only
+ships encoding maps and autoconf macros, not actual font files or the
+`mkfontdir`/`bdftopcf`/`mkfontscale` conversion tools — those live in
+separate upstream repos (`xorg/app/mkfontscale`, `xorg/app/bdftopcf`,
+and the font data itself in e.g. `xorg/font/font-misc-misc`), none of
+which have been vendored yet. Without at least one loadable bitmap
+font, `xterm`'s Xaw widget can't compute character-cell metrics to
+size its window, and `xclock` apparently tolerates the missing
+fontset only because its default face is a drawn analog clock, not
+text.
+
+**Not yet started:** vendoring `mkfontscale`/`bdftopcf` (or another
+route to real PCF font files), a real bitmap font package, wiring a
+`FontPath` into Xfbdev's invocation, and — the actual proof this
+milestone is after — a screendump showing real decorated `xterm`
+windows with visible text next to `xclock`'s clock face and twm's
+titlebars.

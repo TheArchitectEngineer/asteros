@@ -28,6 +28,11 @@ typedef struct {
 #define REG_NEWLINE  4
 #define REG_NOSUB    8
 #define REG_NOMATCH  1
+/* Execution-time flags -- added for the X11 milestone (xterm's
+ * button.c word/URL-selection matcher). Still unreachable: the .c
+ * stub above always reports failure/no-match regardless of these. */
+#define REG_NOTBOL   16
+#define REG_NOTEOL   32
 
 int regcomp(regex_t *preg, const char *pattern, int cflags);
 int regexec(const regex_t *preg, const char *string, size_t nmatch, regmatch_t pmatch[], int eflags);

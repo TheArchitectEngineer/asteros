@@ -35,4 +35,22 @@ done
 
 /bin/twm &
 
+# Same busy-wait as above, shorter -- give twm a moment to register as
+# the window manager (select SubstructureRedirect on the root window)
+# before the clients below map their windows, so twm actually reparents
+# and decorates them instead of racing it.
+outer="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+while [ -n "$outer" ]; do
+    inner="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    while [ -n "$inner" ]; do
+        inner="${inner#?}"
+    done
+    outer="${outer#?}"
+done
+
+/bin/xterm &
+/bin/xterm &
+/bin/xterm &
+/bin/xclock &
+
 wait $XPID

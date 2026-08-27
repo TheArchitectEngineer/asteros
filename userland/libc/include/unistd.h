@@ -11,6 +11,7 @@ extern "C" {
 #include <sys/_types/_sigset_t.h>
 
 struct timespec;
+struct timeval;
 int gethostuuid(uuid_t out, const struct timespec *wait);
 
 /* Real Darwin declares pselect(2) in both <unistd.h> and <sys/select.h>
@@ -36,6 +37,23 @@ __DARWIN_ALIAS_C(pselect)
 #endif /* _DARWIN_C_SOURCE || _DARWIN_UNLIMITED_SELECT */
 ;
 #endif /* __MWERKS__ */
+
+/* select(2), same rationale/decoration as pselect above -- added for
+ * the X11 milestone (libXaw's TextAction.c includes only X11/Xos.h,
+ * which on this platform only pulls in sys/types.h, not
+ * sys/select.h). */
+int      select(int, fd_set * __restrict, fd_set * __restrict,
+    fd_set * __restrict, struct timeval * __restrict)
+#if defined(_DARWIN_C_SOURCE) || defined(_DARWIN_UNLIMITED_SELECT)
+__DARWIN_EXTSN_C(select)
+#else /* !_DARWIN_C_SOURCE && !_DARWIN_UNLIMITED_SELECT */
+#  if defined(__LP64__) && !__DARWIN_NON_CANCELABLE
+__DARWIN_1050(select)
+#  else /* !__LP64__ || __DARWIN_NON_CANCELABLE */
+__DARWIN_ALIAS_C(select)
+#  endif /* __LP64__ && !__DARWIN_NON_CANCELABLE */
+#endif /* _DARWIN_C_SOURCE || _DARWIN_UNLIMITED_SELECT */
+;
 
 /* Real Darwin implements this via sysctl(CTL_KERN, KERN_HOSTNAME), not a
  * syscall -- see src/gethostname.c for why this project just reports the
@@ -75,6 +93,7 @@ off_t lseek(int fd, off_t offset, int whence);
 int ftruncate(int fd, off_t length);
 int truncate(const char *path, off_t length);
 int unlink(const char *path);
+int revoke(const char *path);
 int unlinkat(int fd, const char *path, int flag);
 int rmdir(const char *path);
 int chdir(const char *path);

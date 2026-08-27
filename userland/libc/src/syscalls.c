@@ -122,6 +122,7 @@ pipe(int fildes[2])
 off_t lseek(int fd, off_t offset, int whence) { return sys_result(raw_syscall3(SYS_lseek, fd, offset, whence)); }
 int ftruncate(int fd, off_t length) { return (int)sys_result(raw_syscall2(SYS_ftruncate, fd, length)); }
 int unlink(const char *path) { return (int)sys_result(raw_syscall1(SYS_unlink, (long)path)); }
+int revoke(const char *path) { return (int)sys_result(raw_syscall1(SYS_revoke, (long)path)); }
 int unlinkat(int fd, const char *path, int flag) { return (int)sys_result(raw_syscall3(472 /* SYS_unlinkat */, fd, (long)path, flag)); }
 int truncate(const char *path, off_t length) { return (int)sys_result(raw_syscall2(200 /* SYS_truncate */, (long)path, length)); }
 int rmdir(const char *path) { return (int)sys_result(raw_syscall1(SYS_rmdir, (long)path)); }

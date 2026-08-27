@@ -34,6 +34,7 @@
 #define SYS_getgid        47
 #define SYS_sigprocmask   48
 #define SYS_ioctl         54
+#define SYS_revoke        56
 #define SYS_symlink       57
 #define SYS_readlink      58
 #define SYS_execve        59

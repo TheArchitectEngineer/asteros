@@ -135,6 +135,14 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 		echo "twm found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/twm ::/bin/twm
 	fi
+	if [ -f build/xorg-target-root/bin/xterm ]; then
+		echo "xterm found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xterm ::/bin/xterm
+	fi
+	if [ -f build/xorg-target-root/bin/xclock ]; then
+		echo "xclock found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xclock ::/bin/xclock
+	fi
 fi
 
 DYLD_BIN="build/dyld_obj/dyld"

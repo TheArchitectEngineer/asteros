@@ -21,6 +21,8 @@ extern "C" {
 #define FOPEN_MAX 64
 #define FILENAME_MAX 1024
 #define L_tmpnam 64
+#define P_tmpdir "/var/tmp/" /* real Darwin's value -- added for the X11
+                               * milestone (xterm's misc.c SaveToBuffer) */
 
 #define _IOFBF 0
 #define _IOLBF 1
@@ -98,6 +100,10 @@ int   fscanf(FILE *stream, const char *fmt, ...);
 void  perror(const char *s);
 int   remove(const char *path);
 int   rename(const char *old, const char *new_);
+
+/* popen/pclose -- added for the X11 milestone (xterm's print.c). */
+FILE *popen(const char *command, const char *type);
+int   pclose(FILE *stream);
 
 #ifdef __cplusplus
 }
