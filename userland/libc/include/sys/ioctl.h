@@ -35,6 +35,17 @@ struct termios; /* see termios.h */
 #define TIOCSCTTY  _IO('t', 97)
 #define FIONREAD   _IOR('f', 127, int)
 
+/* km(4) console text-renderer on/off -- KMIOCDISABLCONS is real Apple
+ * (bsd/dev/kmreg_com.h, KERNEL_PRIVATE there so not directly usable
+ * from userland); KMIOCENABLCONS is a project-local addition (see
+ * that header's comment -- this project has no IOKit driver to ever
+ * call the real re-enable path, so needed an explicit one). Added for
+ * the X11 milestone (hw/kdrive/fbdev/asteros_input.c uses these to
+ * stop the kernel's own console text -- printf, boot self-test daemon
+ * output, tty echo -- from being drawn over Xfbdev's framebuffer). */
+#define KMIOCENABLCONS  _IO('k', 7)
+#define KMIOCDISABLCONS _IO('k', 8)
+
 int ioctl(int fd, unsigned long request, ...);
 
 #ifdef __cplusplus

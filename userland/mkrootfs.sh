@@ -108,9 +108,22 @@ if [ -f build/fbtest/fbtest ]; then
 	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.fbtest.plist ::/etc/launchd/daemons/com.asteros.fbtest.plist
 fi
 if [ -f build/pstest/pstest ]; then
-	echo "pstest found in build/ -- including it in the rootfs"
+	echo "pstest found in build/ -- including it in the rootfs (binary only, not auto-run)"
 	mcopy -i "$ROOTFS_IMG" build/pstest/pstest ::/bin/pstest
-	mcopy -i "$ROOTFS_IMG" userland/launchd/daemons/com.asteros.pstest.plist ::/etc/launchd/daemons/com.asteros.pstest.plist
+	# Not registering com.asteros.pstest.plist as a boot-time daemon:
+	# /dev/psevent (bsd/dev/i386/psevent.c) is a single shared ring
+	# buffer, not per-opener -- whichever reader calls read() first
+	# drains an event, there's no fan-out to multiple concurrent
+	# readers. pstest opens it at every boot (RunAtLoad) and actively
+	# drains it for up to PSTEST_BUDGET_MS (60s) waiting to see a real
+	# keystroke, which is exactly the window startx/twm/xterm come up
+	# in -- it was winning the race for every real keypress before
+	# Xfbdev's asterosInputRead() ever saw one, so X11 keyboard input
+	# looked completely dead while the kernel console (a separate,
+	# earlier delivery path in ps2_kbd.c) kept working fine. Its job
+	# (proving psevent delivery works at all) is done; the binary
+	# stays available at /bin/pstest for manual re-verification, it
+	# just no longer runs unattended at every boot.
 fi
 if [ -f build/unixtest/unixtest ]; then
 	echo "unixtest found in build/ -- including it in the rootfs"
@@ -143,6 +156,12 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 		echo "xclock found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xclock ::/bin/xclock
 	fi
+	if [ -f build/xsetbg/xsetbg ]; then
+		echo "xsetbg found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xsetbg/xsetbg ::/bin/xsetbg
+	fi
+	mmd -i "$ROOTFS_IMG" ::/root 2>/dev/null
+	mcopy -i "$ROOTFS_IMG" userland/twmrc ::/root/.twmrc
 fi
 
 DYLD_BIN="build/dyld_obj/dyld"

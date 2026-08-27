@@ -6,6 +6,7 @@
 set -e
 
 export DISPLAY=:0
+export HOME=/root
 
 # -nolock: LockServer() (os/utils.c) uses link() as its atomic
 # single-instance check, which fat16lite can't support (no hard links
@@ -32,6 +33,11 @@ while [ -n "$outer" ]; do
     done
     outer="${outer#?}"
 done
+
+# Solid red wallpaper (userland/xsetbg.c) before twm starts, so the
+# root window is never seen unpainted between Xfbdev's own default
+# background and twm taking over.
+/bin/xsetbg 192 0 0
 
 /bin/twm &
 

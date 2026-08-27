@@ -1,0 +1,71 @@
+#
+# AsterOS red theme for twm -- project-local, not upstream (see
+# src/twm/src/system.twmrc for twm's own unmodified default, which this
+# intentionally overrides via $HOME/.twmrc rather than editing vendored
+# source). Structure mirrors system.twmrc; only the Color block differs.
+#
+# Colors are all rgb:RR/GG/BB hex specs, not X11 color names: this
+# project has no rgb.txt color database vendored anywhere, and it's
+# unverified whether Xfbdev has a compiled-in fallback name table, so
+# hex is used defensively -- it's what system.twmrc's own one reliable
+# color, "rgb:2/a/9" (the teal titlebar seen in every screendump so
+# far), already uses.
+
+NoGrabServer
+RestartPreviousState
+DecorateTransients
+TitleFont "-adobe-helvetica-bold-r-normal--*-120-*-*-*-*-*-*"
+ResizeFont "-adobe-helvetica-bold-r-normal--*-120-*-*-*-*-*-*"
+MenuFont "-adobe-helvetica-bold-r-normal--*-120-*-*-*-*-*-*"
+IconFont "-adobe-helvetica-bold-r-normal--*-100-*-*-*-*-*-*"
+IconManagerFont "-adobe-helvetica-bold-r-normal--*-100-*-*-*"
+
+Color
+{
+    BorderColor "rgb:8/0/0"
+    DefaultBackground "rgb:c/0/0"
+    DefaultForeground "rgb:f/f/f"
+    TitleBackground "rgb:c/0/0"
+    TitleForeground "rgb:f/f/f"
+    MenuBackground "rgb:c/0/0"
+    MenuForeground "rgb:f/f/f"
+    MenuBorderColor "rgb:8/0/0"
+    MenuTitleBackground "rgb:f/f/f"
+    MenuTitleForeground "rgb:c/0/0"
+    IconBackground "rgb:c/0/0"
+    IconForeground "rgb:f/f/f"
+    IconBorderColor "rgb:f/f/f"
+    IconManagerBackground "rgb:c/0/0"
+    IconManagerForeground "rgb:f/f/f"
+}
+
+MoveDelta 3
+Function "move-or-lower" { f.move f.deltastop f.lower }
+Function "move-or-raise" { f.move f.deltastop f.raise }
+
+Button1 = : root : f.menu "defops"
+Button2 = : root : f.menu "twmops"
+Button3 = : root : f.circleup
+
+Button1 = : title : f.function "move-or-raise"
+Button2 = : title : f.raiselower
+
+Button1 = : icon : f.function "move-or-raise"
+Button2 = : icon : f.iconify
+
+Button1 = : iconmgr : f.function "move-or-raise"
+Button2 = : iconmgr : f.iconify
+
+menu "defops"
+{
+"Twm"        f.title
+"Iconify"    f.iconify
+"Resize"     f.resize
+"Move"       f.move
+"Raise"      f.raise
+"Lower"      f.lower
+"Focus"      f.focus
+"Unfocus"    f.unfocus
+"Destroy"    f.destroy
+"Delete"     f.delete
+}
