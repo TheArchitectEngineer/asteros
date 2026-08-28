@@ -1,6 +1,6 @@
 # AsterOS
 
-<img width="642" height="431" alt="image" src="https://github.com/user-attachments/assets/f0618ab5-b655-4968-894c-5849a294dcb7" />
+<img width="636" height="396" alt="image" src="https://github.com/user-attachments/assets/fe17ccc7-a755-4c63-9756-c455efaee0c4" />
 
 A from-source bring-up of a minimal Darwin 19 (Catalina, xnu-6153.141.1) x86_64
 system: real XNU kernel + BSD/Mach, a custom UEFI bootloader (Apple's own
