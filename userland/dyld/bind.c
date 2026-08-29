@@ -77,7 +77,13 @@ resolve_symbol(struct image *im, int ordinal, const char *symbol)
 static uint64_t
 run_bind_stream(struct image *im, const uint8_t *p, const uint8_t *end, int single_record)
 {
+	/* type defaults to POINTER: ld64 omits BIND_OPCODE_SET_TYPE_IMM
+	 * entirely from lazy bind records (each is a self-contained
+	 * per-symbol mini-stream with no type opcode of its own), since a
+	 * lazy pointer slot is always pointer-type by construction. Real
+	 * dyld's bind interpreter assumes the same default. */
 	struct bind_state st = {0};
+	st.type = BIND_TYPE_POINTER;
 	uint64_t result = 0;
 
 	while (p < end) {
@@ -88,6 +94,7 @@ run_bind_stream(struct image *im, const uint8_t *p, const uint8_t *end, int sing
 		switch (opcode) {
 		case BIND_OPCODE_DONE:
 			st = (struct bind_state){0};
+			st.type = BIND_TYPE_POINTER;
 			break;
 		case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
 			st.dylib_ordinal = imm;
