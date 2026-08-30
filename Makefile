@@ -25,7 +25,7 @@ LAUNCHCTL_BIN := build/launchctl_obj/launchctl
 TOOLCHAIN_CLANG := build/llvm-static-build/bin/clang
 TOOLCHAIN_LD    := build/ld64_bin/ld64
 
-.PHONY: all kernel bootloader libc busybox neatvi launchd launchctl toolchain image run clean help kernel-build busybox-build
+.PHONY: all kernel bootloader libc busybox neatvi launchd launchctl toolchain image run clean help kernel-build busybox-build check-stale-qemu
 
 all: image
 
@@ -135,6 +135,59 @@ toolchain:
 	fi
 
 # --- disk images ------------------------------------------------------
+# mkrootfs.sh/mkesp.sh rebuild boot/fat16.img and boot/esp.img from
+# scratch (rm -f + reformat) on every invocation, which means a QEMU
+# process from an earlier `make run` that's still holding either file
+# open (mmap'd disk backing, or just not yet exited) can make the
+# mtools calls that write over it hang indefinitely with zero output --
+# live-hit once as a silent stall right after mkrootfs.sh's own
+# "wmaker found..." echo, no error, no further progress, no indication
+# anything was even still running. check-stale-qemu catches the most
+# likely cause *before* the rebuild even starts; run_with_heartbeat
+# below is the fallback for any other cause, so a genuine stall is at
+# least visibly a stall rather than indistinguishable from a crashed
+# terminal.
+#
+# An earlier version of this fix tried to wrap every individual mtools
+# call in mkrootfs.sh/mkesp.sh with a kill-after-N-seconds timeout.
+# Twice. Both attempts introduced a *new*, worse hang of their own
+# (confirmed by A/B timing against the unwrapped script: 0.7s clean vs.
+# 90-120s with either "fix" in place) -- old bash (macOS's /bin/bash is
+# 3.2, no `wait -n`/`timeout`) has no clean way to reap a specific
+# background job with a deadline: `kill -0 $pid` keeps reporting a
+# finished-but-unreaped child as "alive" (it's a zombie, not gone)
+# until something actually calls `wait` on it, so a poll loop built on
+# `kill -0` never observes completion on its own; and a background
+# "sleep N; kill ..." subshell watchdog can be killed without killing
+# the `sleep` it's blocked in, leaking an orphan that lingers for the
+# rest of N holding this script's own stdout fd open. Chasing a second
+# fix for the second bug is exactly the kind of complexity this file
+# doesn't need for what's fundamentally a "tell me it's still alive"
+# problem, not a "forcibly kill it" problem -- so: a single one-shot
+# heartbeat around the *whole* script instead, with no loop and no
+# retry, so there's nothing left running for it to leak.
+check-stale-qemu:
+	@stale="$$(pgrep -fl 'qemu-system-x86_64.*(esp\.img|fat16\.img)' 2>/dev/null || true)"; \
+	if [ -n "$$stale" ]; then \
+		echo "warning: a qemu-system-x86_64 process is still holding boot/esp.img or boot/fat16.img open:"; \
+		echo "$$stale" | sed 's/^/  /'; \
+		echo "  If the image rebuild below hangs, this is almost certainly why -- stop that process first (kill <pid>, or Ctrl-C its terminal) and re-run."; \
+	fi
+
+# $1 = human-readable description, $2.. = command to run. A normal run
+# of either mkrootfs.sh or mkesp.sh takes under a second, so one
+# reminder at 60s is plenty -- this is a single `sleep 60`, not a loop,
+# specifically so there's no repeated-sleep orphan for a stray `kill`
+# to leak: even in the worst case where the kill below doesn't land in
+# time, the absolute most that can be left behind is one already-timed
+# `sleep` process quietly finishing on its own a few seconds later.
+run_with_heartbeat = \
+	( sleep 60; echo "note: '$(1)' has been running over 60s -- if it looks stuck, check for a stray qemu-system-x86_64 process holding boot/fat16.img or boot/esp.img open (pgrep -fl qemu-system-x86_64), kill it, and re-run." >&2 ) & \
+	heartbeat_pid=$$!; \
+	$(2); status=$$?; \
+	kill $$heartbeat_pid >/dev/null 2>&1; \
+	exit $$status
+
 # Both rules below depend on real output files ($(BUSYBOX_BIN),
 # $(KERNEL_BIN), etc.), not the phony `busybox`/`kernel` target names --
 # mkrootfs.sh/mkesp.sh always rebuild their image from scratch when
@@ -143,11 +196,11 @@ toolchain:
 # them when a prerequisite's mtime genuinely changed, not on every run.
 image: $(ESP_IMG)
 
-$(ROOTFS_IMG): $(BUSYBOX_BIN) $(NEATVI_BIN) $(LAUNCHD_BIN) $(LAUNCHCTL_BIN)
-	bash userland/mkrootfs.sh
+$(ROOTFS_IMG): $(BUSYBOX_BIN) $(NEATVI_BIN) $(LAUNCHD_BIN) $(LAUNCHCTL_BIN) | check-stale-qemu
+	@$(call run_with_heartbeat,userland/mkrootfs.sh,bash userland/mkrootfs.sh)
 
-$(ESP_IMG): $(BOOTX64) $(KERNEL_BIN) $(ROOTFS_IMG)
-	bash boot/mkesp.sh
+$(ESP_IMG): $(BOOTX64) $(KERNEL_BIN) $(ROOTFS_IMG) | check-stale-qemu
+	@$(call run_with_heartbeat,boot/mkesp.sh,bash boot/mkesp.sh)
 
 # --- run ----------------------------------------------------------------
 # -serial mon:stdio multiplexes the serial console and the QEMU monitor
