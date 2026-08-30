@@ -95,7 +95,10 @@ double ceil(double x);
 double trunc(double x);
 double round(double x);
 double fmod(double x, double y);
+double rint(double x);
 double hypot(double x, double y);
+double frexp(double x, int *e); /* added for xedit (lisp/mp/mpi.c, mpr.c) */
+double copysign(double x, double y); /* added for xedit (lisp/mp/mpi.c) */
 
 #ifdef __cplusplus
 }

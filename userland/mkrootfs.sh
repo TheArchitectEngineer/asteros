@@ -220,6 +220,25 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 		echo "xeyes found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xeyes ::/bin/xeyes
 	fi
+	if [ -f build/xorg-target-root/bin/xedit ]; then
+		echo "xedit found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xedit ::/bin/xedit
+		if [ -f build/xorg-target-root/usr/share/X11/app-defaults/Xedit ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/share 2>/dev/null || true
+			mmd -i "$ROOTFS_IMG" ::/usr/share/X11 2>/dev/null || true
+			mmd -i "$ROOTFS_IMG" ::/usr/share/X11/app-defaults 2>/dev/null || true
+			mcopy -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/X11/app-defaults/Xedit ::/usr/share/X11/app-defaults/Xedit
+			mcopy -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/X11/app-defaults/Xedit-color ::/usr/share/X11/app-defaults/Xedit-color
+		fi
+		# LISPDIR ($libdir/X11/xedit/lisp = /usr/lib/X11/xedit/lisp) --
+		# xedit's lisp/require.c autoloads editing-mode modules from here
+		# at runtime (e.g. opening a .c file loads progmodes/c.lsp).
+		if [ -d build/xorg-target-root/usr/lib/X11/xedit/lisp ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/lib/X11 2>/dev/null || true
+			mmd -i "$ROOTFS_IMG" ::/usr/lib/X11/xedit 2>/dev/null || true
+			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/lib/X11/xedit/lisp ::/usr/lib/X11/xedit/
+		fi
+	fi
 fi
 
 DYLD_BIN="build/dyld_obj/dyld"

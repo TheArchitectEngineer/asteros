@@ -11,6 +11,7 @@
  ("XTerm", EXEC, "/bin/xterm -sb"),
  ("XFM", EXEC, "/bin/xfm"),
  ("XEyes", EXEC, "/bin/xeyes"),
+ ("XEdit", EXEC, "/bin/xedit"),
  ("Mozilla Firefox", EXEC, "firefox"),
  ("Workspaces", WORKSPACE_MENU),
  ("Applications",
