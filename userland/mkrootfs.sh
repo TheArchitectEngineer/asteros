@@ -216,6 +216,10 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 			mcopy -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/xfm/dot.xfm/?* ::/root/.xfm/
 		fi
 	fi
+	if [ -f build/xorg-target-root/bin/xeyes ]; then
+		echo "xeyes found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xeyes ::/bin/xeyes
+	fi
 fi
 
 DYLD_BIN="build/dyld_obj/dyld"

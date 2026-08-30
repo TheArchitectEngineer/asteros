@@ -4132,3 +4132,126 @@ someone wants working text elsewhere too.
   project-wide `XFILESEARCHPATH`/`XUSERFILESEARCHPATH` export
   somewhere more central than one app's launch script) in a future
   pass.
+
+### Follow-up: `clang`/`neatvi`/`ld` unreachable by bare name from any desktop-launched shell -- fixed
+
+User-reported and live-reproduced: `startx` -> XTerm from `WMRootMenu` ->
+`clang -v` / `neatvi` both failed with `sh: clang: not found` /
+`sh: neatvi: not found`, even though `/usr/bin/clang -v` ran fine
+(confirmed live: real `clang version 20.1.8` output). Root cause:
+`userland/startx.sh`'s `export PATH=/bin:/sbin` (pre-existing, not
+introduced by Phase 37) never included `/usr/bin`, where
+`userland/mkrootfs.sh`'s native-toolchain block installs
+`clang`/`ld`/`neatvi` -- so every client `startx.sh` launches (and
+everything they in turn fork/exec, e.g. an xterm's own shell) inherited
+a `PATH` that could see `/bin`/`/sbin` only. Fixed with
+`export PATH=/bin:/sbin:/usr/bin`. Confirmed live after rebuilding and
+rebooting: bare `clang -v` prints real version output, bare `neatvi`
+(no args) opens its actual editor UI (empty-buffer `~` tildes), both
+without needing the full path.
+
+## Phase 38 — xeyes ported and added to the root menu: DONE, live-verified tracking the real cursor
+
+Goal: per explicit user request, port `xeyes` and add it to WindowMaker's
+application launcher menu, same as xfm (Phase 37).
+
+**Vendored: real upstream xeyes 1.3.1**
+(`gitlab.freedesktop.org/xorg/app/xeyes`). Upstream has moved to Meson
+(no more `configure.ac` -- X.Org's app packages migrated off autotools
+more recently than the libraries), and setting up a meson+ninja cross
+toolchain for a 3-source-file program wasn't worth it, so this got the
+same hand-rolled `src/xeyes/build.sh` treatment as `src/xfm/build.sh` --
+compiles `Eyes.c`/`transform.c`/`xeyes.c` directly with the asteros-sdk
+clang, dyld-linked like every other X11 GUI port here. Unlike xfm, this
+one compiled clean on the first try -- no K&R syntax, no missing libc
+functions, zero warnings. `XRENDER`/`PRESENT` (optional upstream
+extras needing libXrender/libxcb-present, neither vendored) are simply
+left undefined; both are cleanly `#ifdef`-guarded in the source so
+that just compiles those paths out rather than erroring.
+
+**New real dependency vendored: libXi** (`gitlab.freedesktop.org/xorg/lib/libxi`,
+into `src/libXi`) -- xeyes unconditionally `#include <X11/extensions/XInput2.h>`
+and calls `XIQueryVersion`/`XISelectEvents` (for optional global raw-motion
+tracking so the eyes can follow the cursor even outside their own window;
+gracefully falls back to core-protocol motion events if `XIQueryVersion`
+reports the extension unavailable -- confirmed by reading Eyes.c's own
+`has_xi2()`, not guessed). Chose to vendor the real thing rather than
+stub it (unlike the Xft-stub precedent from Phase 36): libXi only needs
+libX11 + the xorgproto headers already vendored, no exotic dependency
+like a real font backend, so a real vendor was cheap and more broadly
+useful for any future port than a one-off stub would have been.
+
+- **Version pin**: the current libXi git HEAD (1.8.3) requires
+  `inputproto >= 2.3.99.1`, but this project's already-vendored
+  xorgproto reports the older pre-2017-unification `inputproto 2.3.2`
+  compat version. Rather than touch the shared, already-proven
+  xorgproto vendoring (risking every other already-built X11 library),
+  checked out the older `libXi-1.7.9` tag instead, which only requires
+  `inputproto >= 2.2.99.1` -- satisfied cleanly.
+- **`xfixes >= 5` requirement, satisfied with a header-only stub, not a
+  real libXfixes vendor**: libXi's own `configure.ac` comments this
+  requirement as "CFLAGS only for PointerBarrier typedef", and
+  `src/Makefile.am` confirms `libXi_la_LIBADD = $(XI_LIBS)` never
+  includes `$(XFIXES_LIBS)` -- so libXi never actually links against
+  `-lXfixes`, it only needs the real `Xfixes.h` header (for one
+  `typedef`) at compile time. Fetched the genuine upstream header from
+  `gitlab.freedesktop.org/xorg/lib/libxfixes` and wrote a matching
+  `xfixes.pc` reporting version 6.0.0, both installed into
+  `build/xorg-deps-install`. This is real header content, not a
+  fabricated stub -- just deliberately not paired with an actual
+  library build, because nothing in this dependency chain calls into
+  one.
+- **Real, project-wide bug found and fixed**: libtool's `.la` metadata
+  files for every already-vendored X11 dependency library (42 files
+  across `build/xorg-deps-install/lib/*.la`) still embed this repo's
+  old absolute path from before it was renamed from
+  `DarwinBuildCuzImBore` -- the same class of staleness Phase 37 found
+  in `clang.cfg` and libXt's `XFILESEARCHPATH`, but this time inside
+  libtool's own dependency-resolution metadata, which made `libtool
+  --mode=link` hard-fail trying to link libXi against `libX11.la`
+  ("is not a valid libtool archive") since the referenced path no
+  longer exists on disk. Fixed globally with a one-time `sed` pass
+  rewriting the stale prefix to the real, current `$ROOT` across every
+  affected `.la`/`.pc` file -- this was blocking *any* future
+  autotools-based vendoring into this dependency tree, not just libXi,
+  so worth having fixed once for real rather than working around it
+  per-library.
+
+**Installed and wired up**: `build/xorg-target-root/bin/xeyes`, copied
+into the rootfs by a new guarded block in `userland/mkrootfs.sh`
+(modeled on xfm's), and `("XEyes", EXEC, "/bin/xeyes")` added to
+`WMRootMenu` right after the XFM entry (both the vendored default and
+the already-installed copy at `build/xorg-target-root/usr/etc/WindowMaker/WMRootMenu`,
+kept in sync the same way as Phase 37).
+
+**Live-verified in QEMU**, not just "it linked": booted, ran `startx`,
+launched xeyes from an xterm shell (`xeyes &`) after confirming the
+"XEyes" root-menu entry itself renders correctly in a screendump --
+got a real, WindowMaker-decorated window with two drawn eyes and a
+dock icon. Then did a clean before/after cursor-position test (moved
+the pointer to the far left of the screen, screendumped and zoomed on
+the eyes -- pupils clearly at the left/upper side of each eye socket;
+moved the pointer to the far right -- pupils clearly flipped to the
+right side), directly confirming the core feature (mouse tracking)
+actually works, not just that the window paints. Only output was two
+harmless locale warnings (`locale not supported by Xlib`), same class
+of warning every other X11 client in this project prints, no crash or
+hang.
+
+**Not yet started / left as real, honestly-reported gaps:**
+- `XRENDER`/`PRESENT` optional rendering paths are unbuilt (no
+  libXrender/xcb-present vendored) -- xeyes still uses its classic
+  core-X11 drawing path, which is what was actually tested above, so
+  this isn't a regression, just an unexplored upstream feature.
+- libXi was vendored at the 1.7.9 tag, not current upstream (1.8.3) --
+  fine for xeyes' actual usage (`XIQueryVersion`/`XISelectEvents`, both
+  present since XI2.0 from 1.7.x onward), but a future port needing a
+  newer libXi API would need to either bump the xorgproto vendoring
+  (Phase 36-era, `inputproto 2.3.2`) or re-derive this same
+  version-compatibility research.
+- The stale-`.la`-path fix was applied as a one-time `sed` pass over
+  the current `build/xorg-deps-install/lib`, not folded into any
+  script that would re-apply it automatically after a clean rebuild of
+  those dependency libraries -- if any of the 42 affected libraries
+  ever gets rebuilt from scratch with the old broken toolchain
+  metadata still cached somewhere, the same fix would need reapplying.
