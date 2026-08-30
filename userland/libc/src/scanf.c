@@ -53,6 +53,17 @@ do_vsscanf(const char *s, const char *fmt, va_list ap)
 		case 'd':
 		case 'i':
 		case 'u': {
+			/* %i auto-detects its base from the input (a "0x"/"0X"
+			 * prefix means hex, a bare leading "0" means octal, same
+			 * as strtol(..., 0)) -- %d/%u are always base 10. Getting
+			 * this wrong silently mis-parses any "0x..."-formatted
+			 * value as just its leading "0" digit in base 10 (i.e.
+			 * 0), which is exactly the bug that left WindowMaker's
+			 * WindowTitleMaxHeight preference at 0 instead of
+			 * INT_MAX whenever the property-list value happened to
+			 * be serialized in hex ("0x7fffffff") -- ground-truthed
+			 * live via a zero-height titlebar. */
+			int conv_base = (*p == 'i') ? 0 : 10;
 			while (isspace((unsigned char)*s)) {
 				s++;
 			}
@@ -70,7 +81,7 @@ do_vsscanf(const char *s, const char *fmt, va_list ap)
 				src = tmp;
 			}
 			char *end;
-			long v = strtol(src, &end, 10);
+			long v = strtol(src, &end, conv_base);
 			if (end == src) {
 				return assigned;
 			}
