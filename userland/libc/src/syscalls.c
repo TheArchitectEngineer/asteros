@@ -22,6 +22,8 @@ void __mach_init_task_self(void); /* mach_msg.c, Phase 21 -- re-cache the
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <limits.h>
 
 /* errno's actual storage now lives in pthread.c (__errno_location(),
  * genuinely per-thread since real pthreads exist -- see errno.h). */
@@ -195,6 +197,23 @@ getcwd(char *buf, size_t size)
 	}
 	for (size_t i = 0; i <= len; i++) {
 		buf[i] = g_cwd[i];
+	}
+	return buf;
+}
+
+/* getwd(): the pre-POSIX.1-2001 BSD getcwd() -- real Darwin still ships it
+ * (deprecated) as a thin, unbounded-length wrapper assuming the caller's
+ * buffer is at least PATH_MAX bytes, unlike getcwd()'s explicit size arg.
+ * Added for xfm (FmMain.c/FmPopup.c), the first vendored program in this
+ * tree to call it. */
+char *
+getwd(char *buf)
+{
+	if (!getcwd(buf, PATH_MAX)) {
+		/* real getwd() leaves a human-readable error string in buf on
+		 * failure instead of just setting errno, per its own contract. */
+		snprintf(buf, PATH_MAX, "getwd: %s", strerror(errno));
+		return (void *)0;
 	}
 	return buf;
 }
@@ -405,6 +424,23 @@ int utimes(const char *path, const struct timeval times[2]) { return (int)sys_re
 int getrusage(int who, struct rusage *ru) { return (int)sys_result(raw_syscall2(SYS_getrusage, who, (long)ru)); }
 int setpriority(int which, int who, int prio) { return (int)sys_result(raw_syscall3(96 /* SYS_setpriority */, which, who, prio)); }
 int getpriority(int which, int who) { return (int)sys_result(raw_syscall2(100 /* SYS_getpriority */, which, who)); }
+
+/* nice(2): real Darwin's own libc implements this atop getpriority()/
+ * setpriority() too -- there's no separate "nice" syscall in the
+ * modern BSD syscall table this project's own SYS_setpriority/
+ * SYS_getpriority already come from. Needed by WindowMaker's
+ * util/wmsetbg.c (lowers its own priority before doing potentially
+ * slow background-image processing). */
+int nice(int incr)
+{
+	int prio = getpriority(PRIO_PROCESS, 0);
+
+	if (prio == -1)
+		return -1;
+	if (setpriority(PRIO_PROCESS, 0, prio + incr) == -1)
+		return -1;
+	return getpriority(PRIO_PROCESS, 0);
+}
 int getentropy(void *buffer, size_t size) { return (int)sys_result(raw_syscall2(SYS_getentropy, (long)buffer, size)); }
 int getrlimit(int resource, struct rlimit *rlp) { return (int)sys_result(raw_syscall2(194 /* SYS_getrlimit */, resource, (long)rlp)); }
 int setrlimit(int resource, const struct rlimit *rlp) { return (int)sys_result(raw_syscall2(195 /* SYS_setrlimit */, resource, (long)rlp)); }
@@ -548,6 +584,7 @@ sysconf(int name)
 	case _SC_NPROCESSORS_ONLN: return 1;
 	case _SC_NPROCESSORS_CONF: return 1;
 	case _SC_GETPW_R_SIZE_MAX: return 1; /* buf is unused -- see getpwnam_r */
+	case _SC_LINE_MAX: return 2048;
 	default: return -1;
 	}
 }

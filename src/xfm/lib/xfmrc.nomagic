@@ -1,0 +1,49 @@
+#
+# sample xfm configuration file (without magic types)
+# Wed Mar 22 1995   AG
+#
+##########################################################
+
+*.a:xfm_a.xpm:EDIT:
+*.bm:xfm_xbm.xpm:exec bitmap $1:
+*.c:xfm_c.xpm:EDIT:
+*.cc:xfm_cc.xpm:EDIT:
+*.dvi:xfm_data.xpm:exec xdvi $1:
+*.fig:xfm_fig.xpm:exec xfig $1:
+*.gif:xfm_gif.xpm:exec xpaint $1:
+*.tar.gz:xfm_taz.xpm:exec tar xfvz $1:exec tar cfvz $*
+*.gz:xfm_z.xpm:exec gunzip $1:
+*.h:xfm_h.xpm:EDIT:
+*.o:xfm_o.xpm::
+*.ps:xfm_ps.xpm:exec ghostview $1:
+*.tar:xfm_tar.xpm:exec tar xfv $1:exec tar cfv $*
+*.taz:xfm_taz.xpm:exec tar xfvz $1:exec tar cfvz $*
+*.tex:xfm_tex.xpm:EDIT:
+*.txi:xfm_tex.xpm:EDIT:
+*.texi:xfm_tex.xpm:EDIT:
+*.texinfo:xfm_tex.xpm:EDIT:
+*.tgz:xfm_taz.xpm:exec tar xfvz $1:exec tar cfvz $*
+*.tiff:xfm_tiff.xpm::
+*.xbm:xfm_xbm.xpm:exec bitmap $1:
+*.xpm:xfm_xpm.xpm:exec pixmap -f $1:
+*.tar.Z:xfm_taz.xpm:exec tar xfvZ $1:exec tar cfvZ $*
+*.Z:xfm_z.xpm:exec uncompress $1:
+*.tar.z:xfm_taz.xpm:exec tar xfvz $1:exec tar cfvz $*
+*.z:xfm_z.xpm:exec gunzip $1:
+*.zip:xfm_zip.xpm:exec unzip $1:exec zip -r $*
+
+readme:xfm_info.xpm:EDIT:
+read.me:xfm_info.xpm:EDIT:
+README:xfm_info.xpm:EDIT:
+README*:xfm_info.xpm:EDIT:
+*.README:xfm_info.xpm:EDIT:
+
+Imakefile:xfm_make.xpm:xmkmf; echo "*** imake done ***":
+Makefile:xfm_make.xpm:make; echo "*** make done ***":
+Makefile.*:xfm_make.xpm:make -f $*; echo "*** make done ***":
+makefile:xfm_make.xpm:make; echo "*** make done ***":
+makefile.*:xfm_make.xpm:make -f $*; echo "*** make done ***":
+
+Apps:xfm_apps.xpm:LOAD:
+Toolbox:xfm_apps.xpm:LOAD:
+core:xfm_core.xpm::

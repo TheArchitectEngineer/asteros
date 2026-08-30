@@ -1,0 +1,18 @@
+
+This directory contains an alternative xfm setup featuring additional file
+types and a collection of 3d-look 32x32 icons taken from the xplore file
+manager at http://www.musikwissenschaft.uni-mainz.de/~ag/xplore/ (these, in
+turn, are based on icons in the Cica archive and Juan D. Martin's fileicons
+collection from previous xfm releases). I think that the new setup looks a lot
+better than the original xfm setup from previous releases, see screen.gif for
+a screenshot.
+
+To build xfm with it, just make sure that the USE_3DICONS option is enabled in
+Imake.options (which it is by default), before you run imake.
+
+Please note that even with the new enhanced CMAP feature (see README-1.4),
+this setup may require quite a few colors, so if it eats up too much color
+cells on your system, you should disable the USE_3DICONS option.
+
+Enjoy!
+Albert Graef

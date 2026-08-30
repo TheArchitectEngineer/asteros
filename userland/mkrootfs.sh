@@ -162,6 +162,60 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 	fi
 	mmd -i "$ROOTFS_IMG" ::/root 2>/dev/null
 	mcopy -i "$ROOTFS_IMG" userland/twmrc ::/root/.twmrc
+	if [ -f build/xorg-target-root/bin/wmaker ]; then
+		echo "wmaker found in build/ -- including it in the rootfs (Phase 36)"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/wmaker ::/bin/wmaker
+		# WMGLOBAL/WMWindowAttributes/WindowMaker/WMState/WMRootMenu --
+		# the system-wide defaults database wmaker reads at startup
+		# (configure's --with-pkgconfdir, defaulting to
+		# $sysconfdir/WindowMaker = /usr/etc/WindowMaker since this
+		# project's X11 components all configure with --prefix=/usr
+		# and no separate --sysconfdir).
+		if [ -d build/xorg-target-root/usr/etc/WindowMaker ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/etc 2>/dev/null
+			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/etc/WindowMaker ::/usr/etc/
+		fi
+		# Backgrounds/Icons/Pixmaps/Styles/Themes/menu -- referenced by
+		# path from the WMGLOBAL/WindowMaker defaults files above.
+		# ::/usr/share may already exist (created by the xkeyboard-config
+		# block above) -- "2>/dev/null" alone doesn't save an mmd on an
+		# already-existing dir from also failing its *exit status*, which
+		# this script's `set -e` would treat as fatal, so "|| true" too.
+		if [ -d build/xorg-target-root/usr/share/WindowMaker ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/share 2>/dev/null || true
+			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/WindowMaker ::/usr/share/
+		fi
+	fi
+	if [ -f build/xorg-target-root/bin/xfm ]; then
+		echo "xfm found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xfm ::/bin/xfm
+		if [ -f build/xorg-target-root/bin/xfmtype ]; then
+			mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xfmtype ::/bin/xfmtype
+		fi
+		# bitmaps/pixmaps/icons + app-defaults -- referenced by path from
+		# Xfm's own app-defaults file (bitmapPath/pixmapPath).
+		if [ -d build/xorg-target-root/usr/share/xfm ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/share 2>/dev/null || true
+			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/xfm ::/usr/share/
+		fi
+		if [ -f build/xorg-target-root/usr/share/X11/app-defaults/Xfm ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/share 2>/dev/null || true
+			mmd -i "$ROOTFS_IMG" ::/usr/share/X11 2>/dev/null || true
+			mmd -i "$ROOTFS_IMG" ::/usr/share/X11/app-defaults 2>/dev/null || true
+			mcopy -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/X11/app-defaults/Xfm ::/usr/share/X11/app-defaults/Xfm
+		fi
+		# Pre-populate ~/.xfm directly instead of shipping xfm.install
+		# (upstream's interactive first-run setup script) -- this is a
+		# single-user, headless-GUI-only OS with no good way to drive an
+		# interactive `read` prompt before the file manager's first
+		# launch. $HOME is /root (see userland/startx.sh).
+		mmd -i "$ROOTFS_IMG" ::/root 2>/dev/null || true
+		mmd -i "$ROOTFS_IMG" ::/root/.xfm 2>/dev/null || true
+		mmd -i "$ROOTFS_IMG" ::/root/.trash 2>/dev/null || true
+		if [ -d build/xorg-target-root/usr/share/xfm/dot.xfm ]; then
+			mcopy -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/xfm/dot.xfm/?* ::/root/.xfm/
+		fi
+	fi
 fi
 
 DYLD_BIN="build/dyld_obj/dyld"

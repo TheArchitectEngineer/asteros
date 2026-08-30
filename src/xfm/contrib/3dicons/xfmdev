@@ -1,0 +1,10 @@
+#
+# sample xfm device configuration   Thu Apr 28 1994   AG
+# Adapt this to your system configuration.
+#
+##########################################################################
+
+/dos/a:mount /dos/a:umount /dos/a
+/dos/c:mount /dos/c:umount /dos/c
+/cdrom:mount /cdrom:umount /cdrom
+

@@ -1,0 +1,858 @@
+.TH XFM 1 "11 Oct 1997" "X Version 11"
+.SH NAME
+xfm \- X file and applications manager
+
+.SH SYNOPSIS
+.B xfm
+[\fIoptions\fP ...]
+.sp
+.SH DESCRIPTION
+\fIXfm\fP is a file and applications manager program for the X window system.
+It provides virtually all of the features that you would expect in a file
+manager \- move around your directory tree in multiple windows, move, copy or
+delete files, and launch programs with simple mouse operations. Directory
+displays are updated automatically in regular intervals when the contents of
+the directory changes. The integrated application manager provides a kind of
+``shelf'' onto which you can place your favorite applications, as well as the
+files and directories you are currently working with. It also allows you to
+access different groups of applications and files.  User-definable file types
+let you specify a command to be executed when double-clicking on a file or
+dropping other files onto it. Last not least, \fIxfm\fP can automatically
+mount and unmount special devices like floppies as you open and close the
+corresponding directories (mount points).
+.SH "OPTIONS"
+\fIXfm\fP accepts all the usual toolkit options. Furthermore, the following
+options let you print \fIxfm\fP's version number and control which windows
+should be displayed at startup.
+.TP 4
+.B \-version
+Print the version number and exit.
+.TP 4
+.B \-appmgr
+Only display the application manager window.
+.TP 4
+.B \-filemgr
+Only display the file manager window. 
+.PP
+If both \fI-appmgr\fP and \fI-filemgr\fP are specified, then the
+applications and one file manager window will be displayed, which is also
+the default. If only \fI-filemgr\fP is specified, the application manager will
+not be available in this session.
+.SH "RUNNING XFM FOR THE FIRST TIME"
+When the user starts up \fIxfm\fP for the first time (more precisely, when the
+user does not yet have a \fI.xfm\fP directory), a dialog pops up which asks
+whether she wants to run the \fIxfm.install\fP script. This script usually
+creates a \fI.xfm\fP directory in the user's home directory and places some
+default configuration files in there. These are your personal configuration
+files, and may be edited to customise \fIxfm\fP to your own tastes.
+.PP
+The initial setup dialog gives you the options to either \fIContinue\fP (go
+ahead and install the default setup), \fICancel\fP (go ahead, but don't run
+\fIxfm.install\fP) or \fIAbort\fP (immediately exit \fIxfm\fP). It is
+recommended that you press \fIContinue\fP here. The output of the install
+script can then be read in the log window (see below). Note that if you choose
+\fICancel\fP, then \fIxfm\fP will only provide a rudimentary setup without any
+special file types or application groups. This can be used to quickly check
+whether \fIxfm\fP is running properly, but it will not be very useful for the
+average user.
+.SH "USAGE"
+Most of it should be fairly obvious. There is one application window and zero
+or more file windows in which directories (also termed \fIfolders\fP) are
+displayed. In order to perform an action, you either select items and then
+invoke a menu operation, or you drag items from a file window to a second
+(maybe the same) file window or the application window. You can also
+double-click on an item to start a corresponding action (like launching an
+application, editing a file, or changing directories), and press the right
+menu button on an item to bring up a menu containing operations for a single
+file or application.  Pressing the right button on the background of the
+application window displays the application menu. File operations are accessed
+from the file window menu bar as usual.
+.PP
+The left-hand mouse button selects an item (and deselects all others in the
+same window). The second button toggles the selected state of an item.
+.PP
+A string containing the paths of the selected file items can be requested by
+other applications using the standard selection mechanism (PRIMARY selection).
+To provide visual feedback, the file window that owns the selection paints its
+status line using a special highlight color. You can then paste the list of
+selected files in some other window such as an xterm.
+.PP
+You can drag with the left-hand button to another window (or another icon, in
+general a valid destination will be highlighted with a border when the cursor
+is over it) to move files from one directory to another. The second button
+used in the same way will copy files. You can also drag around items in the
+application window; again, the left mouse button moves, and the second button
+copies the selected items to a new position. Applications can be launched by
+dropping files on them; and installing files and programs in the application
+manager can be done by dropping files on the background of the application
+window.  Finally, new file windows can be opened by simply dragging a
+directory icon to the root window.
+.PP
+The action taken when double-clicking on a file depends on the type of the
+file. If it is a directory, it is displayed in the file window. If it is an
+executable, the program is started. Other files are opened in the default
+editor (specified by the \fIdefaultEditor\fP resource), unless another action
+is given in the \fIxfmrc\fP file (see CONFIGURATION below).
+.PP
+The output of child processes invoked by \fIxfm\fP is captured in a special
+log window. This window provides buttons for clearing the window contents and
+for hiding the window. You can also specify whether you want the window to pop
+up automagically when new output is available (\fIAuto Popup\fP option,
+enabled by default), and explicitly show the window using the \fIShow log\fP
+option of the \fIView\fP menu.
+.PP
+Directories can be displayed in three different forms: \fItree\fP (display
+subdirectories in tree-like form), \fIicon\fP (display directories and files
+as icons) and \fItext\fP (similar to \fIls -l\fP). These options are selected
+from the \fIView\fP menu. In the tree form, clicking on the arrows takes you
+up or down one level.
+.PP
+Directory displays are updated automatically in regular intervals when the
+contents of the directory changes. You can also explicitly request a folder
+update by double-clicking on the directory name field of the corresponding
+file window.
+.PP
+A menu of recently visited directories can be popped up by pressing the right
+mouse button on the directory name field of the file window.
+.SH "MENU COMMANDS"
+Many menu operations can also be invoked with corresponding keyboard shortcuts
+which can be changed by configuring the translations in the applications
+defaults file accordingly. The default shortcuts, as defined in the
+distributed application defaults file, are given in parentheses below.
+.PP
+FILE MENU
+.PP
+File manipulation operations.
+.TP 4
+.IR "New... " "(n)"
+.br
+Create a new (and empty) file.
+.TP 4
+.IR "Move... " "(m)"
+.br
+Rename a single item (directory or file) or move selected items to another
+directory.
+.TP 4
+.IR "Copy... " "(c)"
+.br
+Create a copy of a single item under a new name or copy selected items to
+another directory.
+.TP 4
+.IR "Link... " "(l)"
+.br
+Like \fICopy\fP, but creates symbolic links rather than copying the selected
+items.
+.TP 4
+.IR "Delete " "(d, Del, Backspace)"
+.br
+Delete the selected items.
+.TP 4
+.IR "Select... " "(s)"
+.br
+Select items by pattern. The usual metacharacters are recognized (\fI*\fP,
+\fI?\fP, \fI[ ]\fP). (Currently there is no provision for escaping these.)
+.TP 4
+.IR "Select all " "(a)"
+.br
+Select all items in the current directory (except the parent directory).
+.TP 4
+.IR "Deselect all " "(u)"
+.br
+Deselect all items.
+.TP 4
+.IR "Own Selection " "(o)"
+.br
+Request ownership of the PRIMARY selection. This is useful if some files had
+been selected before but the ownership of the X-selection was lost and the
+user later wants to get the ownership back.
+.TP 4
+.IR "Xterm " "(x)"
+.br
+Invokes an \fIxterm\fP(1) in the current directory (using the command
+specified with the \fIdefaultXterm\fP resource).
+.TP 4
+.I "About xfm..."
+.br
+Display a box with some information about \fIxfm\fP.
+.TP 4
+.IR "Quit " "(q)"
+.br
+Terminate \fIxfm\fP.
+.PP
+FOLDER MENU
+.PP
+Operations dealing with directories and the file window.
+.TP 4
+.IR "New... " "(Shift+n)"
+.br
+Create a new directory.
+.TP 4
+.IR "Go to... " "(Shift+g)"
+.br
+Display the specified directory.
+.TP 4
+.IR "Home " "(Shift+h)"
+.br
+Display your home directory.
+.TP 4
+.IR "Up " "(Shift+u)"
+.br
+Display the parent directory.
+.TP 4
+.I Empty
+.br
+Delete all items in the current directory.
+.TP 4
+.IR "Clone " "(Shift+c)"
+.br
+Clone this file window (open another file window on the same directory).
+.TP 4
+.IR "Close " "(Shift+q)"
+.br
+Close this file window.
+.PP
+VIEW MENU
+.PP
+Options for the directory display and the log window.
+.TP 4
+.IR "Tree " "(Ctrl+r)"
+.br
+Select the tree form display.
+.TP 4
+.IR "Icons " "(Ctrl+i)"
+.br
+Select the icons form display.
+.TP 4
+.IR "Text " "(Ctrl+t)"
+.br
+Select the text form display. An additional \fIOption\fP menu appears which
+allows you to select the information to be shown in the text view.
+.TP 4
+.IR "Sort by name " "(Ctrl+n)"
+.br
+Sort directory by name.
+.TP 4
+.IR "Sort by size " "(Ctrl+s)"
+.br
+Sort directory by size.
+.TP 4
+.IR "Sort by date " "(Ctrl+d)"
+.br
+Sort directory by date.
+.TP 4
+.IR "Filter... " "(Ctrl+f)"
+.br
+Specify a pattern to determine the files which should be displayed in the file
+window. (This only affects normal files, i.e. directory items will not be
+filtered. The \fIClear\fP button in the Filter dialog form reverts to the full
+display.)
+.TP 4
+.IR "Hide folders " "(Ctrl+h)"
+.br
+Suppress directory items.
+.TP 4
+.IR "Mix folders/files " "(Ctrl+m)"
+.br
+Mix directories and other files.
+.TP 4
+.IR "Show hidden files " "(Ctrl+u)"
+.br
+Show hidden files (files starting with a dot).
+.TP 4
+.I Show log
+.br
+Redisplay the log window.
+.PP
+FILE POPUP MENU
+.PP
+Operations on a single file. This menu pops up when pressing the right mouse
+button on a directory or file icon.
+.TP 4
+.I Open
+Open a file window on the selected item. This option is only available if the
+selected item is a directory.
+.TP 4
+.I Edit
+.br
+Edit the selected item using the program specified in the \fIdefaultEditor\fP
+resource (only available if the selected item is not a directory).
+.TP 4
+.I View
+.br
+Same as Edit, but invokes a program for viewing the file (\fIdefaultViewer\fP
+resource).
+.TP 4
+.I Rename...
+.br
+Rename the selected item (same as \fIMove\fP, but shows the current filename
+as the default).
+.TP 4
+.I Move...
+.br
+Move the selected item.
+.TP 4
+.I Copy...
+.br
+Copy the selected item.
+.TP 4
+.I Link...
+.br
+Create a symbolic link.
+.TP 4
+.I Delete
+.br
+Delete the selected item.
+.TP 4
+.I Information...
+.br
+Display information about the selected item (file size, permissions and such).
+.TP 4
+.I Permissions...
+.br
+Change the permissions of the selected item.
+.PP
+APPLICATION MENU
+.PP
+Operations for managing the application window.
+.TP 4
+.I Install...
+.br
+Install a new application in the application window. Pops up a dialog form
+into which you can enter the necessary information (see APPLICATION FILES for
+a discussion of the fields in this form).
+.TP 4
+.I Install group...
+.br
+Simplified install dialog form for creating a new application group (see
+APPLICATION FILES).
+.TP 4
+.I Cut
+.br
+Move the selected application items into a ``clip'' file (specified by the
+\fIapplicationDataClip\fP resource). Together with the \fIPaste\fP option,
+this allows you to move application items between different application
+groups.
+.TP 4
+.I Copy
+.br
+Like \fIMove\fP, but simply copies the selected items instead of removing them
+from the application window.
+.TP 4
+.I Paste
+.br
+Insert the contents of the clip file into the application window.
+.TP 4
+.I Delete
+.br
+Delete the selected items from the application window.
+.TP 4
+.I "About xfm..."
+.br
+Display a box with some information about \fIxfm\fP.
+.TP 4
+.I Quit
+.br
+Terminate \fIxfm\fP.
+.PP
+APPLICATION POPUP MENU
+.PP
+Operations on a single application item. This menu pops up when pressing the
+right mouse button on an icon in the application window.
+.TP 4
+.I Edit...
+.br
+Edit an application item. Pops up a dialog form which allows you to change
+the configuration information associated with the selected item (see
+CONFIGURATION for a discussion of the fields in this form).
+.TP 4
+.I Cut
+.br
+Move the selected item to the clip file.
+.TP 4
+.I Copy
+.br
+Copy the selected item to the clip file.
+.TP 4
+.I Delete
+.br
+Delete the selected item from the application window.
+.PP
+APPLICATION WINDOW BUTTONS
+.PP
+These buttons at the bottom of the application window allow you to navigate in
+the application group tree and open new file windows.
+.TP 4
+.I Back
+.br
+Return to the previous application group.
+.TP 4
+.I Main
+.br
+Return to the main application group (the one loaded at startup time).
+.TP 4
+.I Reload
+.br
+Reload the current application file. This option is useful to update the
+contents of an application window after manual editing of the application
+file.
+.TP 4
+.I File window
+.br
+Open a new file window on the user's home directory.
+.SH "RESOURCES"
+Various aspects of \fIxfm\fP can be configured by changing corresponding
+resource settings in the application defaults file. Some important resources
+are listed below:
+.TP 4
+.B highlightColor
+.br
+The color used for highlighting selected items, as well as the status line of
+the file window which owns the primary selection (if any).
+.TP 4
+.B bitmapPath
+.TP 4
+.B pixmapPath
+.br
+The path on which to search for bitmap and pixmap icons, respectively.
+.TP 4
+.B applicationDataFile
+.TP 4
+.B configFile
+.TP 4
+.B devFile
+.TP 4
+.B magicFile
+.br
+The names of the application and configuration files used by \fIxfm\fP (see
+CONFIGURATION). Normally, these files will be located in \fI~/.xfm\fP.
+You may wish to change this, e.g., if you want to provide a system-wide
+\fIxfmrc\fP file. (The application files should always be kept in the user's
+home directory, such that each user can save his/her private application
+settings.)
+.TP 4
+.B applicationDataDir
+.br
+The directory in which the application files for new application groups are
+located (see the \fIInstall group\fP option of the application menu), usually
+\fI~/.xfm\fP.
+.TP 4
+.B applicationDataClip
+.br
+The ``clip'' file used in Cut/Copy/Paste operations in the aplication window,
+usually \fI~/.xfm/.XfmClip\fP.
+.TP 4
+.B doubleClickTime
+.br
+Set the time interval in milliseconds for which a sequence of two mouse clicks
+should be interpreted as a double click. Default: 300.
+.TP 4
+.B updateInterval
+.br
+Set the time interval in milliseconds in which to perform automatic folder
+updates. Default: 10000.
+.TP 4
+.B confirmXXX
+.br
+Resources to request confirmation for various operations. \fIXXX\fP can be
+any one of \fIDeletes\fP, \fIDeleteFolder\fP, \fICopies\fP, \fIMoves\fP,
+\fIOverwrite\fP and \fIQuit\fP. By default these are all enabled.
+.TP 4
+.B defaultEditor
+.br
+The command with which \fIxfm\fP invokes your favorite editor.
+.TP 4
+.B defaultViewer
+.br
+The command with which \fIxfm\fP invokes your favorite viewer.
+.TP 4
+.B defaultXterm
+.br
+The command with which \fIxfm\fP runs an xterm.
+.TP 4
+.B shellCommand
+.br
+Specifies the shell to use for running commands.
+.TP 4
+.B BourneShells
+.br
+\fIxfm\fP calls other programs by executing your shell. Since Bourne
+compatible shells need one extra parameter, \fIxfm\fP needs to know about the
+type of the shell. If this resource is not set (default), or is equal to the
+special string \fIAUTO\fP, a quick-and-dirty test is done at startup. This
+test will fail if the shell's initialisation files cause some output. If this
+happens, change these files, or set the \fIBourneShells\fP resource to a comma
+separated list of full path names of Bourne compatible shells. If your shell
+matches an entry in this list, \fIxfm\fP will assume it is a Bourne shell.
+.PP
+There are way too many available resources to list them all in this manual
+page, so please take a look at the application defaults file for more
+information.
+.SH "CONFIGURATION"
+Besides the application resources, \fIxfm\fP can be configured by means of
+three different files, which are usually named \fIxfmrc\fP, \fIxfmdev\fP and
+\fImagic\fP, and are located in the \fI~/.xfm\fP directory. Moreover, there is
+a number of so-called application files, from which \fIxfm\fP determines the
+contents of the application window, like the \fIApps\fP file which usually
+describes the contents of the main application group. All these files are
+plain ASCII files which can be edited using any text editor. (Note that
+application files are also written by \fIxfm\fP itself whenever the contents
+of the application window changes.)  Any line in these files which starts with
+a hash sign (\fI#\fP) is interpreted as a comment; empty lines are ignored.
+.SH "FILE TYPE CONFIGURATION"
+The \fIxfmrc\fP file specifies the types of ordinary (non-executable,
+non-directory) files which \fIxfm\fP should recognize. Each file type
+associates a pattern with an icon and two different kinds of actions (commands
+to be executed on the file). If \fIxfm\fP has been compiled with the
+\fIMAGIC_HEADERS\fP option then it is possible to specify icons (but not
+actions) for directories and executables as well. Each line has the following
+format:
+.sp
+.nf
+        pattern:icon:push-action:drop-action
+.fi
+.sp
+As indicated, the different fields are separated by a colon (use \fI\\:\fP
+to escape the \fI:\fP character, and \fI\\\\\fP to escape the backslash
+character itself). The meaning of these fields is explained below.
+.TP 4
+.B pattern
+This field allows you to specify which files belong to the type. File types
+can either be specified by a \fIfilename pattern\fP, which refers to the name
+of a file, or a \fImagic header\fP, which refers to the contents of the file,
+or both.
+.sp
+There are three types of filename patterns: \fILiteral\fP patterns
+specify a literal filename such as ``\fIcore\fP.'' \fISuffix\fP patterns
+specify a suffix the filename must match, and are indicated by a leading
+asterisk, as in ``\fI*.c\fP.'' (All characters following the initial \fI*\fP
+are interpreted as literals; there is no expansion of embedded wildcards.)
+Finally, \fIprefix\fP patterns specify a prefix to be matched against the
+filename. They are denoted by a trailing asterisk, as in ``\fIREADME*\fP.''
+.sp
+Magic headers are specified by a symbolic name given in the \fImagic\fP file,
+enclosed in angle brackets. Entries referring to a magic header cause the
+contents of the file to be checked against the magic numbers in the
+\fImagic\fP file. The format of these entries is described in Section MAGIC
+HEADERS below.
+.TP 4
+.B icon
+The name of the bitmap or pixmap file containing the icon to be displayed
+for this file type.
+.TP 4
+.B push-action
+The command to be executed when the user double-clicks on a file of this
+type. This command is passed to the shell (via \fI-c\fP), together with the
+name of the selected file. The command is executed in the directory where the
+selected file is located. The filename is available in the command as the
+positional parameter number one, such that an action of the form \fIxyz $1\fP
+invokes the command \fIxyz\fP on the selected file. There are also three
+special kinds of push actions built into \fIxfm\fP, \fIEDIT\fP and \fIVIEW\fP
+which invoke the default editor and default viewer on the selected file,
+respectively, and \fILOAD\fP which loads the selected file as an application
+file (discussed in Section APPLICATION FILES).
+.TP 4
+.B drop-action
+Similar to the push action, this field denotes a command to be executed when
+a collection of selected files is dropped onto the file. The absolute target
+filename itself is available as positional parameter \fI$1\fP, the remaining
+arguments denote the names of the files dropped onto the target file. The
+command is executed in the directory which contains the selected files. No
+special built-in commands are available for this type of action.
+.PP
+If an action field is empty, the corresponding action defaults to ``do
+nothing.''
+.PP
+For instance, the following entry defines an icon and an
+\fIEDIT\fP push action for \fI.c\fP files:
+.sp
+.nf
+        *.c:xfm_c.xpm:EDIT:
+.fi
+.sp
+As another example, here is an entry for compressed (i.e. gzipped) tar
+files. The push action causes the archive to be extracted, while the drop
+action replaces the contents of the archive with the files which have been
+dragged onto the archive:
+.sp
+.nf
+        *.tar.gz:xfm_taz.xpm:exec tar xfvz $1:exec tar cfvz $*
+.fi
+.sp
+(Note the use of the shell's \fIexec\fP command. Since actions are invoked
+through the shell, it is often useful to replace the shell with the actual
+command which is to be executed, in order to conserve memory space on
+small systems.)
+.PP
+It is possible that different patterns given in the \fIxfmrc\fP file overlap.
+In this case \fIxfm\fP uses the \fIfirst\fP pattern which matches. Therefore
+you should always list the more specific patterns first. For instance, the
+following two entries specify what to do with compressed tar files (specific
+case) and other \fI.gz\fP files (default case):
+.sp
+.nf
+        *.tar.gz:xfm_taz.xpm:exec tar xfvz $1:exec tar cfvz $*
+        *.gz:xfm_z.xpm:exec gunzip $1:
+.fi
+.PP
+\fIXfm\fP also enables you to prompt for additional parameters before an action
+is executed. This is generally more useful with application entries than
+with file actions, and will therefore be described in the context of
+application configuration, see PARAMETER DIALOGS below.
+.SH "MAGIC HEADERS"
+When compiled with the \fIMAGIC_HEADERS\fP option, \fIxfm\fP can determine
+file types using the magic numbers contained in the files.
+.PP
+The magic numbers are described in a configuration file whose path is obtained
+from the \fImagicFile\fP resource. The format of the file is the same as that
+of the \fImagic\fP(5) file, with some extensions like regular expression
+matching. (See \fIxfmtype\fP(1).)
+.PP
+There are five built-in types which are used if all the patterns in the
+\fImagic\fP file fail:
+.TP 4
+.B unreadable
+Read failed.
+.TP 4
+.B empty
+File size is zero.
+.TP 4
+.B special
+Not a regular file.
+.TP 4
+.B ascii
+Could be read and looks like ASCII.
+.TP 4
+.B data
+Could be read but all tests failed and doesn't look like ASCII.
+.PP
+To specify a magic file type you include it between angle brackets at the
+beginning of the pattern field:
+.sp
+.nf
+        <GIF>:xfm_gif.xpm:exec xpaint $1:
+.fi
+.sp
+or combined with a filename pattern:
+.sp
+.nf
+        <ascii>*.cc:xfm_cc.xpm:EDIT:
+.fi
+.PP
+In the latter case, the file must meet both conditions, i.e. be an ASCII file
+and have a \fI.cc\fP suffix.
+.PP
+To include angle brackets in the type or the pattern you must escape them
+using backslashes.
+.PP
+If \fIxfm\fP is compiled with the \fIMAGIC_HEADERS\fP option, it is also
+possible to specify custom icons for directories and executables. For this
+purpose, the \fImagic\fP file distributed with \fIxfm\fP provides magic file
+types named \fI<DIR>\fP, \fI<EXEC>\fP, etc. For instance, here is an entry
+which specifies a special icon for hidden directories:
+.sp
+.nf
+        <DIR>.*:hidden_dir.xpm::
+.fi
+.PP
+In the same way you can also override the built-in icons for displaying
+arbitrary directories and executables:
+.sp
+.nf
+        <DIR>..:parent_dir.xpm::
+        <DIR>:plain_dir.xpm::
+        <DIR LNK>:link_dir.xpm::
+.fi
+.SH DEVICE CONFIGURATION
+The device configuration file, \fIxfmdev\fP, lets you specify which mount
+points \fIxfm\fP should keep track of, and which actions to perform in order
+to mount and unmount the corresponding file systems. This allows you to access
+file systems on special devices such as floppies, CD-Roms, etc. in a
+transparent way. All you have to do is to enter a directory named
+in \fIxfmdev\fP (e.g. by opening a file window on it), and \fIxfm\fP will
+automatically perform the corresponding mount action for you. Likewise, if you
+leave such a directory, \fIxfm\fP invokes the corresponding unmount
+action. (CAUTION: You still have to take care that you unmount a file system,
+e.g. by closing every file window which has been opened on it, before you
+physically remove the corresponding medium.)
+.PP
+An entry of the \fIxfmdev\fP file has the following format:
+.sp
+.nf
+        directory:mount-action:umount-action
+.fi
+.sp
+The \fIdirectory\fP field denotes the mount point of the file system,
+\fImount-action\fP the command to be executed in order to mount the file
+system, and \fIumount-action\fP the command for unmounting the file system.
+Here is a ``typical'' entry from my \fIxfmdev\fP file:
+.sp
+.nf
+        /disk/a:mount /disk/a:umount /disk/a
+.fi
+.sp
+Of course, the details of how to mount a floppy file system may vary from
+system to system, and you might have to take special actions if you want to
+use \fImount\fP as an ordinary user. See \fImount\fP(8) for details.
+.SH APPLICATION FILES
+Application files are used to specify the contents of the application window.
+Normally, these files are not altered with a text editor, but are updated by
+\fIxfm\fP whenever the contents of the application window changes. An
+understanding of the application data is necessary, however, if you want to
+edit an existing or create a new entry using the \fIInstall\fP, \fIInstall
+group\fP and \fIEdit\fP options of the application menu. Each entry has the
+following form:
+.sp
+.nf
+        name:directory:filename:icon:push-action:drop-action
+.fi
+.sp
+The \fIname\fP and \fIicon\fP fields specify the name of the application and
+a corresponding icon which should be displayed in the application window. The
+\fIpush-action\fP and \fIdrop-action\fP fields have the same meaning as in
+the \fIxfmrc\fP file: they indicate the commands to be passed to the shell
+when the user double-clicks on the icon or drops files onto it, respectively.
+The \fIdirectory\fP and \fIfilename\fP fields let you specify a file to be
+passed to the application. These fields are filled in by \fIxfm\fP when the
+user drags a file or directory onto the application window. \fIXfm\fP also
+properly sets up the action fields when installing a file which has a
+matching entry in the \fIxfmrc\fP file.
+.PP
+As usual, the target file (if specified) and any dropped files are passed to
+the push and drop actions as the first and the remaining parameters,
+respectively, see FILE TYPE CONFIGURATION for details. The drop action
+is executed in the directory containing the selected files, while the
+push action starts in the directory specified by the \fIdirectory\fP
+field, if it is nonempty, and in the user's home directory otherwise.
+.PP
+In an application file, \fIxfm\fP recognizes four special types of built-in
+push actions. The \fIEDIT\fP and \fIVIEW\fP actions, as in \fIxfmrc\fP, invoke
+the default editor and viewer, respectively. The \fIOPEN\fP action indicates
+that the target file actually is a directory onto which \fIxfm\fP should open
+a new file window when the user double-clicks on the corresponding
+icon. Finally, the \fILOAD\fP action tells \fIxfm\fP that the target is an
+application file whose contents are to be loaded into the application
+window. This action allows you to manage different groups of
+applications. Note that application files can also be loaded by a
+corresponding file type entry, since the \fILOAD\fP action is also supported
+in the \fIxfmrc\fP file. (The \fIOPEN\fP action is not supported there,
+however, as it wouldn't make sense anyhow. Note that you can only specify
+actions for regular files.)
+.PP
+\fIXfm\fP provides a number of operations which let you manipulate application
+groups in a convenient manner. The items in the application window can be
+moved and copied using drag and drop as usual. The \fICut\fP, \fICopy\fP and
+\fIPaste\fP options of the application menu provide a means to move and copy
+application items between different application files. Moreover, \fIxfm\fP
+keeps a stack of application files loaded from a file or the application
+window via a \fILOAD\fP action. The \fIBack\fP button at the bottom of the
+application window lets you return to the previous group of applications, and
+the \fIMain\fP button reloads your startup application file (and empties the
+stack). Finally, the \fIInstall group\fP option of the application menu allows
+you to create entries for new application groups easily. You only have to
+specify the name of the group, the name of the corresponding application file,
+and the name of the icon file.  The remaining fields of the entry are filled
+in by \fIxfm\fP automatically.
+.PP
+It is time for some examples. Here are three useful entries from my \fIApps\fP
+file which I use to start an xterm, my favorite editor, and print a file
+using lpr, respectively:
+.sp
+.nf
+        Terminal:::xterm.xpm:exec xterm:
+        Editor:::editor.xpm:exec emacs:exec emacs $*
+        Printer:::printer.xpm::exec lpr $*
+.fi
+.sp
+\fIXfm\fP gives you great flexibility in configuring special types of actions.
+For instance, the following entries can be used to implement a simple
+trashcan feature and an action to open a window on a floppy disk:
+.sp
+.nf
+        Trash::.trash:trash.xpm:OPEN:shift; mv $* ~/.trash
+        A\\::/disk:a:disk.xpm:OPEN:
+.fi
+.sp
+A typical entry for an application group looks as follows:
+.sp
+.nf
+        Toolbox:~/.xfm:Toolbox:apps.xpm:LOAD:
+.fi
+.sp
+It is also instructive to take a look at how \fIxfm\fP sets up the entries
+when you drag files or directories to the application window. Play around with
+these features. It is fun! Many things can be done, if not with a single
+command then maybe with a tiny shell script.
+.SH "PARAMETER DIALOGS"
+\fIXfm\fP lets you prompt the user for additional parameters when a push
+or drop action is invoked. In such a case, a dialog form appears, with one
+field for each parameter, into which the user can enter the required
+arguments. Currently, no checking is done on the supplied parameters; in
+fact, the user can simply leave all fields empty. Parameters are specified
+in an action using the form
+.sp
+.nf
+        %parameter-name%
+.fi
+.sp
+where \fIparameter-name\fP is an arbitrary string not containing the \fI%\fP
+character, which will be displayed in the dialog form. (As usual, a literal
+\fI%\fP character can be escaped with the backslash.) \fIXfm\fP replaces
+each such \fI%...%\fP construct with the corresponding value entered by the
+user. For instance, here is an entry which allows you to execute a program with
+parameters:
+.sp
+.nf
+        exec:::app.xpm:exec %Program\\:% %Parameters\\:%:
+        exec $1 %Parameters\\:%
+.fi
+.sp
+As the push action in the example indicates, it is possible to specify more
+than one parameter field. A default value for a parameter can be specified
+using the notation
+.sp
+.nf
+        %parameter-name--default-value%
+.fi
+.PP
+For instance:
+.sp
+.nf
+        transfig:::app.xpm::transfig -L %Language\\:--eepic% $*
+.fi
+.SH "ICONS"
+\fIXfm\fP supports icons in both the X bitmap and Arnaud Le Hors' XPM format.
+A collection of useful icons is included in the distribution.
+.SH "FILES"
+.TP 4
+.B ~/.xfm
+Standard location for \fIxfm\fP configuration and application files (see
+CONFIGURATION above).
+.SH "SEE ALSO"
+\fIxfmtype\fP(1), \fIX\fP(1), \fIxconsole\fP(1), \fIxterm\fP(1),
+\fImagic\fP(5), \fImount\fP(8), Arnaud Le Hors: \fIXPM Manual. The X PixMap
+Format\fP, Groupe Bull, 1993.
+.SH "CAVEATS AND BUGS"
+\fIXfm\fP catches the TERM signal to gracefully terminate the program,
+unmounting all open file systems which have been mounted by \fIxfm\fP.
+However, some window and session managers may not send TERM signals to their
+client applications when terminating an X session. Therefore it might be
+necessary to explicitly quit \fIxfm\fP or manually close file windows mounted
+by \fIxfm\fP before exiting X.
+.PP
+Do not specify a relative path in the directory field of an application item,
+because when you execute a push action on the application the current
+directory might not always be what you expect. This will probably be fixed in
+a future release. ;-)
+.PP
+\fIXfm\fP depends on your shell \- see resource \fIBourneShells\fP.
+.SH "AUTHORS"
+Simon Marlow (simonm@dcs.glasgow.ac.uk) from the University of Glasgow, Albert
+Graef (ag@muwiinfa.geschichte.uni-mainz.de) from the University of Mainz, and
+Till Straumann (strauman@sun6hft.ee.tu-berlin.de) from the Technical
+University of Berlin, with help from many other people: Dave Safford
+(dave.safford@edu.tamu.sc; automatic folder updates); Robert Vogelgesang
+(vogelges@rhrk.uni-kl.de; shell detection code); Juan D. Martin
+(juando@cnm.us.es; magic headers); Kevin Rodgers
+(rodgers@lvs-emh.lvs.loral.com; Filter option); Scott Heavner
+(sdh@falstaff.MAE.cwru.edu; View option); Brian King (ender@ee.WPI.EDU;
+default values in parameter dialogs).

@@ -1,0 +1,135 @@
+
+INSTALLATION
+------------
+
+For the impatient:
+
+- back up your existing xfm library directory if necessary
+
+- take a look at Imake.options and edit it as needed
+
+- run `xmkmf; make Makefiles; make; make install; make install.man'
+
+If everything goes smoothly, you should have an xfm binary installed in your X
+bin directory, along with some other stuff (note the directories may not be
+identical on your system, it is up to imake to install these things in the
+correct place):
+
+/usr/X11/bin/xfm.install		The user setup installation script
+/usr/X11/bin/xfmtype			Juan D. Martin's xfmtype program
+/usr/X11/lib/X11/xfm/
+	bitmaps				Some example bitmaps
+	pixmaps				Some example pixmaps
+	icons				New 3d-look pixmaps (see below)
+	dot.xfm				Default config files (for xfm.install)
+/usr/X11/lib/X11/app-defaults/Xfm	application defaults for xfm
+/usr/X11/man/man1/xfm.1			the xfm manual page
+/usr/X11/man/man1/xfmtype.1		manual page for the xfmtype program
+
+If everything didn't go smoothly, you may have to make xfm in the src
+subdirectory separately, and/or install things by hand.
+
+To complete the installation, you will probably wish to edit the default
+configuration files and the application defaults file to reflect your local
+configuration. Also you might wish to manually install additional icons and
+other stuff from the contrib dir.
+
+Good luck! :-)
+
+
+*** IMPORTANT ***
+
+If you are a seasoned xfm 1.3 user, you should note the following:
+
+- You probably shouldn't install over an existing xfm library directory
+  (/usr/X11/lib/X11/xfm or similar). Rather delete or rename your existing xfm
+  libdir first.
+
+- When xfm is started by the user for the first time (i.e., the ~/.xfm dir
+  does not yet exist), it now displays a dialog which allows the user to
+  run the xfm.install script, which installs the default configuration
+  files in the user's home directory. I was told that this would really
+  be a relief for sysadmins of large sites with hundreds or even thousands of
+  users. ;-)
+
+- As distributed, xfm is now set up to use the alternative configuration files
+  and icons in the contrib/3dicons dir (see also the comments regarding the
+  USE_3DICONS option in the NOTES section below). Unfortunately, the new setup
+  is *not* entirely backward-compatible. Thus, if you're upgrading from xfm
+  1.3.2 and would like to reuse your old setup, you might wish to comment out
+  the USE_3DICONS option in the Imake.options file. Xfm will then use the old-
+  fashioned standard setup from previous releases, and you should be able to
+  use existing configuration files without any changes.
+
+- Please note that application defaults files from older xfm versions will not
+  work with the new version; you have to install the new one. Xfm will ensure
+  this by checking the new "appDefsVersion" resource.
+
+For further details please refer to the `NOTES' section below.
+
+
+NOTES
+-----
+
+As distributed, xfm is set up to work with Arnaud Le Hors' XPM library. It can
+still be compiled and run without this library, if you comment out the #define
+XPM in Imake.options, but then you will have to edit the configuration files
+(xfmrc, Apps, etc.) to replace the pixmap icons by bitmaps (a few are supplied
+in the bitmaps directory). Versions of the XPM library less than 3.3 appear
+not to work.
+
+Other options which can be controlled by corresponding #define's in
+Imake.options are XAW3D (which causes linkage with the Xaw3d library, and also
+adds some Xaw3d-specific lines to the applications default file) and
+MAGIC_HEADERS (which causes the magic headers code to be included, and also
+determines the standard xfmrc file to be installed on your system). Both are
+now enabled by default.
+
+Till Straumann's 1.4 extensions (which are all enabled by default) can be
+controlled by means of a bunch of #define's in the Imake.options file; see
+README-1.4 for further information. I strongly recommend that you leave all
+these features enabled, unless you encounter compilation problems in these
+parts. Otherwise xfm should still function, but many things won't work exactly
+as described in the manpage.
+
+---------------------
+
+If xfm is compiled and installed with the USE_3DICONS option in the
+Imake.options file enabled (which is the default), then additional icon
+pixmaps will be installed in the icon subdir of the xfm library directory, and
+an alternative set of standard configuration files in the dot.xfm
+subdir. Moreover, this option changes some lines in the Xfm app-defaults file
+and causes xfm's built-in icons to be replaced with pixmaps from the
+3dicons/icons subdir.
+
+When using this option, you should make sure that users delete or rename their
+old .xfm directory s.t. xfm installs the new configuration files. (On larger
+sites, this could also be handled automatically with an appropriate
+xfm.install script.)
+
+IMHO, the new setup looks a lot nicer than the old one, but, as already
+mentioned, you might wish to disable this option, e.g., when upgrading an
+existing xfm 1.3.2 installation. Note that the USE_3DICONS option is also
+disabled automatically if you compile xfm without the XPM or the MAGIC_HEADERS
+option.
+
+---------------------
+
+Xfm 1.3 has been reported to compile and run successfully under Linux >=0.99,
+BSDI 1.1, RS6000 with AIX 3.2.5 (using gcc), SUN workstations running SunOS
+4.1 and Solaris 2.x, HP700 with HPUX 9.01, DECstation with Ultrix 4.3a, DEC
+Alpha with OSF/1, SGI Indigo with IRIX 4.0.5F and 5.2. Up to now, the present
+release has been tested on Linux 2.0.x (running XFree 3.3) and Solaris 2.4. We
+are still interested in getting Xfm compiled on as many platforms as possible
+(porting should be a piece of cake), so please continue to send us any patches
+so that they can be included in future releases.
+
+NOTE for SUN users and other people running ol[v]wm: In order to get double
+clicks in xfm working, you may have to set olwm to the "focus-follows-mouse"
+(rather than the "click-to-focus") mode. This can be done by setting the
+SetInput resource to followmouse in your .OWdefaults file (see props(1)). In
+click-to-focus mode double clicks in xfm won't work. I consider this a bug in
+olwm, but if anybody has a fix to get double clicks working in click-to-focus
+mode I'd like to hear about it.
+
+

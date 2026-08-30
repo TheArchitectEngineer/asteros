@@ -1,0 +1,17 @@
+#XFM
+Xterm:::xterm.xpm:exec xterm:
+Emacs:::emacs.xpm:exec emacs:exec emacs $*
+Textedit:::edit.xpm:exec textedit:exec textedit $*
+Mail:::mail.xpm:exec xmailtool:
+Calculator:::calc.xpm:exec xcalc:
+Manual:::helpme.xpm:exec xman:
+Toolbox:~/.xfm:Toolbox:tools.xpm:LOAD:
+Graphics:~/.xfm:Graphics:pictures.xpm:LOAD:
+Netscape:::netscape.xpm:exec netscape:
+News:::news.xpm:exec xrn:
+Printer:::printer.xpm:lpq:exec lpr $*
+Trash::.trash:recycle.xpm:OPEN:shift; mv -f -b -V numbered $* $HOME/.trash
+Home::.:home.xpm:OPEN:
+A\::/dos:a:floppy.xpm:OPEN:
+C\::/dos:c:harddrive.xpm:OPEN:
+CDROM:/:cdrom:cdrom.xpm:OPEN:

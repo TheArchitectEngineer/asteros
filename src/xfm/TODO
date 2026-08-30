@@ -1,0 +1,22 @@
+
+ * Add Chmod on multiple files / recursively.
+
+ * Add a help feature.
+
+ * Add a find feature.
+
+ * Reintegrate the xfmc stuff.
+
+ * Replace the pattern matching code for file selections with a `real' regexp
+   matcher.
+
+ * Add a configuration panel for common resource values.
+
+ * Add a dialog for editing xfmrc entries.
+
+ * Add user definable file menus.
+
+ * Add support for multiple application windows.
+
+ * Add a drag'n'drop protocol which allows xfm to interact with other
+   applications (e.g., fvwm's button bar).

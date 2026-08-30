@@ -3483,3 +3483,652 @@ route to real PCF font files), a real bitmap font package, wiring a
 milestone is after — a screendump showing real decorated `xterm`
 windows with visible text next to `xclock`'s clock face and twm's
 titlebars.
+
+## Phase 36 — X11 milestone, step 6: WindowMaker replaces twm: DONE for a minimal working desktop, live-verified in QEMU including real mouse-driven interaction
+
+Goal: per the user's explicit request, port WindowMaker and swap it in
+for `twm` as the window manager `userland/startx.sh` launches, testing
+entirely autonomously via the QEMU monitor (`screendump`, `sendkey`,
+`mouse_move`/`mouse_button`) since no user was available or expected to
+interact with the running VM.
+
+**Vendored: WindowMaker `wmaker-0.96.0`** (real upstream,
+`github.com/window-maker/wmaker`, the canonical repo — same "check the
+actual current path, don't trust a possibly-stale brief" discipline as
+xterm's gitlab-vs-github mirror question from Phase 35), cloned fresh
+under `src/wmaker`. A much older tag, `before-xft2` (2003, literally the
+last commit before Xft2 support was added), was seriously considered
+first specifically to dodge the dependency chain below — it makes Xft
+fully optional via `--disable-xft` — but was rejected: it predates this
+repo's case-collision-safe file layout (`WindowMaker/Icons/
+DefaultAppIcon.tiff` vs `defaultAppIcon.tiff`, `INSTALL` vs `Install` —
+real, distinct files upstream that silently collide and lose one on
+this Mac's case-insensitive APFS `git clone`), uses circa-2003 autoconf
+macros of unknown compatibility with this host's current autoreconf,
+and — the deciding factor — 0.96.0 is the actively-maintained, better-
+tested codebase, so the font dependency was worth solving a different
+way instead (see below) rather than trading it for that codebase's own
+unknown risks.
+
+**The Xft2/fontconfig problem, and why a stub instead of vendoring the
+real thing:** 0.96.0's `configure.ac` hard-requires `pkg-config xft`
+(`PKG_CHECK_MODULES([XFT], [xft >= 2.1.0], ...)`, no `--disable-xft`
+escape hatch at this version) and WINGs' `wfont.c`/`wfontpanel.c`/
+`widgets.c` call into both Xft and fontconfig directly. Vendoring the
+real thing means cross-building freetype2, fontconfig (plus expat or
+libxml2), and Xft/libXrender on top of everything Phase 34 already
+vendored — and it would buy nothing: this project has **zero real font
+files anywhere**, the same gap Phase 35 already hit for `xterm`, so a
+real font backend would find nothing to rasterize here either. Instead,
+`src/xft-stub/` is a small honest stub (same spirit as this project's
+existing `curses.h`/`execinfo.h`/`regex.h` stubs) —
+`include/X11/Xft/Xft.h` + `include/fontconfig/fontconfig.h` +
+`xft_stub.c`, built by its own `build.sh` into `libXft.a`/
+`libfontconfig.a` plus a synthesized `xft.pc`, installed into the same
+shared `build/xorg-deps-install` prefix every other X11 dependency
+uses. What's real, not faked: `FcPattern`'s create/destroy/add/get/del
+family is a genuine in-memory key/value store (string, double, and
+integer typed values), and `FcNameParse`/`FcNameUnparse`/`XftXlfdParse`
+do real (if simplified — exact-match, no fontconfig substitution
+scoring) name/pattern round-tripping, because WINGs' own pattern-
+manipulation logic (font style copying, weight/slant bookkeeping)
+depends on that being coherent, not just present. What's faked, and
+documented as such at the point of definition: `FcFontList` always
+reports zero fonts (honest — there really are none), and
+`XftDrawStringUtf8`/`XftDrawRect` are no-ops (nothing to draw). The one
+deliberate non-obvious choice: `XftFontOpenName`/`XftFontOpenPattern`
+**never return NULL** — they hand back a fake-but-plausible
+ascent/descent/height (10/3/13, roughly a small bitmap font) instead,
+specifically because WINGs' `WMCreateFont`-family callers don't
+NULL-check at every call site; a real "no font available" response
+would have NULL-crashed the toolkit on startup rather than just
+degrading to invisible-but-functional text, the same net visual outcome
+`xterm` already has for the same underlying reason.
+
+**Build recipe** (`src/twm/Makefile`'s `CC`/`CFLAGS`/`LDFLAGS` used as
+the template, per the brief): `--host=x86_64-apple-darwin19
+--prefix=/usr --bindir=/bin --datadir=/usr/share`, `CC="$ASTEROS_SDK_CLANG
+-std=gnu23"`, `PKG_CONFIG="pkg-config --static"` with `PKG_CONFIG_LIBDIR`
+(not `_PATH` — Phase 34's own documented lesson about pkg-config's
+default search paths being additive, re-applied here) pointed
+exclusively at `build/xorg-deps-install/lib/pkgconfig`. Two real,
+non-obvious deviations from the twm recipe, both found by reading the
+actual `configure` output rather than assuming the same flags would
+carry over:
+- `CFLAGS="-g -O0"`, not `-O2` — the SSE/vectorized-store kernel hang
+  (xnu's lazy FPU trap path, first found and worked around in
+  `src/libx11`, commit `a73a698`, and documented in outer-repo commit
+  `7a72f16`) was treated as a near-certainty given how much larger
+  WindowMaker's codebase is than anything built so far, so strategy 1
+  from the brief (build everything new at `-O0` rather than
+  whack-a-mole `optnone`-ing functions one hang at a time) was taken
+  up front, for `wmaker`, `wraster`, and the Xft stub alike. It worked:
+  zero hangs anywhere in this phase, at any point, including in fresh
+  code this project has never run before. Real, if modest, evidence
+  this is the right general-purpose mitigation for future large C
+  ports on this kernel too, not just this one.
+- `--x-includes`/`--x-libraries` **and** an explicit `CPPFLAGS="-I
+  .../xorg-deps-install/include"`, not just `PKG_CONFIG_LIBDIR` —
+  0.96.0's `configure.ac` still uses the old-style `AC_PATH_XTRA` X11
+  detection (not pkg-config) for the core `libX11`/`libXext`/`libICE`
+  probes, and critically, `AC_PATH_XTRA`'s discovered `X_CFLAGS` is
+  saved into a *separate* `XCFLAGS` variable for later Makefile use —
+  it's never folded back into `CPPFLAGS` for `configure`'s *own*
+  subsequent header-existence tests. Without the explicit `CPPFLAGS`,
+  every later `AC_CHECK_HEADER`-style probe (`X11/extensions/shape.h`,
+  etc.) failed to compile for a completely different reason than "the
+  library isn't there" — real error was `fatal error: 'X11/extensions/
+  shape.h' file not found`, caught by reading `config.log`'s actual
+  compile line, not by guessing.
+- A less obvious one, same root cause as Phase 34's link-order lesson:
+  several `AC_CHECK_LIB(X11, XConvertCase, ...)`-style raw
+  autoconf-era library probes (`XShape`, `Xmu`, `XPM` support) reported
+  "no" even with every real `.a` present and on `-L`, because
+  `AC_CHECK_LIB` only links the *one* library under test — it doesn't
+  know these are static archives with their own undeclared transitive
+  deps (`libX11.a` needing `libxcb.a`/`libXau.a`/`libXdmcp.a`, etc.).
+  Fixed by passing `LIBS="-lXmu -lXt -lXext -lX11 -lxcb -lXau -lXdmcp
+  -lSM -lICE -lXpm"` (the exact order `src/twm/Makefile`'s own
+  pkg-config-derived `TWM_LIBS` already uses) into every `configure`
+  invocation, so it's present for every probe's link step, not just
+  the final binary's.
+- `--disable-shared --enable-static`: libtool's default
+  `--enable-shared` tried to build `libwraster.6.dylib` via
+  `-dynamiclib -Wl,-undefined -Wl,dynamic_lookup`, which the *host's*
+  real ld64 flatly refuses for anything shared-cache-eligible ("Shared
+  cache eligible dylibs cannot use '-undefined dynamic_lookup'") — a
+  host toolchain policy with nothing to do with this project's own
+  code. Sidestepped rather than fought, since nothing in this project
+  needs a runtime-loadable `libwraster`/`libWINGs`/`libWUtil` anyway —
+  everything here links statically into one Mach-O per Phase
+  27/34-established convention.
+- `--disable-png --disable-jpeg --disable-gif --disable-tiff
+  --disable-webp --disable-magick --disable-pango --disable-shm`: none
+  of libpng/libjpeg/libgif/libtiff/libwebp/ImageMagick/Pango are
+  vendored (deliberately out of scope for a first milestone per the
+  brief), and this kernel's shared-memory story (`shmget`/`shmat`) is
+  unproven, so MIT-SHM support was turned off preemptively rather than
+  risked. `libXpm` (already vendored, Phase 34/35) stayed enabled —
+  real icon/pixmap support, not stubbed.
+
+**Real, previously-undiscovered libc/header gaps found and fixed
+(same discipline as every prior phase — root-caused from the actual
+compiler/linker error, not guessed):**
+- `_SC_LINE_MAX` — missing from `unistd.h`'s existing `_SC_*` set
+  (`WINGs/error.c`'s `__wmessage()` calls `sysconf(_SC_LINE_MAX)`).
+  Ground-truthed as `15`, following directly from this project's own
+  already-correct real-Darwin numbering for the neighboring constants
+  (`_SC_CLK_TCK=3`, `_SC_ARG_MAX=1`, `_SC_OPEN_MAX=5`,
+  `_SC_PAGESIZE=29` all already matched real Darwin's `Libc`
+  enumeration, which places `_SC_LINE_MAX` at 15 in the same sequence)
+  — not a guess, a direct continuation of an already-verified pattern.
+  `sysconf()`'s own `switch` gained a matching `case`.
+- `poll.h`'s top-level (non-`sys/`) header was a smaller, incomplete
+  hand-copy of `sys/poll.h` — missing `POLLRDNORM`/`POLLWRNORM`/
+  `POLLRDBAND`/`POLLWRBAND` (`WINGs/handlers.c` needs `POLLRDNORM`/
+  `POLLRDBAND`). Real Darwin's own top-level `<poll.h>` is just
+  `#include <sys/poll.h>` (`sys/poll.h` was already the complete,
+  correct, previously-ground-truthed version) — fixed by making
+  `poll.h` do the same instead of hand-duplicating a subset a second
+  time.
+- **A real, live upstream WindowMaker bug, not this project's own:**
+  `WINGs/handlers.c`'s `W_HandleInputEvents()` has `struct poll fd
+  *fds;` (an accidental space splitting `pollfd` into two tokens) inside
+  `#if defined(HAVE_POLL) && defined(HAVE_POLL_H) && !defined(HAVE_SELECT)`.
+  This compiles as `struct poll` (an incomplete, never-defined type)
+  followed by a bogus `fd` declaration, cascading into a dozen
+  "undeclared identifier `fds`" errors. It has evidently never been
+  caught upstream because the guard requires a platform with `poll()`
+  *and no* `select()` — true of essentially no mainstream Unix, so this
+  branch is normally dead code. This project's libc genuinely lacks
+  `select()` (`checking for select... no`, confirmed in `config.log`)
+  while having a real `poll()`, making this the one real platform where
+  this exact branch actually compiles and runs — exposing a decades-old
+  latent typo no one else was ever positioned to find. Fixed in the
+  vendored copy (`struct pollfd *fds;`), along with adding the missing
+  `#include <poll.h>` the file never had (relying, incorrectly for this
+  project, on some other header pulling it in transitively).
+- `nftw()`/`<ftw.h>` — entirely missing; `WINGs/proplist.c`'s
+  `wrmdirhier()` (recursive directory-hierarchy removal, used by
+  WPrefs-style "reset to defaults") needs it. Added as a real,
+  from-scratch implementation (`userland/libc/src/ftw.c`) built on this
+  libc's existing `opendir`/`readdir`/`lstat`/`stat` — not a stub, since
+  faking directory-tree removal would just move the bug to whoever
+  eventually exercises it. `struct FTW`/`FTW_*`/`nftw()`'s own flag
+  values match the standard SUSv3 numbering used by every real libc.
+- `rint()` — missing from `math.h`; `WPrefs.app/wbrowser.c` needs it.
+  Added the same way as this project's existing `floor`/`ceil`/`trunc`/
+  `round`/`fmod` — a direct, exact `__builtin_rint` wrapper, same
+  one-line-per-function style already established in
+  `math_builtins.c`.
+- `getopt_long()`/`getopt_long_only()`/`<getopt.h>` — missing;
+  `util/wdread.c`/`util/wdwrite.c` need them. This libc already had a
+  real (short-option-only) `getopt()`; added the GNU-style long-option
+  layer on top in the same file (`userland/libc/src/getopt.c`),
+  delegating to the existing `getopt()` for anything not starting with
+  `--`. Exact-name matching only (no GNU unambiguous-prefix matching)
+  — every real caller in this codebase spells out full option names, so
+  there's nothing to disambiguate.
+- `scandir()`/`alphasort()` — missing; `util/wmiv.c` (WindowMaker's
+  image-viewer utility) needs them. Added to `userland/libc/src/
+  dirent.c` alongside the existing `opendir`/`readdir` family, using
+  this libc's existing `qsort()`.
+- `nice()` — missing; `util/wmsetbg.c` needs it. Real Darwin's own libc
+  implements this atop `getpriority()`/`setpriority()` too (both
+  already real syscalls here, Phase unspecified/pre-existing) rather
+  than a dedicated syscall — same approach taken here.
+- `FC_WEIGHT`/`FC_SLANT`/`FC_WIDTH` and their real numeric
+  `FC_WEIGHT_*`/`FC_SLANT_*`/`FC_WIDTH_*` scale constants, plus
+  `FcPatternAddInteger`/`FcPatternGetInteger`/`FcDefaultSubstitute` —
+  all missing from the first cut of the Xft stub, found compiling
+  `WPrefs.app/FontSimple.c` (its font-family browser panel). Added with
+  real values ground-truthed against upstream `fontconfig/
+  fontconfig.h`'s actual weight/slant/width scale (not invented), since
+  `FontSimple.c` sorts/compares by these numerically, not just by
+  presence.
+
+**`userland/mkrootfs.sh`:** installs `bin/wmaker` the same way as
+`twm`/`xterm`/`xclock`, plus (new for this phase) the runtime data
+`wmaker` actually reads at startup: `WMGLOBAL`/`WMWindowAttributes`/
+`WindowMaker`/`WMState`/`WMRootMenu` from `usr/etc/WindowMaker`
+(`configure`'s `--with-pkgconfdir` default, `$sysconfdir/WindowMaker` =
+`/usr/etc/WindowMaker` since this project's X11 components all
+configure with `--prefix=/usr` and no separate `--sysconfdir`), and the
+`Backgrounds`/`Icons`/`Pixmaps`/`Styles`/`Themes`/menu files under
+`usr/share/WindowMaker` those defaults reference by path. **A real bug
+in this project's own script, found live:** the new block's `mmd
+::/usr/share 2>/dev/null` — needed since `/usr/share` may already exist
+from the earlier xkeyboard-config block — silently killed the *entire*
+rootfs build every time, because `mkrootfs.sh` runs under `set -e`:
+redirecting stderr to `/dev/null` hides the error *message* but not the
+non-zero *exit status* `mmd` returns for an already-existing directory,
+and `set -e` treats that as fatal. The script had never hit this case
+before (every prior `mmd` in it happened to be the first call on that
+exact path). Fixed with `|| true` alongside the existing
+`2>/dev/null`, not by removing `set -e` project-wide.
+
+**`userland/startx.sh`:** `/bin/twm &` → `/bin/wmaker &`, with the
+post-launch busy-wait (same POSIX `${var#?}` string-shrinking pattern
+as the Xfbdev-startup one, `sleep`/`$((arith))` both unavailable per
+Phase 34) doubled from one pass to two — WindowMaker's WINGs-toolkit
+init, defaults-database read, and `wraster` setup is real, measurably
+heavier startup work than `twm`'s. `twm` itself is left vendored,
+built, and still copied into the rootfs (not removed) — nothing else in
+this project depends on it, and it costs nothing to keep as a fallback.
+
+**Live-tested in QEMU, headless (`-display none`,
+`-monitor unix:...,server,nowait`, `-serial file:...`), entirely via
+the monitor — no display attached, no user present, matching the
+brief's requirement:**
+- Kernel boot-to-`bsd_do_post - done` confirmed via serial log polling
+  (10s this run, within the previously-documented 15–90s range).
+  `sendkey ret` cleared the early boot-args prompt exactly as
+  documented.
+- `sh /bin/startx` **first attempt failed** — typed via individual
+  `sendkey` calls including a literal `sendkey space`, which QEMU
+  monitor's `sendkey` does not recognize as space (confirmed by reading
+  the actual screendump: it typed as `sh/bin/startx`, one word, no
+  space, which busybox correctly reported `not found`). Real,
+  live-found QEMU-monitor-usage gap, not an OS bug: the correct qcode
+  name is `spc`. Documented here specifically because the brief warned
+  this project's own mouse/keyboard automation via the monitor was
+  unproven territory — this is the concrete case where that caution
+  paid off. Retyped with `spc` in place of `space`; `sh /bin/startx`
+  ran correctly on the second attempt.
+- **`Xfbdev` came up, the red wallpaper (`xsetbg`) painted, and
+  `wmaker` itself started and drew a real decorated dialog window**
+  (black titlebar, gray body, a divider line, and a single button in
+  the bottom-right rendered with a real bitmap return-arrow glyph —
+  proof pixmap/bitmap widget compositing works completely independently
+  of the Xft stub's lack of real glyphs) — visible confirmation
+  WindowMaker is alive and actually drawing, the same bar Phase 34 used
+  for `twm`'s first "not crashed" proof, met here with substantially
+  more than a blank window.
+- **A real, live-found behavioral finding, not a bug in the strict
+  sense:** this dialog (almost certainly `main.c`'s
+  `shellCommandHandler()` "Could not execute command" alert, triggered
+  by a `status==127` exec failure — though the exact trigger wasn't
+  pinned down further, since the Xft stub renders no message text to
+  read) sat on screen indefinitely — over 60 seconds across repeated
+  screendumps — with neither `xterm` nor `xclock` ever appearing,
+  despite `startx.sh`'s busy-wait (a fixed, CPU-bound loop wholly
+  independent of `wmaker`'s own state) completing in a few seconds at
+  most. Root-caused live by testing the hypothesis directly rather than
+  guessing: `wMessageDialog`-style alerts in this WINGs build run a
+  **nested, blocking event loop** — until dismissed, `wmaker`'s main
+  loop never processes *any* other client's map/reparent requests,
+  `xterm`/`xclock` included, even though both processes had already
+  launched successfully and were simply waiting to be reparented.
+  Confirmed by dismissing the dialog (see below) and watching both
+  clients' windows appear immediately afterward.
+- **Mouse input verified working end-to-end, calibrated live since (per
+  the brief) this project had only ever exercised PS/2 *keyboard* input
+  through the monitor before this phase, never mouse:** `mouse_move dx
+  dy [dz]` sends *relative* deltas (not absolute coordinates) and
+  `mouse_button state` takes a bitmask (`1`=left, `2`=right, `4`=
+  middle, `0`=release) — confirmed via `help mouse_move`/`help
+  mouse_button` in the monitor per the brief's explicit instruction not
+  to assume the syntax. The guest-side delta-to-pixel ratio was
+  empirically found to be close to but not exactly 1:1 (≈1.12:1 in x,
+  ≈1:1 in y for this VM/guest-driver combination) — found by sending an
+  initial move, screendumping, measuring the actual cursor displacement
+  against the requested delta, and correcting the next move
+  accordingly, exactly the iterative approach the brief anticipated
+  would be needed.
+- **Dismissing the alert by clicking its button with the emulated
+  mouse** (`mouse_move` to the button's screendump-measured center,
+  `mouse_button 1` then `mouse_button 0`) **immediately unblocked
+  everything**, confirming the nested-event-loop hypothesis above: on
+  the very next screendump, two real `xterm` windows appeared with full
+  WindowMaker decorations (black titlebar, a miniaturize button and a
+  close button rendered as real bitmap icons top-left/top-right, and a
+  resize handle at the bottom edge), positioned in different screen
+  corners by WindowMaker's own auto-placement rather than overlapping,
+  plus a docked, WindowMaker-drawn circular clock-face icon in the
+  bottom-left corner (almost certainly `xclock`'s icon, rendered
+  correctly for the same reason Phase 35 found it renders under `twm`
+  without needing fonts — its face is a drawn analog dial, not text).
+- **Real client-side mouse interaction confirmed, not just window-
+  manager-side:** moving the emulated pointer into one decorated
+  `xterm`'s content area changed the cursor glyph to a real Xlib
+  I-beam (the cursor `xterm` sets specifically for its text widget,
+  independent proof the window really is a live `xterm`, not leftover
+  framebuffer content it happens to be decorating); a press-drag-
+  release sequence there produced a real black text-selection
+  highlight rectangle, `xterm`'s own reverse-video selection rendering
+  responding correctly to live `ButtonPress`/`MotionNotify`/
+  `ButtonRelease` events delivered through WindowMaker. A first attempt
+  at *dragging the titlebar itself* to reposition the window did not
+  visibly move it — left as a real, unexplained gap rather than
+  glossed over (see below), though everything downstream of it (focus,
+  decoration, per-client event delivery) is independently confirmed
+  working via the selection test above.
+- No crashes, hangs, or kernel panics at any point across this entire
+  session — the serial log's tail after all of the above interaction is
+  identical in shape to immediately after `bsd_do_post - done`, and
+  `quit` issued through the monitor terminated the VM cleanly.
+
+**Not yet started / left as real, honestly-reported gaps, not silently
+skipped:**
+- Visible text anywhere in this desktop — expected and unchanged from
+  Phase 35's own finding (`xterm`) and this phase's own Xft-stub design
+  (`wmaker`/`WPrefs`): this project has zero real font files vendored
+  anywhere, and no work in this phase changed that.
+- Titlebar drag-to-move was attempted once, produced no visible window
+  displacement, and was not root-caused further within this phase's
+  scope — worth a real investigation (a targeted trace in
+  `moveres.c`, this project's own established debugging technique from
+  Phase 34, would be the way in) before calling drag-move itself
+  proven, even though the surrounding event-delivery machinery is
+  independently confirmed by the text-selection test above.
+- Only two decorated `xterm` windows and one dock icon were ever
+  visible in any screendump, against `startx.sh`'s three `xterm &` plus
+  one `xclock &` — not chased further; most likely explanation is
+  WindowMaker's placement algorithm stacking the third window exactly
+  behind one of the first two rather than a launch failure, but this
+  wasn't confirmed by moving windows to check underneath (see the
+  drag-move gap directly above).
+- Root-menu invocation (right-click on bare desktop background per the
+  brief), the Dock/Clip's own menu and app-launching behavior, and any
+  theming/polish (`WPrefs.app` was built and installed but never
+  actually launched or exercised) are all untested — explicitly
+  deferred, matching the brief's own suggested scope for a first
+  milestone.
+- `WPrefs`/`wmagnify`/`wmgenmenu`/`geticonset`/`getstyle`/`setstyle`/
+  `seticons`/`wxcopy`/`wxpaste` all built and installed alongside
+  `wmaker` (full `make install` succeeded with exit 0, not just the
+  core binary) but none were run or verified live.
+
+### Follow-up pass: real text rendering, proportional font size, and a newly-found `fork()`/pthread bug blocking menu-launched clients
+
+Triggered by explicit user feedback after seeing a screenshot of the
+above state: menu/dialog/titlebar text was completely invisible, xterm
+windows looked wrong at startup, and the root-menu's "XTerm" entry
+should be reachable without anything auto-launching at boot.
+
+**Text rendering: fixed, confirmed live.** `src/xft-stub/xft_stub.c`'s
+`XftDrawStringUtf8`/`XftDrawRect` now actually rasterize glyphs via
+`XFillRectangle`, against a vendored public-domain 8x8 bitmap font
+(`src/xft-stub/font8x8_basic.h`, from `github.com/dhepper/font8x8`,
+license header preserved). Confirmed via screendump: "Info", "Run...",
+"XTerm", "Mozilla Firefox", "Workspaces", "Applications", "Utils",
+"Selection", "Commands", "Appearance", "Session", "1 Works" all render
+as real, readable text in menus/dock/titlebar.
+
+Getting here took most of this pass's time for a reason worth
+recording: every plausible code-level hypothesis (GC handling,
+metrics, drawing-loop math, xterm-presence, busy-wait timing) was
+bisected and individually disproven with **zero effect on the actual
+test result** before the real cause surfaced —
+**`userland/mkrootfs.sh` copies `wmaker` from
+`build/xorg-target-root/bin/wmaker` (the `make install DESTDIR=...`
+tree), not from `src/wmaker/src/wmaker` (the plain `make` build-tree
+output)**. Plain `make -j4` after an edit updates the latter only;
+booting without also re-running `make install DESTDIR=...` boots a
+stale binary with none of the edits, indistinguishable from the fix
+genuinely not working. Fixed process going forward: `md5` both
+binaries before every rebuild-and-test cycle to confirm the installed
+copy actually changed. Any future debugging session in this project
+that touches `wmaker`/WINGs/wraster should check this first, before
+re-deriving it the hard way again.
+
+**Font size: fixed.** Initial 8x8-drawn-at-2x (`GLYPH_SCALE 2`, 16px)
+read as oversized against WindowMaker's own titlebar/menu-row chrome
+per direct user feedback ("not too giant"). Changed to `GLYPH_SCALE 1`
+(native 8px, no scale-up) — proportional against the surrounding UI.
+
+**Boot-time auto-launch removed.** Per explicit user request (and
+follow-up "fine just stop making xclock autostart then if thatll fix
+it"), `userland/startx.sh` no longer auto-launches xterm or xclock at
+all — only `Xfbdev`, `xsetbg`, and `wmaker` itself start. This also
+sidesteps, without actually fixing, a real decoration race: an
+auto-launched client reliably lost a race against WindowMaker's own
+`SubstructureRedirect` registration and came up permanently
+undecorated, reproduced across several failed mitigation attempts
+(longer waits, decoy clients, a real `read -t` CPU-yielding wait).
+With nothing auto-launched, there's nothing left to race — the
+symptom can't occur, but the underlying race in WindowMaker's startup
+sequence itself is still unexamined and would need its own pass.
+
+**Not yet fixed — real, deeper bug found: WindowMaker's own
+`fork()`+`exec()` chain cannot launch anything from the root menu.**
+The user's last ask, launching XTerm from the right-click root menu
+instead of getting a "Could not execute command" alert, is still
+broken. Ruled out, in order, each with a live test that disproved it:
+  - **PATH**: added `export PATH=/bin:/sbin` to `startx.sh` — no
+    change.
+  - **Relative vs. absolute command path**: changed
+    `src/wmaker/WindowMaker/Defaults/WMRootMenu`'s `("XTerm", EXEC,
+    "xterm -sb")` to `("XTerm", EXEC, "/bin/xterm -sb")` — the error
+    dialog then showed the absolute path, proving the string reaches
+    `ExecuteShellCommand` correctly, but the launch still failed
+    identically. (Kept — harmless, matches this file's existing
+    absolute-path convention elsewhere — but not sufficient alone.)
+  - **The `exec` builtin specifically**: `EXEC` menu actions run via
+    `wstrconcat("exec ", params)` (`rootmenu.c`) while `SHEXEC`/"Run..."
+    passes the raw string with no `exec` prefix — tested `/bin/xclock`
+    through the `SHEXEC`/"Run..." path specifically to rule this out.
+    Same failure.
+  - **xterm-specific**: the same `SHEXEC`/"Run..." test used
+    `/bin/xclock` — a completely different, independently-proven-
+    working binary — and it failed identically ("Could not execute
+    command: /bin/xclock").
+  That last result is decisive: this isn't about xterm, PATH, or the
+  `exec` builtin — `ExecuteShellCommand` in `src/wmaker/src/main.c`
+  (`fork()` → child does `SetupEnvironment(scr)` → `setsid()` →
+  `execl("/bin/sh", "/bin/sh", "-c", command, NULL)`; parent checks
+  `status == 127` and shows the alert) cannot launch *anything*.
+  `SetupEnvironment` and the `execv`→`execve(path, argv, environ)`
+  chain in `userland/libc/src/syscalls.c` were both read through and
+  look structurally correct — not yet disproven by a live test, but no
+  bug found by inspection either.
+  **Leading hypothesis, not yet investigated:** a `fork()`-in-a-
+  multithreaded-process bug at the kernel/pthread level. WindowMaker
+  is this project's first heavily-pthread-using program ([[Real
+  pthreads]], Phase 16) to exercise a `fork()` call at all — if some
+  non-forking thread holds a lock (e.g. malloc's internal lock) at the
+  moment of `fork()`, the child can inherit it already held and
+  deadlock or corrupt state before it ever reaches `execl()`. This
+  would need kernel-level investigation (xnu's `fork()` path, pthread
+  state across fork in this project's implementation) — genuinely
+  out of scope for a config/menu-level fix and left as an explicit,
+  scoped starting point for a future pass rather than guessed at
+  further here.
+
+## Phase 37 — XFM (X File Manager) ported and wired into WindowMaker's root menu: DONE, live-verified in QEMU including a real directory listing with readable text
+
+Goal: per explicit user request, port XFM to AsterOS and add it to
+WindowMaker's application launcher menu.
+
+**Fixed first, before touching XFM: the host-side cross toolchain was
+stale.** `build/tools/asteros-sdk/bin/clang.cfg` (used by every
+dynamically-linked X11 GUI port -- twm/xterm/xclock/wmaker -- unlike the
+freestanding launchd/neatvi style) still had the repo's old directory
+name (`DarwinBuildCuzImBore`) baked into every absolute path, from
+before it was renamed to AsterOS. `bash
+userland/toolchain/setup_host_cross_toolchain.sh` regenerates this from
+its tracked `.in` template using a live `pwd`-derived `$ROOT`, so it
+self-heals regardless of the repo's current directory name -- re-run any
+time the repo moves again. Confirmed fixed via a smoke test: compiled
+and linked a trivial Xlib/Xaw program against `build/xorg-deps-install`
+before starting the real port.
+
+**Vendored: the real, canonical XFM 1.4.3** (Simon Marlow 1990-1993,
+Albert Graef 1994-1997, Till Straumann 1997 -- `github.com/4194304/xfm`,
+a small Void-Linux compile-fix fork of the actual upstream codebase, not
+a rewrite -- verified by reading its README/ChangeLog history before
+trusting it, same discipline as every prior port). Cloned into
+`src/xfm/`.
+
+**Case-insensitive APFS collision, again** (same class of bug Phase 36
+hit vendoring WindowMaker): `git clone` warned about colliding paths in
+`contrib/fileicons/` (an icon set this port doesn't use, so ignored) and,
+critically, `lib/bitmaps/xfm_Suid.xbm`/`xfm_suid.xbm` and
+`xfm_Sticky.xbm`/`xfm_sticky.xbm` -- four real, distinct upstream files
+(differing only in case) that collapsed to two on disk. Recovered the
+lost content directly from GitHub's raw blob API (case-sensitive at the
+git-object level, unaffected by the local filesystem), wrote it back
+under case-safe filenames (`xfm_suid_lower/upper.xbm`,
+`xfm_sticky_lower/upper.xbm`), and repointed the two `#include`s in
+`FmBitmaps.c` -- the `_bits`/`_width`/`_height` symbol names inside were
+untouched, so nothing else needed to change.
+
+**No autoconf, unlike every previous X11 port here.** XFM predates
+X.Org's 2005-era autoconf conversion and ships only an Imake build
+(`Imakefile`); the checked-in `Makefile` in the vendored fork is
+imake's own generated output from a specific Void Linux box, useless
+here. Wrote `src/xfm/build.sh` by hand instead -- same pattern this
+project already uses for plain-Makefile-less ports (`src/neatvi/`,
+`src/xft-stub/`), but linked dynamically against this project's own
+dyld/libSystem/libobjc like the autoconf-based X11 ports (twm/xterm/
+wmaker), not the freestanding neatvi/launchd style, since XFM is an
+ordinary userspace GUI program. `src/xfm/src/Imakefile` and
+`Imake.options` were read in full to reproduce upstream's own
+recommended feature set faithfully (every optional enhancement on
+except `USE_LOG`, which upstream itself ships off by default) rather
+than guessing which `-D` flags mattered.
+
+**`-std=gnu17`, not `gnu23`** (the `-std` every other X11 port here
+uses): unlike twm/xterm/wmaker, XFM's Xt widget-method code
+(`FocusForm.c`, `FileList.c`, `TextFileList.c`, `IconFileList.c`,
+`TextField.c`) and the vendored `regexp/` library (Henry Spencer's, via
+4.4BSD, pulled in for XFM's "magic headers" file-type detection) still
+use old K&R-style function definitions -- legal-with-a-deprecation-
+warning through C17, removed outright in C23. Root-caused from the
+actual compiler errors (`unknown type name 'treq'`, not a guess) before
+picking the fix.
+
+**`getwd()` added to `userland/libc`** (`userland/libc/src/syscalls.c`,
+declared in `unistd.h`): the first vendored program to call this
+pre-POSIX.1-2001 BSD function (`FmMain.c`, `FmPopup.c`). Implemented as
+the thin `getcwd(buf, PATH_MAX)` wrapper real Darwin still ships
+(deprecated) rather than patching every XFM call site to use `getcwd()`
+instead -- real Darwin semantics, not an invented one, per this
+project's own standing discipline. Required rebuilding *both*
+`userland/libc/build.sh` (object files) *and* `userland/libSystem/
+build.sh` (the actual dylib every dynamically-linked binary links
+against) -- the first build only produced the update `getwd`.o; the
+running system doesn't see it until the dylib itself is relinked.
+
+**App-defaults generation: real `cpp` couldn't be used, wrote a
+targeted substitute instead.** XFM's `Xfm.ad` (its app-defaults
+resource file) is normally produced by piping `lib/Xfm.cpp` through
+`cpp` with `-DLIBDIR=...` and the feature `-D`s (Imake's
+`CppFileTarget`). Both `clang -E -P` and GNU `cpp -traditional-cpp`
+(from the homebrew `i686-elf-gcc` cross-toolchain) choke on this
+specific file: line 60's literal backslash-escaped resource value
+(`Xfm*selectionPathsSeparator:\ `, an X-resource escape, not C) gets
+lexed as a C line-continuation regardless of `-traditional-cpp`,
+splicing away the `#endif` two lines later and corrupting the whole
+`#ifdef` nest -- exactly the fragility upstream's own top-level
+`Imakefile` warns about ("`CppFileTarget` will not work under SunOS
+4.1 ... install the appdefaults file by hand"). Wrote
+`src/xfm/gen_appdefaults.py` instead: a small line-oriented (never
+C-tokenizing) `#ifdef`/`#ifndef`/`#else`/`#endif` resolver plus regex
+substitution for `LIBDIR`/`XFMVERSION` and the `LOG_TRANSLATION`/
+`HIST_TRANSLATION(...)` object/function-like macros -- immune to the
+class of bug above because it never parses C string/char-literal
+syntax at all. Its `DEFINES` set must be kept in sync with
+`build.sh`'s `-D` flags by hand (no shared source of truth between the
+two right now -- a real, if minor, maintenance hazard for a future
+edit).
+
+**Installed under `build/xorg-target-root`** (the same DESTDIR-style
+staging tree every other X11 port installs into, that
+`userland/mkrootfs.sh` actually copies from): `bin/{xfm,xfmtype}`,
+`usr/share/X11/app-defaults/Xfm`, `usr/share/xfm/{bitmaps,pixmaps,
+icons,dot.xfm}`. Used `USE_3DICONS`'s icon set (`contrib/3dicons/`,
+upstream's own recommended default) rather than the plain `lib/pixmaps`
+set.
+
+**`~/.xfm` pre-populated directly in `userland/mkrootfs.sh`, not via
+upstream's `xfm.install` script.** Real xfm expects a first-run
+interactive setup (`xfm.install`, an interactive `read`-driven shell
+script that copies `LIBDIR/dot.xfm/*` into `$HOME/.xfm`) before it has
+a usable config -- infeasible to drive on this single-user,
+headless-GUI-only OS with no terminal open before the file manager's
+first launch. Instead, `mkrootfs.sh` copies `dot.xfm/*` straight into
+`::/root/.xfm/` (and creates `::/root/.trash`) at image-build time, the
+same way it already pre-populates `::/root/.twmrc`. `xfm.install`
+itself was not vendored/built -- a real, deliberately deferred
+nice-to-have (resetting to default config would currently mean deleting
+`~/.xfm` by hand from a shell) rather than something this port needed
+for a working file manager.
+
+**Real, live bug found and fixed in a previously-untouched, shared
+project component: libXt's compiled-in app-defaults search path was
+stale**, for the same reason as clang.cfg above -- built back when this
+repo was still `DarwinBuildCuzImBore`, `build/xorg-deps-install/lib/
+libXt.a`'s own embedded `XFILESEARCHPATH` template strings still carry
+that old absolute path, so Xt's standard resource-file lookup silently
+fails to find *any* app's app-defaults file, project-wide, not just
+XFM's. This was invisible before now because twm/xterm/xclock all
+degrade quietly to built-in fallback resource values when their
+app-defaults can't be found -- XFM is the first port whose own code
+(`FmMain.c`'s `appDefsVersion`-mismatch check) treats a missing
+app-defaults file as fatal, popping a real "Sorry: Appl. Defaults Not
+Found" dialog instead, which is what surfaced the bug on the very first
+launch attempt (live in QEMU, not by inspection). Fixed with a
+`userland/startx.sh` export --
+`XFILESEARCHPATH="/usr/share/X11/%T/%N%C:/usr/share/X11/%T/%N"` --
+rather than rebuilding libXt itself, since the env var overrides Xt's
+broken compiled-in default and every client `startx.sh` launches
+inherits it through the fork/exec chain. Confirmed fixed live: relaunching
+XFM from the root menu after this fix opened its real windows instead of
+the error dialog.
+
+**Independent confirmation that the root-menu `fork()`+`exec()` bug
+(TODO.md Phase 36's own follow-up section, immediately above) really is
+fixed by commit `5672c4f`**, not just by inspection: XFM launched
+cleanly from `WMRootMenu`'s `("XFM", EXEC, "/bin/xfm")` entry on the
+very first try, both before and after the app-defaults fix (the "Appl.
+Defaults Not Found" dialog is XFM's own error, popped only *after* a
+successful exec -- proof the exec itself worked).
+
+**Live-verified end-to-end in QEMU** (headless, monitor-driven --
+`sendkey`/`mouse_move`/`mouse_button`/`screendump`, same technique as
+Phase 36; note QEMU's `mouse_button` bitmask is 1=left/2=right/4=middle,
+easy to get backwards -- lost a round-trip to exactly that): booted,
+ran `startx` from the console shell (this OS does not auto-launch X --
+see Phase 36's own startx.sh note), right-clicked the root window,
+selected "XFM" from the Applications submenu (placed directly below
+the existing "XTerm" entry in `src/wmaker/WindowMaker/Defaults/
+WMRootMenu`, and in the already-installed copy at
+`build/xorg-target-root/usr/etc/WindowMaker/WMRootMenu` mkrootfs.sh
+actually copies from). Result: two real, WindowMaker-decorated windows
+-- the Application Manager ("Apps", with Xterm/Emacs/Textedit/Mail/
+Calculator/Manual/Toolbox/Graphics/Netscape/News/Printer/Trash/Home/A:/
+C: icons) and a live file-manager window showing `/`'s real,
+correctly-labeled directory listing (`bin`, `dev`, `etc`, `fbdev`,
+`private`, `root`, `sbin`, `tmp`, `usr`, `var`) -- both tracked
+correctly in WindowMaker's own window list ("Apps [Workspace 1]", "◇ /
+[Workspace 1]"). **Text renders readably in both XFM windows** (menu
+bar, icon labels, status bar) -- a genuine surprise given Phase 35/36's
+own documented finding that this project has no real font files
+anywhere and text is otherwise invisible (xterm, WindowMaker's Xft-stub
+UI): XFM's Athena widgets apparently resolve a usable core X11 bitmap
+font where Xft-stub-based text does not, not root-caused further here
+since it isn't a regression -- worth understanding in a future pass if
+someone wants working text elsewhere too.
+
+**Not yet started / left as real, honestly-reported gaps:**
+- `xfm.install` (the interactive `~/.xfm` reset-to-defaults script) was
+  not vendored -- resetting a corrupted `~/.xfm` currently means
+  deleting it by hand from a shell before the next `startx`.
+- File operations (copy/move/delete/chmod), the magic-headers file-type
+  detection, application-launch-by-drop, and floppy/device auto-mount
+  were not exercised at all beyond the initial directory listing --
+  this pass verified the port *builds, installs, and launches with a
+  working UI*, not every one of xfm's own features.
+- `gen_appdefaults.py`'s `DEFINES` set duplicates `build.sh`'s `-D`
+  flags by hand with no shared source of truth -- a future edit to one
+  without the other would silently desync the app-defaults file from
+  the actual compiled behavior.
+- The stale-libXt-search-path bug this phase found and worked around
+  via `XFILESEARCHPATH` affects every X11 client in this project, not
+  just XFM -- twm/xterm/xclock's own app-defaults files are still
+  unreachable via Xt's normal lookup and those apps just don't show it
+  the way XFM did. Worth fixing at the source (relinking libXt.a, or a
+  project-wide `XFILESEARCHPATH`/`XUSERFILESEARCHPATH` export
+  somewhere more central than one app's launch script) in a future
+  pass.

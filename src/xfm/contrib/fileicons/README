@@ -1,0 +1,14 @@
+This directory contains a collection of fileicons put together and edited by
+Juan D. Martin (juando@cnm.us.es). A sample xfmrc file for this collection is
+included as well. Install as follows (assuming that your xfm libdir is
+/usr/X11/lib/X11/xfm):
+
+cp bitmaps/* /usr/X11/lib/X11/xfm/bitmaps
+cp pixmaps/* /usr/X11/lib/X11/xfm/pixmaps
+cp xfmrc /usr/X11/lib/X11/xfm/dot.xfm
+
+Also, xfm users should copy xfmrc to ~/.xfm (or run xfm.install) to replace
+their personal xfmrc file with the new one.
+
+Note that the xfmrc file will not work with xfm versions <=1.3.1; it requires
+version 1.3.2 (or later).

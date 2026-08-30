@@ -1,0 +1,8 @@
+#XFM
+Ghostview:::ghostview.xpm:exec ghostview:exec ghostview $*
+Xfig:::xfig.xpm:exec xfig:exec xfig $*
+XV:::xv.xpm:exec xv:exec xv $*
+Xpaint:::paint.xpm:exec xpaint:exec xpaint $*
+XbmBrowser:::bluelogo.xpm:xbmbrowser:xbmbrowser $1
+Bitmap:::xapp.xpm:exec bitmap:exec bitmap $1
+Pixmap:::xapp.xpm:exec pixmap:exec pixmap -f $1

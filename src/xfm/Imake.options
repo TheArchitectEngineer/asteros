@@ -1,0 +1,239 @@
+
+/* Global settings for xfm Imakefiles, to configure xfm according to your
+   preferences and system. */
+
+/* Destination directories. ***********************************************/
+
+/* Where xfm config files and pixmaps go. */
+XFMLIBDIR = $(LIBDIR)/xfm
+
+/* Libraries. *************************************************************/
+
+/* Use the XPM library to display color icons (highly recommended). Comment
+   out the following if you do not have the Xpm library. Otherwise, please
+   set XPMINCDIR and XPMLIBDIR as required by your system if libXpm is not
+   on the standard path. E.g.:
+   XPMINCDIR = -I/usr/local/X11/include
+   XPMLIBDIR = -L/usr/local/X11/lib
+   Note that this option is required if you want to use the new 3d icon set
+   (see below).
+*/
+
+#define XPM
+
+XPMINCDIR =
+XPMLIBDIR =
+
+/* Use Xaw3d instead of Xaw (recommended). If this option is enabled, you
+   should also set XAWINCDIR, XAWLIBDIR accordingly. Note: the use of this
+   option also causes some Xaw3d-specific resources to be included in the
+   appdefaults file. 
+
+If you want to use Xaw3d, get rid of the bits containing #define XAW3d and
+the XAWLIBDIR statement, otherwise you'll get flat styling similar to how
+xfontsel and xedit are */
+
+/* #define XAW3D
+
+XAWINCDIR = -I/usr/X11R6/include/X11/Xaw3d
+XAWLIBDIR = -L/usr/X11R6/lib */
+
+/* Magic headers. *********************************************************/
+
+/* Use magic headers (highly recommended). Note: this symbol also controls
+   whether the standard xfmrc file or xfmrc.nomagic is installed on your
+   system. Furthermore, this option is required if you want to use the 3d
+   icon set. */
+
+#define MAGIC_HEADERS
+
+/* New 3D-look icons. *****************************************************/
+
+/* This option causes the new icon set from the contrib/3dicons directory
+   to be installed, along with the corresponding configuration files. It also
+   changes some settings in the app-defaults file. You might wish to comment
+   this out, e.g., if the new icons eat up too much color cells on your
+   system. */
+
+#define USE_3DICONS
+
+/* Different new features *************************************************/
+/* ====================== *************************************************/
+
+/* (See README-1.4 for details. All of these are highly recommended.)
+ * Please comment out those options you don't want to use. Note that most
+ * of these symbols also control the generation of the application defaults
+ * file 'Xfm.ad'.
+ */
+
+/* Use the history menu ****************************************************
+ */
+#define USE_HISTORY
+
+/* Substitute the Athena Text widget by the supplied TextField *************
+ *
+ * This provides nicer 3d look and scrolling without the need of a scrollbar
+ * (some doc contained in TextField.h)
+ */
+#define USE_TXT_FIELD
+
+/* Use accelerators in dialog popups  **************************************
+ *
+ * This allows you to confirm/cancel by pressing keys in the text/textfield
+ */
+#define USE_POP_ACCEL
+
+/* Use some modifications of userinfo **************************************
+ *
+ * - XFM uses the first executable shell given in the 'shellCommands'
+ *   application resource. If this fails, $SHELL (environment) is tried,
+ *   then /bin/sh.
+ *
+ * - XFM starts in the cwd, not always in $HOME
+ */
+#define USE_USERINFO
+
+/* Use new 'clone' menu entry in the 'folder' menu *************************
+ */
+#define USE_MENU
+
+/* Don't use fixed translation tables **************************************
+ *
+ * Get the translations from the resource files instead so the user can
+ * change them.
+ */
+#define USE_TRANSLATIONS
+
+/* Use enhanced 'permission' features **************************************
+ *
+ * Adds support for additional access permission bits (suid and friends).
+ * These can now be displayed and modified.
+ */
+#define USE_PERMS
+
+/* Try to preserve scroll position when updating the view ******************
+ *
+ * Without this feature you end up at the top of the file window as soon as
+ * the view is updated (eg. file deletion or creation) which is _very_
+ * annoying. :-(
+ */
+#define USE_SCROLL
+
+/* Use cursors no bigger than 32x32 bit ************************************
+ * eg. the XSun server is not able to handle the 48 bit 'noentry' cursor
+ */
+#define USE_CURSOR
+
+/* Enable the selection mechanism ******************************************
+ *
+ * Upon selecting files, the ownership of the PRIMARY selection is
+ * requested, so other applications can get the paths of the selected
+ * files (as strings)
+ */
+#define USE_SELECTION
+
+/* Use a text widget to log output of child processes **********************
+ */
+/* #define USE_LOG */
+
+/* Try to be nice to the colormap ******************************************
+ *
+ * With this enhancement enabled XFM allows Xpm to allocate colors
+ * close to the requested ones. This saves slots in the colormap, since
+ * a close color might already be there making allocation of a new color
+ * obsolete. The application resource 'colorCloseness' can be set to
+ * specify how much the colors can deviate from the good values.
+ * The bigger the number, the greater the tolerance; a value of 40000 is
+ * recommended by the designers of Xpm and gives good results.
+ *
+ * If the icons can still not be loaded XFM tries to switch to a private
+ * colormap.
+ */
+#define USE_CMAP
+
+/* Use a hack to workaround some bugs in the viewport widget ***************
+ *
+ * It is recommended to patch the viewport. If you can't or don't want to
+ * do this then you should define this symbol.
+ * Comment it out, if you apply the patch (see viewport-patch).
+ */
+#define USE_VP_HACK
+
+/* Compilation options. ***************************************************/
+
+/* Uncomment the following if your system has GCC but it is not used by
+   default */
+
+#define USE_GCC
+
+#ifdef USE_GCC
+
+CC=gcc
+CCOPTIONS = -Wall -Wno-parentheses
+CDEBUGFLAGS = -O2
+
+#else
+CC=cc
+CCOPTIONS = 
+CDEBUGFLAGS = -O
+
+/* The following has been suggested for HP-UX: */
+#ifdef HPArchitecture
+CCOPTIONS = -Aa -D_HPUX_SOURCE
+#endif
+
+#endif
+
+/* Don't change below here. ***********************************************/
+
+#ifndef XPM
+#undef USE_3DICONS
+#endif
+#ifndef MAGIC_HEADERS
+#undef USE_3DICONS
+#endif
+
+ENH_DEFINES = -DENHANCE_BUGFIX -DUSE_NEW_WIDGETS
+
+#ifdef USE_3DICONS
+ENH_DEFINES += -DENHANCE_3DICONS
+#endif
+#ifdef USE_TXT_FIELD
+ENH_DEFINES += -DENHANCE_TXT_FIELD
+#endif
+#ifdef USE_POP_ACCEL
+ENH_DEFINES += -DENHANCE_POP_ACCEL
+#endif
+#ifdef USE_HISTORY
+ENH_DEFINES += -DENHANCE_HISTORY
+#endif
+#ifdef USE_USERINFO
+ENH_DEFINES += -DENHANCE_USERINFO
+#endif
+#ifdef USE_MENU
+ENH_DEFINES += -DENHANCE_MENU
+#endif
+#ifdef USE_TRANSLATIONS
+ENH_DEFINES += -DENHANCE_TRANSLATIONS
+#endif
+#ifdef USE_PERMS
+ENH_DEFINES += -DENHANCE_PERMS
+#endif
+#ifdef USE_SCROLL
+ENH_DEFINES += -DENHANCE_SCROLL
+#endif
+#ifdef USE_CURSOR
+ENH_DEFINES += -DENHANCE_CURSOR
+#endif
+#ifdef USE_SELECTION
+ENH_DEFINES += -DENHANCE_SELECTION
+#endif
+#ifdef USE_LOG
+ENH_DEFINES += -DENHANCE_LOG
+#endif
+#ifdef USE_CMAP
+ENH_DEFINES += -DENHANCE_CMAP
+#endif
+#ifdef USE_VP_HACK
+ENH_DEFINES += -DVIEWPORT_HACK
+#endif

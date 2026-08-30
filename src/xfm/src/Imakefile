@@ -1,0 +1,101 @@
+/*-----------------------------------------------------------------------------
+  Imakefile for xfm v1.3
+
+  (c) Simon Marlow 1990-1993
+  (c) Albert Graef 1994,1995
+-----------------------------------------------------------------------------*/
+
+#include "../Imake.options"
+
+#ifdef XPM
+XPMDEFINES	= -DXPM
+XPMLIB		= $(XPMLIBDIR) -lXpm
+#else
+XPMDEFINES	= 
+XPMLIB		= 
+#endif
+
+#ifdef XAW3D
+XAWDEFINES	= -DXAW3D
+XAWLIB		= $(XAWLIBDIR) -lXaw3d
+#endif
+
+#ifdef USE_HISTORY
+HISTORYSRC      = FmHistory.c
+HISTORYOBJ      = FmHistory.o
+#else
+HISTORYSRC      = 
+HISTORYOBJ      = 
+#endif
+
+#ifdef USE_TXT_FIELD
+TXTFIELDSRC	= TextField.c FocusForm.c
+TXTFIELDOBJ	= TextField.o FocusForm.o
+#else
+TXTFIELDSRC	= 
+TXTFIELDOBJ	= 
+#endif
+
+#ifdef USE_SELECTION
+SELECTIONSRC	= FmSelection.c
+SELECTIONOBJ	= FmSelection.o
+#else
+SELECTIONSRC	= 
+SELECTIONOBJ	= 
+#endif
+
+#ifdef USE_LOG
+LOGSRC		= FmLog.c
+LOGOBJ		= FmLog.o
+#else
+LOGSRC		= 
+LOGOBJ		= 
+#endif
+
+#ifdef MAGIC_HEADERS
+
+PROGRAMS	= xfm xfmtype
+DEFINES 	= $(XPMDEFINES) $(XAWDEFINES) -DMAGIC_HEADERS $(ENH_DEFINES)
+EXTRA_INCLUDES	= $(XPMINCDIR) $(XAWINCDIR) -I../regexp
+EXTRA_LIBRARIES	= -L../regexp -lregexp
+MAGICOBJ	= magic.o
+MAGICSRC	= magic.c
+DEPLIBS1	= ../regexp/libregexp.a XawClientDepLibs
+
+#else
+
+PROGRAMS	= xfm
+DEFINES 	= $(XPMDEFINES) $(ENH_DEFINES)
+EXTRA_INCLUDES	= $(XPMINCDIR) $(XAWINCDIR)
+EXTRA_LIBRARIES	= 
+MAGICOBJ	= 
+MAGICSRC	= 
+DEPLIBS1	= XawClientDepLibs
+
+#endif
+
+SRCS1		= FmMain.c FmPopup.c FmUtils.c FmDirs.c FmBitmaps.c FmFw.c \
+	FmFwCb.c FmAw.c FmAwCb.c FmAwActions.c FmAwPopup.c FmFwActions.c \
+	FmChmod.c FmInfo.c FmErrors.c FmDelete.c FmConfirm.c FmExec.c \
+	FmComms.c FmOps.c XtHelper.c\
+	$(MAGICSRC) $(HISTORYSRC) $(SELECTIONSRC) $(TXTFIELDSRC) $(LOGSRC)\
+	FmStringDefs.c FileList.c TextFileList.c IconFileList.c
+
+OBJS1		= FmMain.o FmPopup.o FmUtils.o FmDirs.o FmBitmaps.o FmFw.o \
+	FmFwCb.o FmAw.o FmAwCb.o FmAwActions.o FmAwPopup.o FmFwActions.o \
+	FmChmod.o FmInfo.o FmErrors.o FmDelete.o FmConfirm.o FmExec.o \
+	FmComms.o FmOps.o XtHelper.o\
+	$(MAGICOBJ) $(HISTORYOBJ) $(SELECTIONOBJ) $(TXTFIELDOBJ) $(LOGOBJ)\
+	FmStringDefs.o FileList.o TextFileList.o IconFileList.o
+
+ComplexProgramTarget_1(xfm,NullParameter,$(XPMLIB) XawClientLibs)
+
+#ifdef MAGIC_HEADERS
+
+SRCS2		= xfmtype.c
+OBJS2		= xfmtype.o $(MAGICOBJ)
+DEPLIBS2	= ../regexp/libregexp.a
+
+ComplexProgramTarget_2(xfmtype,NullParameter,NullParameter)
+
+#endif

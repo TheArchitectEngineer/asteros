@@ -1,0 +1,13 @@
+#XFM
+Gzip:::winzip.xpm::gzip $*
+Tar cfv:::tar.xpm::tar cfv %Archive name\:% $*; echo "*** tar done ***"
+Tar cfvz:::tar.xpm::tar cfvz %Name of compressed archive\:% $*; echo "*** tar done ***"
+Zip:::winzip.xpm::zip -r %ZIP filename\:% $*; echo "*** zip done ***"
+Uuencode:::uu.xpm::for x in $*; do uuencode $x $x >$x.uu; done
+Grep:::grep.xpm::grep -i -- '%Regular expression\:%' $* | xless -title Grep
+Find:::find.xpm:find %Directory\:% -name '%Filename pattern\:%' %Options\:% %Action\:---print% | xless -title Find:find $1  -name '%Filename pattern\:%' %Options\:% %Action\:---print% | xless -title Find
+Diff:::diff.xpm::diff -r -N -u $1 $2 | xless -title Diff
+Editres:::editres.xpm:editres:
+Make...:::make.xpm::make -f $1 %Target\:%; echo "*** make done ***"
+Apply...:::exec.xpm::exec %Command\:% $*
+Debugger:::debug.xpm:exec ddd:exec ddd $*

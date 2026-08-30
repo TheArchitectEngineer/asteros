@@ -1,0 +1,224 @@
+apply this patch in the Xaw / Xaw3d source directory
+
+ patch -p0 < 'this file'
+
+and rebuild the Xaw / Xaw3d libraries. (The viewport of both
+libraries are almost identical; the patch should be appliable
+to both libraries.)
+
+Programs to demonstrate the bugs and details are
+available from <strauman@sun6hft.ee.tu-berlin.de>
+
+*** Viewport.c	Thu Aug 21 17:51:55 1997
+--- Viewport.c.fixed	Thu Aug 21 17:56:13 1997
+***************
+*** 1,4 ****
+--- 1,32 ----
+  /* $XConsortium: Viewport.c,v 1.71 94/04/17 20:13:26 kaleb Exp $ */
++ /* some bugs fixed by T. Straumann, 8-10-1997; 
++  * <strauman@sun6hft.ee.tu-berlin.de>
++  *
++  * - creating an unmanaged form as viewport's child yielded
++  *   shifted and obscured scrollbars when the form was finally
++  *   managed.
++  *   This happened due to a geometry management request while
++  *   realizing the child in ChangedManaged.
++  *   The original 'quick'n dirty' code simply set viewport's
++  *   window to clip's before calling XtRealize(child).
++  *   While computing the layout (XtRealize may call the Geometry 
++  *   manager!) scrollbars might be created but their
++  *   windows are children of clip's window and not of viewport's
++  *   as they should.
++  *
++  * - GeometryManager and ComputeLayout contained some bugs 
++  *   (see comments below). A child request to resize (even
++  *   asking for a smaller size) sometimes added scrollbars,
++  *   when in fact none were needed.
++  *
++  * - GeometryManager accessed request->width and request->height
++  *   without checking the corresponding request_mode bits resulting
++  *   in undefined width/height values being used.
++  *   
++  * The modified parts can be found by searching for the date string
++  * 8-10-1997 or my name.
++  */
++ 
+  
+  /***********************************************************
+  
+***************
+*** 357,363 ****
+  		if (!XtIsRealized(child)) {
+  		    Window window = XtWindow(w);
+  		    XtMoveWidget( child, (Position)0, (Position)0 );
+! #ifdef notdef
+  		    /* this is dirty, but it saves the following code: */
+  		    XtRealizeWidget( child );
+  		    XReparentWindow( XtDisplay(w), XtWindow(child),
+--- 385,397 ----
+  		if (!XtIsRealized(child)) {
+  		    Window window = XtWindow(w);
+  		    XtMoveWidget( child, (Position)0, (Position)0 );
+! #ifndef notdef /* Changed to ifndef, because the quick and dirty way
+! 		* didn't work, T. Straumann 8-10-1997
+! 		*
+! 		* While realizing the child it may issue a geometry management
+! 		* request and thereby generate scrollbars as children of
+! 		* clip's window (instead of viewport's)!
+! 		*/
+  		    /* this is dirty, but it saves the following code: */
+  		    XtRealizeWidget( child );
+  		    XReparentWindow( XtDisplay(w), XtWindow(child),
+***************
+*** 573,585 ****
+  		}
+  		intended.height = preferred.height;
+  	    }
+  	    if ( !w->viewport.allowhoriz ||
+! 		 (int)preferred.width < clip_width) {
+  	        intended.width = clip_width;
+  		intended.request_mode |= CWWidth;
+  	    }
+  	    if ( !w->viewport.allowvert ||
+! 		 (int)preferred.height < clip_height) {
+  	        intended.height = clip_height;
+  		intended.request_mode |= CWHeight;
+  	    }
+--- 607,625 ----
+  		}
+  		intended.height = preferred.height;
+  	    }
++ /* here we must test for preferred.width<=clip_width. Just
++  * testing if width<clip_width is not enough.
++  * (there will be a bar only if width>clip_width, see above)
++  *
++  * The same applies for the height below. T.Straumann, 8-10-1997
++  */
+  	    if ( !w->viewport.allowhoriz ||
+! 		 (int)preferred.width <= clip_width) {
+  	        intended.width = clip_width;
+  		intended.request_mode |= CWWidth;
+  	    }
+  	    if ( !w->viewport.allowvert ||
+! 		 (int)preferred.height <= clip_height) {
+  	        intended.height = clip_height;
+  		intended.request_mode |= CWHeight;
+  	    }
+***************
+*** 892,897 ****
+--- 932,938 ----
+      Boolean reconfigured;
+      Boolean child_changed_size;
+      Dimension height_remaining;
++     Dimension req_width, req_height;
+  
+      if (request->request_mode & XtCWQueryOnly)
+        return QueryGeometry(w, request, reply);
+***************
+*** 914,936 ****
+  			  (rHeight && child->core.height != request->height));
+  
+      height_remaining = w->core.height;
+!     if (rWidth && w->core.width != request->width) {
+! 	if (w->viewport.allowhoriz && request->width > w->core.width) {
+  	    /* horizontal scrollbar will be needed so possibly reduce height */
+  	    Widget bar; 
+  	    if ((bar = w->viewport.horiz_bar) == (Widget)NULL)
+  		bar = CreateScrollbar( w, True );
+  	    height_remaining -= bar->core.height + bar->core.border_width;
+! 	    reconfigured = True;
+  	}
+  	else {
+  	    allowed.width = w->core.width;
+  	}
+!     }
+!     if (rHeight && height_remaining != request->height) {
+! 	if (w->viewport.allowvert && request->height > height_remaining) {
+  	    /* vertical scrollbar will be needed, so possibly reduce width */
+! 	    if (!w->viewport.allowhoriz || request->width < w->core.width) {
+  		Widget bar;
+  		if ((bar = w->viewport.vert_bar) == (Widget)NULL)
+  		    bar = CreateScrollbar( w, False );
+--- 955,986 ----
+  			  (rHeight && child->core.height != request->height));
+  
+      height_remaining = w->core.height;
+! 
+!     req_width=(rWidth?request->width:child->core.width);
+!     req_height=(rHeight?request->height:child->core.height);
+! 
+! /* We need to calculate the allowed width and height in any case,
+!  * not only if rWidth/rHeight are set! (could be that no height change
+!  * is requested but a vertical scrollbar was already present thus
+!  * requiring changing allowed.width
+!  *
+!  * Then there were some references to request->width without checking
+!  * if rWidth was set :-(  (T. Straumann, 8-10-1997)
+!  */
+! 	if (w->viewport.allowhoriz && req_width > w->core.width) {
+  	    /* horizontal scrollbar will be needed so possibly reduce height */
+  	    Widget bar; 
+  	    if ((bar = w->viewport.horiz_bar) == (Widget)NULL)
+  		bar = CreateScrollbar( w, True );
+  	    height_remaining -= bar->core.height + bar->core.border_width;
+!             if (rWidth && w->core.width != request->width) reconfigured = True;
+  	}
+  	else {
+  	    allowed.width = w->core.width;
+  	}
+! 	if (w->viewport.allowvert && req_height > height_remaining) {
+  	    /* vertical scrollbar will be needed, so possibly reduce width */
+! 	    if (!w->viewport.allowhoriz || req_width < w->core.width) {
+  		Widget bar;
+  		if ((bar = w->viewport.vert_bar) == (Widget)NULL)
+  		    bar = CreateScrollbar( w, False );
+***************
+*** 943,957 ****
+  		    allowed.width -= bar->core.width + bar->core.border_width;
+  		else
+  		    allowed.width = 1;
+! 		reconfigured = True;
+  	    }
+  	}
+  	else {
+  	    allowed.height = height_remaining;
+  	}
+-     }
+  
+!     if (allowed.width != request->width || allowed.height != request->height) {
+  	*reply = allowed;
+  	result = XtGeometryAlmost;
+      }
+--- 993,1007 ----
+  		    allowed.width -= bar->core.width + bar->core.border_width;
+  		else
+  		    allowed.width = 1;
+!     		if (rHeight && height_remaining != req_height) reconfigured = True;
+  	    }
+  	}
+  	else {
+  	    allowed.height = height_remaining;
+  	}
+  
+!     if ( (rWidth && (allowed.width != req_width)) || 
+! 	 (rHeight && (allowed.height != req_height)) ) {
+  	*reply = allowed;
+  	result = XtGeometryAlmost;
+      }
+***************
+*** 967,973 ****
+  		       /*destroy=*/ (result == XtGeometryYes) ? True : False );
+  
+      return result;
+!   }
+  
+  
+  static Boolean GetGeometry(w, width, height)
+--- 1017,1023 ----
+  		       /*destroy=*/ (result == XtGeometryYes) ? True : False );
+  
+      return result;
+! }
+  
+  
+  static Boolean GetGeometry(w, width, height)

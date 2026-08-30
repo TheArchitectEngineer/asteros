@@ -106,6 +106,7 @@ int setegid(gid_t egid);
 int ttyname_r(int fd, char *buf, size_t buflen);
 char *ttyname(int fd);
 char *getcwd(char *buf, size_t size);
+char *getwd(char *buf);
 int access(const char *path, int amode);
 int chown(const char *path, uid_t owner, gid_t group);
 int fchown(int fd, uid_t owner, gid_t group);
@@ -130,6 +131,8 @@ int getgroups(int gidsetsize, gid_t grouplist[]);
 #define _SC_NPROCESSORS_ONLN 58
 #define _SC_NPROCESSORS_CONF 57
 #define _SC_GETPW_R_SIZE_MAX 71
+#define _SC_LINE_MAX 15
+int nice(int incr);
 long sysconf(int name);
 pid_t fork(void);
 pid_t vfork(void);

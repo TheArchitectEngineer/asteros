@@ -1,0 +1,108 @@
+#
+# sample xfm configuration file
+# Fri Apr 7 1995   AG
+# for use with the fileicons from the contrib dir
+#
+##########################################################
+
+# some nice icons for current and parent dir ...
+<DIR>.:open_dir.xpm::
+<DIR>..:parent_dir.xpm::
+
+# ... and some special directories
+<DIR>.xfm:system_dir.xpm::
+<DIR>News:news_dir.xpm::
+<DIR>Mail:mail_dir.xpm::
+
+# standard directory icons
+<DIR>.*:hidden_dir.xpm::
+<DIR>:plain_dir.xpm::
+<DIR LNK>:link_dir.xpm::
+
+# executables
+<EXEC>.*:hidden.xpm::
+<EXEC>:application.xpm::
+<EXEC LNK>:link_appl.xpm::
+
+# other hidden files
+.*:hidden.xpm::
+
+# xfm application files
+<XFM>:system.xpm:LOAD:
+
+# rc files
+<ascii>*rc:rc.xpm:EDIT:
+
+# various info files
+<ascii>readme:info_dot.xpm:EDIT:
+<ascii>read.me:info_dot.xpm:EDIT:
+<ascii>README:info_dot.xpm:EDIT:
+<ascii>README*:info_dot.xpm:EDIT:
+<ascii>*.README:info_dot.xpm:EDIT:
+
+# core dumps
+<data>core:core.xpm::
+
+# image formats
+
+<PS>:postscript2.xpm:exec ghostview $1:
+<GIF>:gif.xpm:exec xv $1:
+<JPG>:jpeg.xpm:exec xv $1:
+<TIFF>:tiff.xpm:exec xv $1:
+<FIG>:fig.xpm:exec xfig $1:
+<RAS>:raster.xpm:exec xv $1:
+<PBM>:pbm.xpm:exec xv $1:
+<PGM>:pgm.xpm:exec xv $1:
+<PPM>:ppm.xpm:exec xv $1:
+<XBM>:xbm.xpm:exec bitmap $1:
+<XPM>:teddy.xpm:exec pixmap -f $1:
+
+# common file types
+
+<FRAME>:framemaker.xpm:fmclient -f $1:
+<MAIL>:mail.xpm:exec xmailtool -file $1:
+<BDF>:font.xpm:EDIT:
+<MAN>:manpage.xpm:groff -TX100 -man -mX -P-geometry -P655x860 $1:
+<HTML>:html.xpm:mosaic $1:
+
+<data>*.a:dot_a.xpm:EDIT:
+<ascii>*.c:dot_c.xpm:EDIT:
+<ascii>*.cc:dot_cc.xpm:EDIT:
+<data>*.dvi:binary.xpm:exec xdvi $1:
+<ascii>*.h:dot_h.xpm:EDIT:
+<data>*.o:dot_o.xpm::
+<ascii>*.tex:tex.xpm:EDIT:
+<ascii>*.txi:tex.xpm:EDIT:
+<ascii>*.texi:tex.xpm:EDIT:
+<ascii>*.texinfo:tex.xpm:EDIT:
+
+# Makefiles
+
+<ascii>Imakefile:makefile.xpm:xmkmf; echo "*** imake done ***":
+<ascii>Makefile:makefile.xpm:make; echo "*** make done ***":
+<ascii>Makefile.*:makefile.xpm:make -f $*; echo "*** make done ***":
+<ascii>makefile:makefile.xpm:make; echo "*** make done ***":
+<ascii>makefile.*:makefile.xpm:make -f $*; echo "*** make done ***":
+
+# archives, compressed files and such
+
+<ascii>*.tar:tar.xpm:exec tar xfv $1:exec tar cfv $*
+<data>*.zip:zip.xpm:exec unzip $1:exec zip -r $*
+
+<COMPRESS>*.tar.Z:tar_z.xpm:exec tar xfvZ $1:exec tar cfvZ $*
+<COMPRESS>:compressed2.xpm:exec uncompress $1:
+
+<GZIP>*.tar.gz:tar_z.xpm:exec tar xfvz $1:exec tar cfvz $*
+<GZIP>*.taz:tar_z.xpm:exec tar xfvz $1:exec tar cfvz $*
+<GZIP>*.tgz:tar_z.xpm:exec tar xfvz $1:exec tar cfvz $*
+<GZIP>*.tar.z:tar_z.xpm:exec tar xfvz $1:exec tar cfvz $*
+<GZIP>:compressed.xpm:exec gunzip $1:
+
+<UUENC>:uu.xpm:exec uudecode $1:
+
+# default entries
+
+<unreadable>:no_entry.xpm::
+<ascii>:plain.xpm:EDIT:
+<data>:binary.xpm:EDIT:
+<empty>:empty.xpm:EDIT:
