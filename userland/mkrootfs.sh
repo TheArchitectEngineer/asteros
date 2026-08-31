@@ -160,6 +160,10 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 		echo "xsetbg found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/xsetbg/xsetbg ::/bin/xsetbg
 	fi
+	if [ -f build/xorg-target-root/bin/wmsetbg ]; then
+		echo "wmsetbg found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/wmsetbg ::/bin/wmsetbg
+	fi
 	mmd -i "$ROOTFS_IMG" ::/root 2>/dev/null
 	mcopy -i "$ROOTFS_IMG" userland/twmrc ::/root/.twmrc
 	if [ -f build/xorg-target-root/bin/wmaker ]; then

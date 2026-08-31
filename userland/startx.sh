@@ -63,11 +63,17 @@ while [ -n "$outer" ]; do
     outer="${outer#?}"
 done
 
-# Solid red wallpaper (userland/xsetbg.c) before wmaker starts, so the
-# root window is never seen unpainted between Xfbdev's own default
-# background and wmaker taking over. Best-effort: don't let this block
-# wmaker from launching if it fails or hangs.
+# Solid red fill first (userland/xsetbg.c, instant) so the root window
+# is never seen unpainted between Xfbdev's own default background and
+# the real wallpaper below. Best-effort: don't let this block wmaker
+# from launching if it fails or hangs.
 /bin/xsetbg 192 0 0 &
+
+# Real photo wallpaper via wmsetbg (WindowMaker's own bg-setting
+# utility, linked against real libjpeg -- see src/libjpeg/build.sh)
+# -f/--fillscale scales the image to fill the screen while keeping its
+# aspect ratio, matching how a normal desktop wallpaper behaves.
+/bin/wmsetbg -f /usr/share/WindowMaker/Backgrounds/Flowers.jpg &
 
 # Deliberately no auto-launched xterm/xclock/anything else here.
 # WMRootMenu already has an ("XTerm", EXEC, "xterm -sb") entry, so the
