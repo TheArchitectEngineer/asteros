@@ -1,0 +1,2152 @@
+#BEGIN introduction "0. Introduction" "$Id: Help_fr,v 1.15 2005/03/20 20:15:35 demailly Exp $"
+Bienvenue dans la dernière version de XPaint. 
+
+XPaint est un programme assez complet de création et d'édition 
+d'images. Il met en oeuvre de manière cohérente une trentaine d'outils 
+graphiques analogues à ceux figurant dans les programmes de dessin 
+graphique les plus courants.
+
+XPaint permet notamment l'édition simultanée de plusieurs images et supporte 
+de nombreux formats, en particulier PNG, JPEG, GIF, TIFF, PPM, XBM, XPM, etc.
+
+XPaint ne cherche pas à rivaliser avec des programmes beaucoup plus 
+sophistiqués comme "Gimp" (http://www.gimp.org), mais essaie de
+mettre l'accent sur la facilité d'emploi.
+
+Les diverses fonctionnalités de XPaint sont accessibles depuis la boîte à
+outils, où les boutons permettent de choisir l'opération courante de dessin.
+La barre de menu permet d'ouvrir des canevas pour la création ou la
+modification d'images. Chaque fenêtre de canevas ouverte donne accès à sa
+propre palette de couleurs et de motifs, alors que l'opération de dessin en
+cours est sélectionnée globalement pour toutes les fenêtres.
+
+Par défaut toutes les images spécifiées sur la ligne de commande sont
+chargées dans le navigateur des fichiers préselectionnés, mais seule la
+première sera ouverte. L'option de commutation /o (resp. /c, /l) indique
+que les images suivantes seront ouvertes dans un canevas graphique (resp. 
+chargées en mémoire dans le presse-papier, resp. de nouveau listées dans
+le navigateur de fichiers).
+
+XPaint peut fonctionner sous divers modes d'affichage. La sauvegarde
+des images se fait en fonction du mode d'affichage courant (par
+exemple, une image de couleur chargée sur un affichage en échelle de
+gris sera sauvée comme image en échelle de gris). Ceci peut bien sûr
+entraîner comme conséquence une perte de données au niveau des couleurs; 
+vous avez donc intérêt à utiliser un mode d'affichage supportant le
+plus grand nombre possible de couleurs, idéalement 16777216 couleurs 
+(24 bits). Reportez-vous à la section 'Perte de données' pour plus de 
+détails. 
+
+De plus amples informations sont disponibles sous chacune des rubriques 
+spécifiques. Faites-vous plaisir en utilisant XPaint ! 
+
+#BEGIN data_loss "1. Perte possible de données" 
+XPaint mémorise les images en cours d'édition en fonction du mode
+chromatique et de la profondeur d'image du serveur X (et donc du nombre 
+de couleurs utilisées); l'information chromatique stockée dans une
+image de plus haute définition peut donc se trouver dégradée. Ceci
+signifie que, en général, les données de couleurs seront irrémédiablement 
+dégradées ou perdues si l'affichage met en oeuvre des couleurs en moins 
+de 24 bits.
+
+Plus spécifiquement, pour des profondeurs chromatiques de moins de 8 bits,
+les images 24 bits ("vraies couleurs") et les images à base de palette
+chromatique 8 bits ("pseudo-couleurs") seront réduits à la définition de
+l'affichage; pour les affichages de 8 bits, les images en pseudo-couleurs
+8 bits seront préservées mais celles en pseudo-couleurs 12 bits et les
+images en vraies couleur 24 bits subiront une dégradation de la définition
+des couleurs; pour les affichages à 15 et 16 bits de profondeur
+(typiquement RVB 555 et 565, respectivement), les images en vraies
+couleurs 24 bits et certaines images pseudo-couleurs de 8 bits subiront
+une dégradation de leur définition; enfin pour une affichage en 
+24 et 32 bits, seules les images telles que les images en échelle de 
+gris 16 bits ou en vraies couleurs de très haute définition (48 bits)
+subiront une dégradation.
+
+Notez également que tous les autres types d'informations auxiliaires
+inclus dans l'image originale (commentaires, date de création, copyright, 
+etc...) seront ignorés et donc perdus au moment de la sauvegarde.
+
+#BEGIN command "2. Options de la ligne de commande"
+xpaint [-canvas] [-screenshot] [-magnifier] [-nowarn]
+#NL
+       [-menubar] [-nomenubar] [-fullmenu] [-simplemenu]
+#NL
+       [-language LANGUE] [-zoom VALEUR]  [-sharedir REPERT]
+#NL
+       [-menufont POLICE] [-encoding 0/8/16]
+#NL
+       [-twistcolor VALEUR] [-hilitcolor VALEUR]
+#NL       
+       [-rcfile FICHIER] [-msgfile FICHIER] [-helpfile FICHIER]
+#NL
+       [-size LARGEURxHAUTEUR] [-winsize LARGEURxHAUTEUR] [-dpi DPI]
+#NL
+       [-undosize VALEUR] [-operation NOMBRE]
+#NL
+       [-filter FICHIER] [-proc FICHIER]
+#NL
+       [-8 | -12 | -24 | -visual VISUEL]
+#NL
+       IMAGE1 IMAGE2 ... /o IMAGE3 ... /c IMAGE4 ... /l IMAGE5 ...
+#NL
+	-language	adopter LANGUE pour les dialogues et menus
+#NL
+	-encoding	Utiliser 0 (UTF8), 8 (8 bit) or 16 (16 bit)
+#NL
+	-menufont	Choisir police freetype pour les menus
+#NL
+	-twistcolor	Modifier vers le brun les items menu verrouillés
+#NL
+	-hilitcolor	Choisir couleur surbrillance = hexadecimal #PQRSTU
+#NL
+	-zoom	VALEUR de zoom par défaut du canevas de dessin
+#NL
+	-size	LARGEURxHAUTEUR dimensions par défaut du canevas
+#NL
+	-winsize	LARGEURxHAUTEUR dimensions par défaut des fenêtres
+#NL
+	-dpi		utiliser résolution DPI pour les images vectorielles
+#NL
+	-undosize	VALEUR par défaut de la mémoire tampon d'annulation
+#NL
+	-operation	activer l'opération numéro# dans le panneau d'outils
+#NL
+	-filter		compiler FICHIER comme filtre défini par un script C
+#NL
+	-proc		compiler FICHIER comme procédure écrite en C
+#NL
+	-8	utiliser un visuel 8-bit (PseudoColor)
+#NL
+	-12	utiliser un visuel 12-bit (PseudoColor)
+#NL
+	-24	utiliser un visuel 24-bit (TrueColor)
+#NL
+	-canvas		ouvrir un canevas vierge au démarrage
+#NL
+	-screenshot 	ouvrir xpaint sans interface, en mode capture d'écran
+#NL
+	-magnifier 	ouvrir xpaint en mode loupe grossissante
+#NL
+	-nowarn		ne pas afficher l'avertissement de perte de données
+#NL
+	-menubar	montrer la barre de menu en haut des canevas
+#NL
+	-nomenubar	ne pas montrer la barre de menu en haut des canevas
+#NL
+	-fullmenu	utiliser un menu flottant complet dans les canvas
+#NL
+	-simplemenu	utiliser un menu flottant avec le seul menu édition
+#NL
+	-sharedir	utiliser REPERT au lieu du répertoire share prédéfini
+#NL
+	-rcfile		utiliser FICHIER au lieu de ~/.XPaintrc
+#NL
+	-msgfile	utiliser FICHIER au lieu des messages par défaut
+#NL
+	-helpfile	utiliser FICHIER au lieu de l'aide par défaut	
+#NL
+	-visual		utiliser VISUEL au lieu du choix par défaut.
+#NL                  
+		Les choix disponibles sont : TrueColor, 
+#NL
+        	PseudoColor, DirectColor, StaticColor,
+#NL
+		StaticGray, GrayScale, ou la valeur décimale
+#NL
+		du visuel (telle que donnée par xdpyinfo).
+#NL
+Suivent normalement les noms IMAGE1, IMAGE2 (...) des images à charger.
+#NL
+Par défaut toutes ces images sont listées dans le navigateur
+#NL
+des fichiers préselectionnés, mais seule la première sera ouverte.
+#NL
+L'option de commutation /o (resp. /c, /l) indique que les images 
+#NL
+suivantes seront ouvertes dans un canevas graphique (resp. chargées
+#NL
+en mémoire dans le presse-papier, resp. de nouveau listées dans le
+#NL
+navigateur de fichiers).
+#NL
+
+#BEGIN toolbox "3. Boîte à outils" 
+La boîte à outils rassemble de manière visuellement attractive
+l'ensemble des outils de dessin disponibles. Le choix d'un outil
+à partir de la boîte à outils active celui-ci simultanément pour 
+tous les canevas ouverts par XPaint. 
+
+#PUSH
+#BEGIN tool_file "3.1. Menu Canevas"
+Le menu Canevas est utilisé pour ouvrir un nouveau canevas vierge ou
+pour charger une image à partir d'un fichier, ou encore pour effectuer
+une capture d'écran. 
+
+Nouveau Canevas
+#NL
+	crée un nouveau canevas vierge (taille par défaut: 
+#NL 
+	640x480). Voir "Options de ligne de commande" pour
+#NL
+	changer la taille par défaut au démarrage. 
+
+Canevas de taille spécifiée...
+#NL
+	crée une nouveau canevas dont les dimensions sont
+#NL
+	celles spécifiées.
+
+Ouvrir Image...
+#NL
+	Charge l'image contenue dans le fichier sélectionné,
+#NL	
+	et ouvre un nouveau canevas affichant cette image,
+#NL
+	Celle-ci peut alors être éditée et modifiée.
+#NL
+	Divers formats d'image peuvent être lus et affichés.
+#NL
+	Si aucun format spécifique n'est spécifié, XPaint
+#NL
+	tente de trouver automatiquement le bon format
+#NL
+	d'image (il est recommandé de laisser XPaint faire).
+#NL
+	Si le format d'image n'est pas reconnu, un message
+#NL
+	d'erreur sera affiché.
+
+Capture d'écran...
+#NL
+	Capture à l'aide de la souris ou du pointeur un
+#NL
+	rectangle arbitraire de l'écran et le charge
+#NL
+	dans un nouveau canevas. Le bouton gauche est
+#NL
+	utilisé pour sélectionner les sommets du rectangle,
+#NL
+	le bouton du milieu pour capturer une fenêtre
+#NL
+	complète, et le troisième bouton pour annuler 
+#NL
+	l'opération de capture
+
+Quitter
+#NL
+	Termine le programme XPaint, après avoir fermé
+#NL
+	toutes les fenêtres encore ouvertes. Une confirmation 
+#NL
+	est demandée si des images ont été créées/modifiées
+#NL
+	sans avoir été sauvegardées.
+
+#BEGIN tools "3.2. Outils de Dessin" 
+Les icônes de la boîte à outil permettent de sélectionner l'outil de dessin
+à mettre en oeuvre. Celui-ci est alors commun à tous les canevas ouverts.
+
+Les outils sont choisis en cliquant avec le bouton de souris un (bouton
+de gauche). Un clic avec le bouton trois (bouton droit) de la souris 
+sur n'importe laquelle des icônes ouvre un menu présentant les options 
+disponibles pour cet outil. Pour ceux des outils qui possèdent des
+paramètres ajustables, un double-clic permet d'ouvrir plus rapidement 
+le sous-menu de sélection des paramètres.
+
+Reportez-vous aux notices de chacune des opérations spécifiques de 
+dessin pour de plus amples informations. 
+
+#PUSH
+#BEGIN pencil "Crayon" 
+Le crayon trace une ligne courbe quelconque sur le canevas, en suivant 
+les différentes positions occupées par le curseur pendant que le bouton 
+de la souris est maintenu appuyé. L'épaisseur de trait présélectionnée
+est utilisée pour effectuer le tracé.
+
+Le bouton 1 (gauche) permet de tracer dans le motif ou la couleur primaire,
+tandis que le bouton 2 (milieu) active le motif ou la couleur secondaire.
+
+Voir le "Menu Trait" du canevas de peinture pour de plus amples informations
+sur la sélection de l'épaisseur de trait et du style de pointillés. 
+
+#BEGIN dynpencil "Crayon dynamique"
+Le crayon dynamique peint des lignes courbes d'épaisseur variable,
+dans un style qui peut rappeler la calligraphie à la plume.  Le tracé
+s'effectue pendant que le bouton de souris est maintenu appuyé. 
+L'épaisseur du tracé varie suivant la vitesse des mouvements du
+curseur, fine lorsque le mouvement est rapide, large lorsque le
+mouvement ralenti, comme si le mouvement étirait un ruban en
+caoutchouc. Le crayon dynamique peut être ajusté aux moyen de
+3 paramètres "Epaisseur", "Masse" et "Traction".
+
+Le crayon dynamique suit les mouvements du curseur avec une inertie
+proportionnelle à la valeur de la masse, de sorte qu'une grande masse
+peut donner lieu à un retard important des mouvements par rapport à
+ceux du curseur. Le paramètre "Epaisseur" contrôle la largeur maximale
+du trait (ceci se produit lorsque la vitesse de déplacement est
+faible). Le paramètre "Traction" contrôle la force de liaison entre le
+curseur et la position du crayon.
+
+Les paramètres sont modifiables au moyen du menu accessible par un clic
+avec le bouton 3 (droit) sur l'icône du crayon dynamique.
+
+Le bouton 1 (gauche) réalise le tracé dans la couleur ou le motif primaire,
+tandis que le bouton 2 (milieu) active la couleur ou le motif secondaire.
+
+#BEGIN dotPencil "Crayon diffus" 
+Le "Crayon diffus" trace des lignes constituées de traînées de points,
+disposées en suivant le mouvement du curseur sur le canevas, pendant que
+le bouton de la souris est maintenu appuyé. 
+
+Le bouton 1 (gauche) peint dans la couleur ou le motif primaire, le
+bouton 2 (milieu) dans la couleur ou le motif secondaire.
+
+Voir le menu "Crayon" si vous souhaitez plutôt tracer des lignes
+continues.
+
+#BEGIN brush "Pinceau/Brosses" 
+Le pinceau utilise la brosse courante pour peindre sur le (ou les) canevas. 
+Le tracé s'effectue en maintenant le bouton de souris et en déplaçant la 
+souris sur le canevas. Le bouton 1 (gauche) permet d'utiliser la couleur
+ou le motif primaire, tandis que le bouton 2 (milieu) active la couleur
+ou le motif secondaire.
+
+Si l'option "Transparent" est activée (menu accessible par un clic avec
+le bouton 3 de droite sur l'icône), la couleur déposée est mélangée avec 
+la couleur déjà présente sur le canevas. Il est possible de changer
+l'opacité de la brosse du pinceau au moyen de l'option "Paramètres..." du
+menu. Une valeur de 0 pourcent aura pour effet de ne pas modifier la
+couleur présente sur le canevas, tandis que 100 pour cent donne le 
+même résultat qu'en utilisant le pinceau sans l'option de transparence. 
+
+Si l'option "Surimpression" est activée (menu accessible par un clic avec
+le bouton 3 de droite sur l'icône), la couleur déposée est appliquée
+comme une teinture sur le canevas, par exemple les pixels noirs déjà 
+présents sur le canevas restent noirs, mais les pixels plus clairs
+peuvent être partiellement colorés.
+
+Le type courant de brosse de pinceau peut être changé grâce au sélecteur 
+de pinceau, qui est lui-même accessible depuis le menu, ou grâce à
+l'icône de brosse depuis les canevas graphiques.
+
+#BEGIN spray "Pulvérisateur" 
+Le Pulvérisateur simule l'effet d'une bombe à peinture envoyant un jet
+sur le canevas. Il produit un ensemble aléatoire de points contenus dans 
+une zone circulaire de rayon donné. 
+
+Il est possible de changer les caractéristiques du pulvérisateur pour
+atteindre l'effet souhaité. Il y a trois paramètres qui entrent en jeu 
+dans la configuration de cet outil :
+#NL
+	Rayon		 Rayon de la zone pouvant être atteinte par le jet
+#NL 
+	Densité		 Nombre de pixels tracés dans cette zone
+#NL
+	Fréquence	 Fréquence de remplissage (en 1/10ème de seconde)
+
+De plus, il est possible de changer la distribution aléatoire des points 
+dans la zone du jet ; cette distribution peut être choisie soit uniforme,
+soit Gaussienne (la différence est en général apparente seulement pour 
+de grandes valeurs du rayon). La sélection de ces options s'effectue à 
+partir du menu accessible en cliquant avec le bouton 3 (droit) sur 
+l'icône du pulvérisateur.
+
+Comme la plupart des autres opérations, le pulvérisateur emploie la 
+couleur ou le motif primaire si le bouton 1 est maintenu appuyé,
+la couleur ou le motif secondaire si c'est le bouton 2 qui est 
+utilisé.
+
+#BEGIN smear "Etalement des Couleurs"
+L'opération d'étalement de couleurs attribue à chaque pixel situé sous
+la brosse la couleur moyenne de tous les pixels recouverts par la surface
+de la brosse. L'effet est donc d'autant plus précis que la brosse est 
+choisie petite. Le modèle courant de brosse peut être changé à l'aide du
+sélecteur accessible par un clic sur l'icône avec le bouton 3 (droit). 
+
+L'étalement de couleurs est actif pendant que le bouton de la souris est
+appuyé et que celle-ci se déplace sur le canevas.
+
+#BEGIN line "Segment de Droite" 
+L'opération "Segment de droite" trace des segments de droites dans le motif
+ou la couleur primaire, avec l'épaisseur de trait et le style de
+pointillés présélectionnés. La première extrêmité est le pixel atteint 
+par le clic lorsque le bouton 1 est appuyé, la deuxième est la position 
+où le bouton est relâché.
+
+Voir le "Menu Trait" du canevas de peinture pour plus d'informations
+sur la sélection de l'épaisseur de trait et du style de pointillés.
+Les lignes droitespeuvent également être contraintes à des incréments
+de 45 degrés (c'est-à-dire aux seules directions horizontales,
+verticales, ou diagonales) en maintenant la touche MAJ pendant le
+mouvement de la souris.
+
+Les options de l'opération segment de droite sont "Gerbe", "Vecteur"
+et "Paramètres..."
+
+L'option "Gerbe" permet de tracer une série de segments qui sont tous
+issus du même sommet, à savoir le premier point choisi à l'aide de la
+souris. Le tracé devient définitif lors de chaque clic de la souris
+avec le bouton 1 (gauche). Le tracé est terminé lorsque l'utilisateur
+clique avec le bouton 2 (milieu); ce dernier clic ne donne pas
+cependant pas lieu à un nouveau segment, même si la position de la
+souris a varié entre temps. Tous les segments sont peints dans la
+couleur ou le motif primaire. Les angles des segments peuvent être
+contraints à avoir des incréments de 45 degrés (c'est-à-dire, à avoir
+des directions horizontales, verticales ou diagonales) en maintenant 
+la touche MAJ enfoncée pendant la durée du déplacement de la souris avec
+le bouton 1 appuyé.
+
+Lorsque l'option "Vecteur" est active, tous les segments ou rayons
+sont agrémentés d'une pointe de flèche, tracée dans le prolongement
+du segment, de l'origine vers l'extrêmité. Cette pointe de flèche est
+modulable en fonction des choix faits à l'aide de l'option "Paramètres..."
+
+#BEGIN brokenline "Ligne Polygonale" 
+La ligne polygonale trace une ligne brisée constituée de segments de
+droites mis bout à bout. La ligne débute avec le premier point
+sélectionné au moyen de la souris. Chaque nouvelle extrêmité est
+choisie à l'aide du bouton 1 (gauche) de la souris. Le bouton 2
+(milieu) de la souris termine l'opération sans former un nouveau
+segment, même si la position de la souris a changé entre temps.
+
+Tous les tracés sont effectués dans la couleur ou le motif primaire,
+en fonction de l'épaisseur de trait sélectionnée et du style de 
+pointillés courant.
+
+Voir le "Menu Trait" du canevas de peinture pour de plus amples informations
+sur le choix de l'épaisseur de trait et du style de pointillés.
+
+#BEGIN arc "Arc"
+L'opération "arc" trace un arc reliant deux points dans la couleur
+ou le motif de la sélection primaire, en fonction de l'épaisseur de trait 
+courante et du style de pointillés courant. Suivant le mode opératoire
+choisi, il s'agira d'un arc de cercle ou d'un arc d'ellipse.
+
+Plusieurs modes de tracés sont disponibles. Le premier, proposé par défaut,
+consiste à tracer un arc de cercle reliant 3 points (c'est donc un arc
+du cercle circonscrit à un triangle). Tant que le tracé n'est pas
+définitif, il est possible de revenir sur le choix de l'extrêmité de l'arc
+en appuyant sur la touche MAJ.
+
+Un second mode de tracé consiste à réaliser des quarts d'ellipse joignant 
+le point origine à un point extrêmité. Dans ce cas, une pression sur la 
+touche MAJ change la concavité de l'arc (vers le haut plutôt que vers le
+bas).
+
+Les troisième et quatrième modes de tracé produisent des arcs d'ellipse
+quelconques (ayant leurs axes horizontaux et verticaux). Il faut d'abord
+sélectionner l'ellipse elle-même, puis les extrêmités de l'arc. Dans le
+mode 3, le point initial fournit le centre de l'ellipse. Dans le mode 4,
+les deux premiers points sont les sommets diagonaux du rectangle dans
+lequel l'ellipse est inscrite. Dans chacun des cas, une pression sur la 
+touche MAJ force le tracé d'un arc circulaire.
+
+Voir le "Menu Trait" du canevas de peinture pour de plus amples informations 
+sur le choix de l'épaisseur de trait et du style de pointillés.
+
+#BEGIN arrow "Flèche" 
+L'opération "Flèche" permet de tracer des pointes de flèche. Un premier
+clic avec le bouton gauche de la souris poitionne l'extrêmité de la
+pointe de flèche, le second clic permet ensuite de faire varier 
+l'orientation de la flèche. Si le deuxième clic a lieu exactement à
+l'emplacement du premier clic, aucune flèche n'est tracée (ce qui permet
+éventuellement d'annuler l'opération).
+
+La pointe de flèche est modulable en fonction des choix faits à l'aide 
+de l'option "Paramètres...". Les paramètres disponibles sont le type
+de la flèche (1, 2 ou 3), la taille de la pointe de flèche, et le 
+demi-angle au sommet de la pointe de flèche.
+
+#BEGIN text "Saisie de Textes" 
+L'opération de saisie de textes permet d'introduire des chaînes
+de caractères sur le canevas graphique, avec une police de caractères
+pouvant être modifiée à loisir par l'utilisateur.
+
+Une pression sur le bouton deux de souris effectue un "Coller"
+du texte contenu dans le tampon primaire Copier/Coller du serveur X.
+L'insertion s'effectue à partir de la position du clic initial
+de la souris sur le canevas graphique.
+
+Consulter le "Menu Police" pour de plus amples informations sur la
+procédure de sélection des polices de caractères.
+
+Nota: si la police de caractères est modifiée pendant une insertion 
+de textes, l'opération d'insertion est considérée comme interrompue. 
+Il ne sera donc plus possible d'utiliser la touche d'effacement pour 
+effacer les parties du texte qui auraient déjà été saisies avec une 
+autre police de caractères.
+
+#BEGIN erase "Gomme" 
+La gomme permet d'effacer une portion de l'aire du canevas. La zone
+parcourue est colorée de manière uniforme par la couleur de fond
+courante - blanc par défaut.
+
+La géométrie de la gomme est la même que celle de la brosse courante
+utilisée pour les tracés à l'aide du pinceau. La fenêtre de sélection
+de la brosse est accessible au moyen du menu ad hoc, qui est activé
+en cliquant avec le bouton de souris 3 (droit) sur l'icône de la
+gomme.
+
+Voir aussi les notices sur "Pinceau" et "Changement de couleur de fond..." 
+dans la menu "Image" de la fenêtre de canevas pour plus d'information. 
+
+#BEGIN box "Rectangle [Rempli] [Région]" 
+L'opération "Rectangle" peint des bords de rectangles ou de carrés au moyen 
+d'un trait possédant l'épaisseur sélectionnée. Une pression de la touche 
+MAJ après le choix du premier point et pendant le déplacement de la souris
+force le tracé d'un carré plutôt que d'un rectangle quelconque.
+
+L'option "Centre" peut-être activée en appuyant sur l'icône avec
+le bouton trois (droit). Dans ce cas, le premier point sélectionné
+sera le centre du rectangle ou du carré, et le deuxième sera un
+point sur le périmètre. 
+
+L'opération "Rectangle rempli" peint le bord dans la couleur ou le
+motif primaire, et remplit l'intérieur avec la couleur ou le motif
+secondaire.
+
+Voir le "Menu Trait" du canevas de peinture pour plus d'informations sur le
+choix de l'épaisseur de trait et du style de pointillés.
+
+#BEGIN oval "Ovale [Rempli] [Région]" 
+L'opération "Ovale" produit des cercles ou des ellipses tracés avec
+l'épaisseur de trait présélectionnée. Dans le mode normal, les ovales
+sont inscrits dans une boîte dont les sommets diagonaux sont déterminés
+par la position initiale du clic et la position où le bouton est
+relâché. De plus, une pression de la touche MAJ pendant le
+déplacement de la souris contraint l'ovale à être un cercle.
+
+Le mode de tracé est différent si l'on choisit l'option "Centre",
+à partir du menu accessible à l'aide d'un clic avec le bouton 3 (droit) 
+sur l'icône des ovales. Dans ce cas, la position du clic initial sera le 
+centre du cercle ou de l'ovale (plutôt que l'un des sommets de la boîte), 
+tandis que la position où le bouton est relâché donnera un point du 
+périmètre de la boîte circonscrite.
+
+Les bords des ovales sont peints dans le motif ou la couleur primaire,
+et remplis dans le motif ou la couleur secondaire. 
+
+Voir le "Menu Trait" du canevas de peinture pour de plus amples informations
+sur la sélection de l'épaisseur de trait et du style de pointillés.
+
+#BEGIN freehand "Forme Libre [Remplie] [Région]"
+L'opération "Forme Libre" permet à l'utilisateur de dessiner des courbes
+fermées quelconques au moyen du crayon. Quand le bouton de souris est 
+relâché, le dernier point dessiné est relié au point de départ, et le
+dessin est terminé.
+
+Le tracé peut être effectué dans la couleur ou le motif primaire avec le 
+bouton 1 (bouton gauche) ou dans la couleur ou motif secondaire avec 
+le bouton 2 (bouton du milieu). Les formes libres remplies sont alors 
+complétées avec l'autre couleur (ou l'autre motif). L'épaisseura du trait
+de la frontière est déterminé par la valeur présélectionnée.
+
+Voir le "Menu Trait" du canevas de peinture pour de plus amples informations 
+sur la sélection de l'épaisseur de trait et du style de pointillés.
+
+#BEGIN polygon "Polygone [Rempli] [Région]" 
+Un "polygone" consiste en une ligne brisée fermée, constituée d'une série 
+de segments de droite mies bout à bout. Chaque sommet est choisi à l'aide 
+du bouton 1 (gauche) de la souris. La fin de l'opération s'obtient en 
+appuyant sur le bouton 2 (milieu) ; cette dernière étape ferme le polygone,
+mais ne crée pas de nouveau segment intermédiaire, même si la position de 
+la souris a varié entre temps.
+
+Le tracé est effectué dans la couleur ou le motif primaire, en
+utilisant l'épaisseur de trait présélectionnée et le style de
+pointillés courant.  Les "polygones remplis" sont remplis avec la
+couleur ou le motif secondaire. Dans ce cas, si la ligne ploygonale
+n'a pas été tracée fermée, un nouveau segment vient s'interposer entre
+le premier et le dernier sommet saisis.
+
+Voir le "Menu Trait" du canevas de peinture pour de plus amples informations
+sur la sélection de l'épaisseur de trait et du style de pointillés.
+
+#BEGIN spline "Courbe spline [Remplie] [Région]" 
+L'opération "Courbe spline" permet de créer des courbes connexes
+constituée d'arcs de cubiques de Bézier, ou plus généralement d'une
+combinaison arbitraire de cubiques de Bézier et de segments de
+droite. Les différents morceaux de cubiques de Bézier sont calculés de
+telle manière qu'ils interpolent aussi bien que possible les points
+intermédiaires, c'est-à-dire par défaut sans créer de point anguleux
+sur la courbe. Chaque nouveau point est choisi à l'aide du bouton 1
+(gauche) de la souris.  Le bouton 2 (milieu) sert à indiquer la fin de
+l'opération, sans créer de nouvel arc - même si la souris a été
+déplacée entre temps.  Pour commencer une nouvelle portion d'arc de Bézier
+ou de segment de droite (et donc, pour créer éventuellement un point
+anguleux), il suffit de maintenir la touche MAJ appuyée au moment de
+la création du premier tronçon de cet arc.
+
+Les courbes splines peuvent être soit ouvertes soit fermées; le choix du
+type "ouvert" ou "fermé" est possible grâce aux options du menu, accessible
+via un clic avec le bouton 3 (droit) sur l'icône de courbe spline.
+Si la touche "Contrôle" est maintenue appuyée pendant le déplacement de 
+la souris, les courbes splines devant être tracées fermées seront tracées
+fermées à tout moment, ceci de façon à pouvoir anticiper la forme finale
+avant que la courbe fermée soit réellement achevée et le choix du dernier
+point confirmé. Le choix de l'option "Achevée" a le même effet, sans qu'il 
+soit nécessaire d'appuyer sur la touche Contrôle.
+
+Tous les tracés sont effectués en fonction de l'épaisseur de trait 
+présélectionnée et du style de pointillés courant, dans la couleur ou le 
+motif primaire.
+
+Voir le "Menu Trait" du canevas de peinture pour plus d'informations sur
+la sélection de l'épaisseur de trait et du style de pointillés.
+
+#BEGIN select "Sélection de Régions"
+Il y a cinq choix possibles de régions :
+
+1)
+Régions rectangulaires
+#NL
+2) Régions elliptiques
+#NL
+3) Régions de forme fibre (tracé "à la main")
+#NL
+4) Régions polygonales
+#NL
+5) Régions dont le contour est une courbe spline
+
+Chacune de ces sélections possibles est figurée par l'icône bleue
+située dans la même rangée que les outils correspondants de tracé ou
+de remplissage.
+
+Dans le cas du choix d'une région rectangulaire ou elliptique, une
+pression sur la touche MAJ pendant le déplacement de la souris
+contraindra la région à être un carré ou un cercle, respectivement.
+
+Par défaut, la région sélectionnée devient semi-transparente lorsque le
+bouton gauche de la souris est maintenu appuyé. Un double-clic de ce bouton
+ou une pression sur la touche "Espace" permet alternativement d'activer et
+désactiver la semi-transparence. La semi-transparence a pour but de rendre
+le positionnement de la région plus aisé, en particulier si celle-ci doit
+être ajustée par rapport au canevas sous-jacent. Pour ne pas activer du tout
+la transparence, il suffit d'utiliser le bouton droit. Le bouton du milieu
+permet quant à lui d'effectuer une rotation de la région selectionnée.
+
+En outre, trois options sont disponibles pour chacune des opérations de
+sélection de régions. Elles peuvent être activées en cliquant avec le 
+bouton 3 (droit) sur chacune des icônes "régions" de la boîte à outils. 
+Ces options sont :
+
+Toutes couleurs		Sélectionner la région entière.
+#NL
+Omettre intervalle	Capturer ceux des pixels de la région
+#NL
+			qui ne se situent pas dans l'intervalle 
+#NL
+			de couleurs spécifié.
+#NL
+Capturer intervalle	Capturer seulement ceux des pixels de 
+#NL
+			la région qui se situent dans 
+#NL
+			l'intervalle de couleur spécifié.
+#NL
+Voir "Variance Chromatique" pour de plus amples informations concernant 
+la sélection des intervalles de couleurs.
+
+Les opérations qui sont effectuées sur des régions sélectionnées incluent 
+la possibilité de les déplacer et de les changer de taille ou d'orientation.
+Une pression sur la touche MAJ pendant une opération faisant varier la taille
+de la région contraindra celle-ci à garder le même aspect (la transformation
+permise est donc seulement une similitude). Une pression sur la touche MAJ
+pendant une opération de translation contraint la translation à ne 
+s'effectuer que dans une direction horizontale ou verticale.
+
+Notez que le fait de déplacer une région a pour conséquence de laisser un
+trou à l'endroit où se situait initialement la région, et ce trou sera
+peint dans la couleur de fond courante. 
+
+Voir "Couleur de fond..." dans le menu "Image" des fenêtres de canevas
+pour de plus amples informations.
+
+Notez qu'il est également possible de déplacer la région pixel par pixel
+en employant les flèches du clavier. Une pression simultanée sur la touche 
+"Contrôle" permet d'accélérer le déplacement - avec une translation
+basique de plusieurs pixels.
+
+#BEGIN fill "Remplissage" 
+L'opération de remplissage remplit une zone située autour du point sélectionné,
+déterminée en comparant la couleur du pixel sélectionné avec celle des pixels
+adjacents, de proche en proche, jusqu'à ce qu'une variation soit trouvée; 
+des pixels contigus diagonalement ne sont pas considérés comme adjacents. 
+La zone ainsi déterminée est remplie avec la couleur ou le motif primaire 
+si le clic est effectué avec le Bouton 1 (gauche), avec la couleur ou le 
+motif secondaire si le clic est effectué avec le Bouton 2 (milieu)
+
+Plusieurs options sont disponibles à partir du menu trouvé en cliquant
+sur l'icône avec le Bouton 3 (droit). L'option "Remplissage de zone"
+s'effectue comme décrit plus haut, de proche en proche en suivant les
+pixels adjacents. L'option "Remplissage non contigu" change la couleur
+de tous les pixels ayant la même couleur que le pixel atteint par le clic
+initial, même lorsque ceux-ci ne sont pas adjacents. La nouvelle couleur
+ou le nouveau motif attribué correspondent à la sélection primaire ou 
+secondaire en fonction du bouton utilisé.
+
+Le choix de l'option "Variance chromatique" permet de traiter
+les pixels qui sont non seulement de la couleur précise du pixel
+initial, mais aussi ceux-ci qui en diffèrent par une variance
+choisie par l'utilisateur (delta). Les valeurs de la variance pour
+les composantes rouge, verte, bleue sont sélectionnées au moyen
+du Sélecteur de variance.
+choisie... '. 
+
+#BEGIN gradientFill "Remplissage avec Dégradé"
+L'opération de remplissage dégradé rempli une zone situé autour d'un
+Pixel choisi avec une gamme de couleurs obtenues en mélangeant les
+couleurs primaires et secondaires. La zone est déterminée en
+comparant les couleurs des pixels adjacents jusqu'à ce qu'une
+différence soit trouvée. Des Pixels contigus diagonalement ne sont 
+pas considérés comme adjacents.
+
+Les options de "Remplissage de zone", de "Remplissage non contigu" et de
+"Variance chromatique" du menu se comportent de la même manière que
+pour le remplissage avec motif uni. Plusieurs variantes de remplissage,
+à savoir les modes linéaire, radial, conique ou carré sont accessibles
+en cliquant avec le bouton de souris 3 (droit) l'icône de remplissage 
+dégradé. En outre, plusieurs paramètres spécifiques peuvent être ajustés.
+Ces paramètres sont : 
+
+Angle
+#NL
+	Définit l'angle d'inclinaison caractéristique, cette valeur
+#NL
+	n'étant pas significative pour le mode radial. L'intervalle
+#NL
+	valide est  -360 à 360 degrés.
+
+Valeur de Transition
+#NL
+	Si la valeur attribuée est positive, la zone dans 
+#NL
+	laquelle s'effectue une transition de couleurs est moins
+#NL
+	large, ce qui conduit à une variation plus contrastée.
+#NL
+	Au contraire, une valeur négative conduira à une
+#NL
+	transition plus lisse. L'intervalle de valeurs admises
+#NL
+	est -49% à 49%.
+
+Décalage Horizontal/Vertical
+#NL
+	définit le centre du mode de remplissage. La gamme valide est
+#NL
+	-100 % à 100 %. 
+#NL
+	Ce paramètre n'a aucun effet pour le mode linéaire. 
+
+Subdivisions
+#NL
+	Définit le nombre maximum de couleurs qui seront employées
+#NL
+	pour les différentes transitions de couleur.
+#NL 
+	Avec des affichages autres qu'en vraies couleurs, il peut 
+#NL 
+	être utile de limiter le nombre de couleurs employées pour
+#NL
+	de éviter de saturer la palette de couleurs (Colormap), qui
+#NL
+	dispose en général d'au plus 256 entrées. Les petits nombres
+#NL
+	créent un effet "d'empilement de boîtes" qui peut éventuellement
+#NL
+	être désiré. L'intervalle valide pour le nombre de couleurs est
+#NL
+	de 1 à 300. 
+
+#BEGIN fractalFill "Remplissage Fractal"
+L'opération de remplissage fractal remplit la zone située autour d'un 
+pixel choisi avec des motifs de couleurs fractals. La zone est déterminée
+en comparant les couleurs des pixels adjacents jusqu'à ce qu'une
+différence soit trouvée. Des pixels contigus diagonalement ne sont 
+pas considérés comme adjacents.
+
+Les options de "Remplissage de zone", de "Remplissage non contigu" et de
+"Variance chromatique" du menu se comportent de la même manière que
+pour le remplissage avec motif uni. 
+
+Plusieurs  modes de remplissage fractal peuvent être choisis en pressant
+le bouton 3 (droit) de la souris trois sur l'icône de remplissage fractal. 
+Les modes "Plasma", "Nuages", "Terre/Mer" sont disponibles.
+
+#POP
+#POP
+#BEGIN canvas "4. Canevas graphique" 
+Les fenêtres de canevas graphiques offrent un espace de dessin permettant
+à la fois de visualiser et de modifier les images. 
+
+Pour peindre sur le canevas, il faut en général choisir un outil
+approprié grâce aux icônes de la boîte à outils, puis un jeu de deux
+couleurs ou motifs, qui sont qualifiés ici de motifs primaires et
+secondaires. D'autres paramètres peuvent également être ajustés, comme
+la largeur de ligne ou la police de caractères courante. Un fois ces
+choix faits, l'utilisateur peut appliquer l'outil sélectionné sur le 
+canevas.
+
+Le bandeau supérieur des fenêtres de canevas comprend une barre de
+menu permettant d'accéder à toutes les fonctions fichier, édition,
+paramètres ou traitement des images. 
+
+Sous la barre de menu se trouve une copie à echelle réduite de la
+palette de douleurs et motifs. A gauche, l'icône "oeil" permet de
+sélectionner une couleur quelconque présente sur l'écran.  Le disque
+immédiatement à droite de l'oeil est un commutateur à 3 positions. 
+La position de départ (disque plein avec bord) permet une sélection
+simultanée des couleurs (ou motifs) primaires et secondaires, la
+suivante (cercle) permet de sélectionner la couleur ou le motif
+primaire, la dernière (disque plein sans bord) permet de sélectionner
+la couleur ou le motif secondaire.
+
+Sur la droite de la barre des menus et de la palette apparaissent
+quatre boutons qui permettent d'activer respectivement le sélecteur de
+couleurs et de motifs, la boîte à outils, le sélecteur de brosses et
+le sélecteur de polices de caractères. L'ensemble de ces fonctions est
+également accessibles en cliquant avec le bouton 3 (droit) sur la
+fenêtre graphique.
+
+On notera que chaque canevas peut avoir son propre jeu de couleurs ou de 
+motifs primaire et secondaire; par contre lorsqu'un outil est sélectionné,
+celui-ci s'applique à l'ensemble des canevas ouverts. Voir la notice 
+concernant chaque outil spécifique de dessin pour plus de détails.
+
+#PUSH 
+#BEGIN fileMenu "4.1. Menu Fichier"
+Le menu "Fichier" de la fenêtre de canevas est destiné à sauvegarder ou 
+à imprimer l'image dessinée sur le canevas.
+
+XPaint fonctionne sous un certain nombre de modes d'affichage. Les images 
+sauvegardées conservent la définition du type d'affichage (c'est-à-dire
+par exemple qu'une image de couleur chargée sur un écran à fond gris 
+se trouvera dégradée en une image grise lors de la sauvegarde).
+
+Voir "Formats d'images" pour une description des différents formats
+d'image utilisables par XPaint. 
+
+Sauvegarder
+#NL
+	Sauvegarde l'image courante avec le nom et le format 
+#NL
+	originaux du fichier. S'il s'agit d'une nouvelle image,
+#NL
+	effectuez plutôt l'opération "Sauvegarder sous".
+
+Sauvegarder sous
+#NL 
+	Sauvegarde l'image courante sous le nom et le formats
+#NL 
+	indiqués (le défaut est TIFF). 
+
+
+Sauvegarder Région...
+#NL
+	Sauvegarde la région choisie, dans la géométrie
+#NL
+	originale où elle a été sélectionnée (largeur, taille
+#NL
+	et rotation). Les régions de forme quelconque seront 
+#NL
+	sauvegardées comme des régions rectangulaires, dans
+#NL
+	lesquelles les parties situées hors du masque sont
+#NL
+	remplies avec la couleur de fond courante.
+#NL
+	Si le format de sauvegarde supporte les masques
+#NL
+	d'image (par exemple, TIFF, PNG, XPM), alors cette 
+#NL
+	information sera préservée. 
+#NL
+	Voir aussi "Charger le Tampon..." dans le menu "Canevas"
+#NL
+	de la boîte à outils pour de plus amples informations
+#NL
+	sur les images de forme quelconque.
+
+Charger le Tampon...
+#NL
+	Ouvre un fichier contenant une image, et charge
+#NL
+	celle-ci dans le tampon mémoire (Copier/Coller).
+#NL
+	Les images enregistrées dans un format supportant
+#NL
+	des masques de forme arbitraire apparaîtront avec
+#NL
+	leur contour propre, sinon le tampon apparaîtra
+#NL
+	sous forme d'une région rectangulaire.
+#NL
+	Voir "Coller" et "Sauvegarder la région..." dans 
+#NL
+	les menus "Fichier" et "Editer" des fenêtres de
+#NL
+	canevas pour de plus amples informations. 
+
+Version précédente...
+#NL
+	Recharge la dernière image sauvée. L'opération est
+#NL
+	équivalente à une fermeture sans sauvegarde du canevas
+#NL 
+	ouvert, puis à une réouverture avec chargement du 
+#NL
+	fichier original. Pour cette opération, une confirmation 
+#NL
+	vous est demandée. Si l'image n'a pas été modifiée 
+#NL
+	depuis la dernière sauvegarde, l'opération n'aura
+#NL
+	aucun effet.
+
+Imprimer...
+#NL
+	Ouvre l'"Utilitaire d'impression". Voir la section
+#NL
+	correspondante pour plus de détails. 
+
+Visualiseur externe...
+#NL
+	Charge la version courant de l'image dans une programme de
+#NL
+	visualisation externe. Le visualiseur par défaut est "xv".
+#NL
+	Ce choix peut être modifié en redéfinissant le paramètre
+#NL
+	"Canvas.extern*form*viewercmd*string"
+#NL
+	dans le fichier des app-defaults.
+#NL
+
+Fermer 
+#NL
+	Ferme la fenêtre de canevas - tout en avertissant
+#NL
+	l'utilisateur si l'image a été modifiée et nécessite
+#NL
+	une sauvegarde.
+
+#BEGIN editMenu "4.2. Menu Editer"
+Le menu "Edition" propose un ensemble d'options susceptibles
+d'opérer une interaction entre le canevas de travail et le tampon 
+utilisé pour le "Copier/Coller". Toutes les options de ce menu sont 
+également accessible à l'aide d'un clic sur le bouton 3 (droit) dans 
+la zone du canevas de peinture. Le Tampon est une image non visible 
+à l'écran, qui contient une région préalablement sélectionnée sur
+l'un des canevas ouverts - ou chargée directement à partir d'un fichier.
+
+Voir "Charger le Tampon..." dans le menu "Canevas" de la boîte à
+outils pour plus d'information sur le chargement à partir d'un fichier
+et "Changez la couleur de fond..." dans le "Menu Image" pour plus
+d'information sur la couleur de fond.
+
+Défaire
+#NL
+	Annule la dernière opération effectuée.
+#NL
+	La répétition de plusieurs commandes "Défaire" successives
+#NL
+	est autorisée, dans la limite du niveau de mémoire alloué.
+#NL
+	Voir "Mémorisation Défaire/Refaire" dans le menu "Image"
+#NL
+	pour augmenter éventuellement le niveau alloué.
+#NL
+	Lorsqu'une région est sélectionnée et qu'aucun déplacement
+#NL
+	ou aucune modification de cette région ne sont intervenus,
+#NL
+	la dernière opération de région est défaite.
+
+Refaire
+#NL
+	Annuler l'effet du dernier 'Défaire'.
+#NL 
+	"Refaire" doit être effectué juste après un 'Défaire' ou
+#NL 
+	un 'Refaire' précédent (avant de dessiner quoi que ce soit
+#NL
+	de nouveau sur le canevas). 
+
+Mémorisation Défaire/Refaire...
+#NL
+	Change le nombre d'opérations Défaire/Refaire qui
+#NL
+	peuvent être effectuées consécutivement.
+#NL
+	Notez que chaque niveau de sauvegarde consomme
+#NL
+	autant de mémoire que l'image elle-même, de sorte que
+#NL
+	des niveaux élevés de mémorisation peuvent conduire à
+#NL
+	épuisement de la mémoire.
+
+Rafraîchir
+#NL
+	Rafraîchit la fenêtre du dessin. Ceci est utile dans le
+#NL
+	cas où l'affichage du serveur X se trouve brouillé; 
+#NL
+	ceci peut se produire notamment dans le cas de bogues
+#NL
+	des routines X.
+
+Découper
+#NL
+	Découpe la région sélectionnée et la charge à la fois 
+#NL
+	dans le Tampon graphique de XPaint et celui du serveur X. 
+#NL
+	Le trou ainsi créé est rempli avec la couleur de fond
+#NL
+	courante.
+
+Copier
+#NL
+	Charge la région sélectionnée dans le tampon graphique
+#NL
+	de XPaint (et du serveur X, le cas échéant).
+
+Coller
+#NL
+	Dépose l'image contenue dans le tampon graphique de
+#NL
+	XPaint sur le canevas, à l'emplacement de la dernière 
+#NL
+	position où les bouton 1 ou 2 (gauche et milieu) ont
+#NL
+	été pressés. Les images sont d'abord chargées depuis
+#NL
+	le tampon du serveur de X, puis dans le tampon 
+#NL
+	interne de XPaint. 
+
+Effacer
+#NL
+	Découpe et efface la région sélectionnée du
+#NL
+	canevas.
+
+Capture d'écran
+#NL
+	Capture un rectangle extrait d'une position quelconque
+#NL
+	de l'écran et copie ce rectangle dans le Tampon de Xpaint. 
+#NL
+	Simultanément, une copie du tampon apparaît positionnée
+#NL
+	sur le canevas.	Le bouton 1 (gauche) de la souris est
+#NL
+	employé pour sélectionner un rectangle par deux sommets
+#NL
+	diagonalement opposés, tandis que le bouton 2 (milieu)
+#NL
+	sert à capturer une fenêtre entière. Le bouton 3 (droit)
+#NL
+	permet d'annuler l'opération en cours.
+
+Dupliquer
+#NL
+	Cette operation accomplit simultanément un copier et un
+#NL
+	coller (de sorte qu'une autre copie de la région
+#NL
+	sélectionnée apparaît sur le canevas.
+
+Sélectionner Tout
+#NL
+	Sélectionne la région constituée de la totalité du canevas.
+#NL
+	(Nota: cette opération ne met pas en jeu les éventuels
+#NL
+	choix d'intervalles de couleurs pouvant être effectués 
+#NL
+	à partir du menu des icônes de sélection de régions de la
+#NL
+	boîte à outils !)
+ 
+Effacer en Totalité
+#NL
+	Efface la totalité de l'image affichée sur le canevas.
+
+#BEGIN tool_line "4.3. Menu Trait" 
+Le menu "Trait" permet de choisir l'épaisseur de trait active. 
+Cette valeur est employée par toutes les opérations qui tracent
+des segments, arcs ou lignes quelconques, et s'applique aussi aux 
+frontières d'objets remplis tels que rectangles, ovales et polygones.
+Le menu "Trait" offre également la possibilité de choisir le style
+de pointillés. celui-ci est spécifié au moyen d'une chaîne d'au plus
+48 caractères = et -. Les caractères = indiquent les pixels qui doivent 
+être tracés, tandis que les - indiquent les espaces intermédiaires.
+Une ligne continue est ainsi déterminée par la chaîne formée d'un seul
+caractère = (une suite de plusiseurs caractères = est aussi reconnue
+comme spécifiant une ligne continue).
+
+#BEGIN tool_font "4.4. Menu Police" 
+Ce menu choisit la police courante employée pour la saisie de textes. 
+Il y a quelques choix spécifiques de polices prédéfinis, mais
+toutes les polices installés sur le système sont disponibles à
+l'aide du navigateur.
+
+Note: Si un changement de police est effectué en cours d'insertion, il
+ne sera plus possible de corriger le texte précédemment entré avec une
+autre police au moyen de la touche "Effacement vers l'arrière".
+
+Voir le "Sélecteur de Polices de Caractères" pour plus d'information sur 
+son mode d'utilisation. 
+
+#BEGIN regionMenu "4.5. Menu Région" 
+Le menu "Région" regroupe les opérations qui peuvent être appliquées à 
+la région sélectionnée. Voir les notices des opérations "Sélection de 
+régions" figurant dans la boîte à outils pour de plus amples
+informations sur les procédures de sélection de régions. 
+
+Attention: l'option 'Défaire' du menu d'édition ne permet pas de
+prendre en charge les opérations sur les régions ! Utiliser suivant
+les cas l'option 'Rétablir' du menu Région, ou l'option 'Défaire'
+du menu Filtres.
+
+Symétrie Axiale en X 
+#NL
+	Effectue une symétrie axiale de la région sélectionnée
+#NL
+	dans une direction horizontale (c'est-à-dire par rapport à
+#NL
+	un axe vertical).
+
+Symétrie Axiale en Y
+#NL
+	Effectue une symétrie axiale de la région sélectionnée
+#NL
+	dans une direction verticale (c'est-à-dire par rapport à
+#NL
+	un axe horizontal).
+
+Rotation d'angle
+#NL
+Rotation...
+#NL
+	Ces deux opérations appliquent à la région sélectionnée
+#NL
+	une rotation d'un angle spécifié (en degrés).
+#NL 
+	La rotation peut aussi être obtenue en manipulant la
+#NL
+	zone sélectionnée à l'aide du bouton 2 (milieu) de la
+#NL
+	souris. Une pression sur la touche MAJ pendant le
+#NL
+	déplacement de la souris (bouton 2 maintenu appuyé)
+#NL
+	contraint l'angle de rotation à être un multiple de	
+#NL
+	15 degrés.
+
+Transformation Linéaire...
+#NL
+	Cette opération applique à la région sélectionnée
+#NL
+	une certaine transformation linéaire définie à
+#NL
+	l'aide d'une matrice [ a, b ; c, d] spécifiée par
+#NL
+	l'utilisateur.
+
+Rétablir Géométrie
+#NL 
+	Rétablit la région sélectionnée dans sa géométrie initiale.
+#NL
+	(taille et orientation). Il est cependant à noter qu'aucune
+#NL
+	 des transformations d'image ne pourra être annulée.
+
+Cloner Région
+#NL
+	Ouvre un nouveau canevas contenant une copie de la
+#NL 
+	région sélectionnée, dans sa géométrie originale
+#NL
+	(largeur, taille et rotation).
+#NL
+	Les régions de forme quelconque seront copiés comme
+#NL
+	des régions rectangulaires rempli par la couleur de
+#NL
+	fond en dehors de la zone du masque. 
+#NL
+	Consulter "Charger le Tampon..." dans le menu 
+#NL
+	"Fichier" pour de plus amples informations sur les
+#NL
+	images de forme quelconque.
+
+Rétrécir sur la région... 
+#NL
+	Supprime toutes les parties de l'image situées en dehors
+#NL
+	de la région. Cette opération ne peut pas être inversée.
+#NL
+	L'utilisateur est donc prié de confirmer avant que
+#NL
+	l'opération soit réalisée.
+
+Auto-Rétrécissement...
+#NL
+	Change la taille du canevas, en découpant toutes les 
+#NL
+	parties situées près du bord, de même couleur que le
+#NL
+	bord. La couleur de bord est définie comme la couleur
+#NL
+	commune à au moins deux sommets. Si les sommets sont
+#NL
+	de couleurs toutes différentes, l'opération n'a aucun
+#NL
+	effet. 
+#NL
+	L'opération d'auto-rétrecissement n'est pas réversible
+#NL
+	et affecte la taille de l'image.
+
+Délimiter une Région...
+#NL
+	Pas encore implémenté. L'idée serait de délimiter
+#NL
+	une région monocolore sous le curseur.
+
+Complémenter une Région
+#NL
+	Pas encore implémenté. L'idée en serait de remplacer
+#NL
+	la région courante par son complémentaire sur le 
+#NL
+	canevas.
+
+Déselectionner
+#NL
+	Désélectionne la région précédemment sélectionnée
+#NL
+	(et libère la mémoire des structures de données
+#NL
+	utilisées pour celle-ci).
+
+
+#BEGIN filterMenu "4.6. Menu Filtres" 
+Le menu "Filtres" propose un certain nombre de transformations d'images 
+qui peuvent être appliquées à la région sélectionnée. Consulter la notice 
+"Sélection de Régions" dans le menu de la boîte à outils pour plus
+d'information sur les procédures de sélection des régions. Si aucune
+région n'est sélectionnée, le canevas graphique entier est choisi comme 
+étant la région sur laquelle le filtre sera appliqué. 
+
+Toute opération de filtre est réversible grâce à l'option 
+"Défaire Dernier Filtre", mais ceci peut s'appliquer seulement une fois 
+pour le tout dernier filtre.
+
+Inverser les Couleurs
+#NL
+	Inverse les couleurs de la région sélectionnée
+#NL
+	(par exemple, noir devient blanc, bleu devient jaune). 
+
+Durcir Contraste
+#NL
+	Applique un algorithme de traitement d'image afin
+#NL
+	d'essayer d'augmenter le contraste et la finesse de
+#NL
+	détail de la région sélectionnée.
+
+Effet de Dégradé flou
+#NL
+	Effectue un mélange des couleurs présentes dans la
+#NL
+	région en calculant la moyenne de la couleur de chaque
+#NL
+	pixel avec celle de ses voisins.
+
+Dégradé flou directionnel
+#NL
+	Cette opération est analogue au Dégradé flou normal,
+#NL
+	mais applique un algorithme plus sophistiqué près du
+#NL
+	bord pour essayer d'éviter les brouillés. L'effet est 
+#NL
+	moins prononcé que pour le dégradé flou normal.
+
+Supprimer Granularités...
+#NL
+	L'algorithme essaye de faire disparaître les artefacts
+#NL
+	(d'un scanner, par exemple), ou d'autres défauts de
+#NL
+	granulation, en remplaçant chaque pixel par la moyenne
+#NL
+	des pixels situés à l'intérieur d'un masque n x n
+#NL
+	centré en ce pixel. L'utilisateur doit préciser la taille
+#NL
+	du masque; celle-ci doite être impaire et plus grande 
+#NL
+	que 1.
+
+Détection de bord 
+#NL
+	Exécute un traitement d'image ayant pour but de déterminer
+#NL
+	les bords.
+
+Embosser 
+#NL 
+	Convertit la région sélectionnée en une échelle de gris
+#NL
+	de telle manière que les détails semblent apparaître en
+#NL
+	relief sur l'image. 
+
+
+Peinture à l'huile...
+#NL
+	Essaie de simuler un effet comparable à une peinture 
+#NL
+	à l'huile. L'utilisateur doit préciser la taille du masque,
+#NL
+	qui doit être un nombre impair positif. L'intervalle de
+#NL
+	valeurs recommandé est 3...15. Des valeurs plus élevées 
+#NL
+	engendrent un effet plus prononcé.
+
+Dispersion aléatoire...
+#NL
+	La dispersion aléatoire produit une variation chaotique
+#NL
+	de la couleur, donnant à l'image un aspect granuleux.
+#NL
+	L'utilisateur doit préciser la valeur maximale de
+#NL
+	dispersion. Les valeurs recommandées s'étendent de
+#NL
+	5 à 50. Des valeurs plus élevées engendrent un effet
+#NL
+	plus prononcé.
+
+Etaler...
+#NL
+	Cette opération permute chaque pixel de la région avec
+#NL
+	un pixel aléatoire situé à proximité, ce qui conduit à
+#NL
+	un aspect de verre dépoli. L'utilisateur doit préciser
+#NL
+	la distance maximale d'action. Les valeurs adéquates
+#NL
+	s'étendent de 1 à 10. Il est également possible de
+#NL
+	spécifier le nombre d'itérations à éxecuter. Ceci est
+#NL
+	équivalent à éxecuter manuellement l'opération un
+#NL
+	nombre équivalent de fois. 
+
+Pixeliser... 
+#NL 
+	Donne un l'image l'aspect d'une image de basse 
+#NL
+	résolution ayant de gros pixels ("mégapixels").
+#NL
+	La procédure consiste à remplacer chaque 'mégapixel'
+#NL
+	par la couleur moyenne de la région correspondante.
+#NL
+	L'utilisateur doit préciser la taille des mégapixels.
+#NL
+	La spécification peut être donnée par une valeur unique
+#NL
+	(par exemple, '5', ce qui donnera un carré 5 x 5) ou 
+#NL
+	par un spécification de rectangle (par exemple, '2 x 4'). 
+
+Fondu Radial
+#NL
+	Cette opération colore chaque pixel de la région
+#NL
+	avec la moyenne pondérée de la couleur du centre et
+#NL
+	des couleurs des pixels présents sur le bord, de façon 
+#NL
+	à réaliser un dégradé radial, la couleur du centre et
+#NL
+	des bords étant inchangée.
+#NL
+	Le résultat aboutit en général à un changement d'aspect
+#NL
+	total de la région, sauf si elle avait déjà une structure
+#NL
+	radiale.
+
+Distordre...
+#NL
+	Cette opération effectue sur la région sélectionnée une
+#NL
+	certaine distorsion homographique, pouvant par exemple
+#NL
+	donner l'illusion que l'objet initial représenté dans
+#NL
+	la région est maintenant vu en perspective cavalière.
+
+Solariser...
+#NL
+	Inverse la valeur des pixels qui possèdent une luminosité
+#NL
+	plus grande que le seuil indiqué. Ceci simule l'effet
+#NL
+	réalisé avec un film photographique qui est exposé à 
+#NL
+	la lumière pendant le développement. Ceci fonctionne a
+#NL
+	priori beaucoup mieux pour des images en échelle de gris.
+#NL
+	L'utilisateur doit spécifier le seuil (1-99 %). 
+
+Convertir en échelle de gris. 
+#NL
+	Convertit toutes les couleurs de l'image en échelle de gris. 
+
+Normaliser Contraste
+#NL
+	Normalise le contraste en forçant les pixels les plus clairs
+#NL
+	au blanc, les pixels les plus foncés au noir, et effectue
+#NL
+	une interpolation linéaire pour les pixels situés dans le 
+#NL
+	champ de couleurs restant. L'utilisateur doit spécifier 
+#NL
+	les niveaux noirs et blancs en %, pour lesquels les pixels 
+#NL
+	plus foncés deviendront noirs, et les pixels plus lumineux 
+#NL
+	blanc. Une valeur de '100 % 'se rapporte au pixel le plus
+#NL
+	lumineux de l'image. 
+
+Modifier Composantes RVB...
+#NL
+	Modifie les composantes Rouge, Vert, Bleue de chaque Pixel
+#NL
+	à l'aide d'une transformation homographique. Ceci augmente 
+#NL
+	ou diminue l'intensité de la couleur correspondante, suivant 
+#NL
+	que le pourcentage de variation choisi est positif ou 
+#NL
+	négatif. Ce pourcentage doit être compris entre -100% et 
+#NL
+	+100%. Une valeur de -100% fait totalement disparaître la
+#NL
+	couleur correspondante, tandis qu'une valeur de +100% 
+#NL
+	attribue la valeur maximale possible 255 à cette couleur, 
+#NL
+	dès lors le pixel avait une composante non nulle suivant
+#NL
+	celle-ci.
+
+Quantifier Couleurs...
+#NL
+	Cette opération effectue une réduction du nombre de
+#NL
+	couleurs dans l'image. L'algorithme essaie de déterminer
+#NL
+	l'ensemble des couleurs qui vont donner le meilleur
+#NL
+	résultat, puis remplace chaque pixel par la couleur 
+#NL
+	la plus proche dans l'ensemble des couleurs sélectionnées.
+#NL
+	L'utilisateur doit spécifier le nombre de couleurs à
+#NL
+	employer, entre 2 et 256. 
+
+Filtre programmable...
+#NL
+	Non encore implémenté !!
+
+Répéter Dernier Filtre
+#NL
+	Ceci répète l'application du dernier filtre invoqué, sans
+#NL
+	qu'il soit besoin d'en repréciser tous les paramètres. 
+
+Défaire Dernier Filtre
+#NL
+	Ceci annule l'effet du dernier filtre invoqué, et 
+#NL
+l	rétablit la région dans son état immédiatement antérieur. 
+#NL
+	Si plusieurs filtres ont été appliqués consécutivement,
+#NL
+	seul le dernier peut être annulé.
+
+#BEGIN selectorMenu "4.7. Menu Sélecteurs"
+Le menu "Sélecteurs" donne accès à l'ensemble des Sélecteurs et des
+Choix d'Options qui peuvent être affecter les opérations de dessin
+ou le canevas de peinture lui-même.
+
+Editeur de Détails...
+#NL
+	L'Editeur de Détails permet de visualiser et d'éditer
+#NL
+	un agrandissement d'une zone de l'image, sans qu'il soit
+#NL
+	nécessaire d'agrandir l'image entière. Les modifications
+#NL
+	apportées dans la fenêtre l'éditeur de détails sont
+#NL
+	reportées instantanément sur le canevas principal.
+
+Editeur de Couleurs et Motifs...
+#NL
+	Ouvre le sélecteur de Couleurs et de Motifs, et le remet 
+#NL
+	en avant-plan s'il est déjà ouvert. Ce sélecteur est
+#NL
+	également accessible par le bouton adéquat du panneau 
+#NL
+	supérieur.
+
+Variance Chromatique...
+#NL
+	Ouvre le sélecteur de "Variance Chromatique" permettant
+#NL
+	de sélectionner des domaines de couleurs pour les
+#NL
+	opérations de remplissage de régions. Si celui-ci est
+#NL
+	déjà ouvert, il est simplement remis en avant-plan.
+#NL
+	Voir la rubrique "Sélecteur de Variance Chromatique" 
+#NL
+	pour plus de détails.
+
+Couleur de Fond... 
+#NL
+	Ouvre le sélecteur de couleur de fond, et le met
+#NL
+	en avant-plan s'il est déjà ouvert. Ce sélecteur 
+
+	permet de changer la couleur de fond de l'image
+#NL
+	courante (la couleur par défaut est blanc).
+#NL
+	La couleur de fond n'est mise en oeuvre que
+#NL
+	lorsqu'une région est effacée ou coupée sur le
+#NL
+	canevas, et lorsque des régions de forme quelconque
+#NL
+	sont sauvegardées. Consulter "Sélecteur de Motifs
+#NL
+	et de Couleurs" pour de plus amples informations
+#NL
+	sur le choix des couleurs et des motifs. 
+
+Boîte à outils
+#NL
+	Remet en avant-plan la boîte à outils, en particulier 
+#NL
+	si elle a été iconifiée.
+
+Sélecteur de Pinceaux...
+#NL
+	Ouvre le sélecteur de pinceaux, et le met en avant-plan
+#NL
+	s'il est déjà ouvert. Ce sélecteur est également 
+#NL
+	accessible par le bouton adéquat du panneau supérieur.
+
+Sélecteur de Polices...
+#NL
+	Ouvre le sélecteur de polices de caractères, et le met 
+#NL
+	en avant-plan s'il est déjà ouvert. Ce sélecteur est
+#NL
+	également accessible par le bouton adéquat du panneau 
+#NL
+	supérieur.
+
+Editeur de scripts C...
+#NL
+	Ouvre la fenêtre de l'Editeur de Scripts. Ce widget
+#NL
+	peut être utilisé pour écrire des scripts en 
+#NL
+	langage C, par exemple pour définir un filtre
+#NL
+	programmable. Ceci sera apprécié par les programmeurs
+#NL
+	qui veulent implémenter leurs propres routines de 
+#NL
+	filtres.
+
+Changer Taille Canevas...
+#NL
+	Change la taille du canevas. Si la nouvelle taille
+#NL
+	est inférieure à la taille initiale, le canevas est
+#NL
+	amputé à droite et sur le bas. Si la nouvelle taille
+#NL
+	est plus grande, des zones remplies par la couleur
+#NL
+	de fond courante sont ajoutées à droite et en bas.
+#NL
+	Cette opération n'est pas réversible (sauf par
+#NL
+	rechargement de l'image sauvegardée à l'aide de
+#NL
+	l'option "Version Précédente..."). Elle n'affecte
+#NL
+	pas la taille des objets dessinés sur le canevas.
+
+Changer Zoom...
+#NL
+	Agrandit le canevas de travail dans le facteur de zoom
+#NL
+	spécifié. Ceci n'affecte pas la taille de l'image 
+#NL
+	elle-même, ni la nature des données qui seront 
+#NL
+	sauvegardées.
+
+Espacement Quantifié...
+#NL
+	Cette option change l'espacement de la grille invisible
+#NL
+	sur laquelle se déplace le curseur lorsque les
+#NL
+	mouvements sont quantifiés (voir ci-dessous).
+
+Mouvements quantifiés
+#NL
+	Cette option met en oeuvre la "quantification" des 
+#NL
+	mouvements du curseur. Lorsque l'option est activée, 
+#NL
+	le curseur est contraint de se déplacer sur une 
+#NL
+	grille invisible, c'est-à-dire que ses coordonnées
+#NL
+	x, y ne peuvent prendre comme valeurs que les 
+#NL
+	multiples d'un certain entier.
+
+Grille Visible
+#NL
+	Fait apparaître ou disparaître de la fenêtre de 
+#NL
+	l'Editeur de Détails une grille noire qui met en
+#NL
+	évidence  les différents pixels présents dans l'image,
+#NL
+	lorsque le facteur de zoom plus grand que 1. Cette 
+#NL
+	grille apparaît seulement pour la commodité de 
+#NL
+	l'utilisateur. Elle n'affecte en rien l'image
+#NL
+	sous-jacente.
+
+#PUSH
+#BEGIN patternSelector "4.7.1. Sélecteur de Couleurs et Motifs"
+Le "Sélecteur de Couleurs et Motifs" permet de sélectionner et d'activer 
+les couleurs et motifs primaires et secondaires à mettre en oeuvre, ainsi 
+que de modifier la palette des couleurs et motifs. 
+
+Les motifs primaires et secondaires sont utilisés par un bon nombre
+des outils de dessin et sont en général activés par l'utilisation du
+bouton 1 ou du bouton 2 de la souris, respectivement. On consultera 
+les  rubriques spécifiques de chaque outil pour plus d'informations. 
+Tous les objets à remplir (c'est-à-dire les rectangles, les ellipses 
+et les polygones) sont toujours dessinés en utilisant la couleur ou le 
+motif primaire pour le bord, et la couleur ou le motif secondaire pour
+le remplissage de l'intérieur du contour.
+
+#PUSH
+#BEGIN openPatSel "Ouverture du Sélecteur de Motifs"
+Un bouton d'ouverture du sélecteur se trouve sur le bandeau supérieur
+de chaque canevas graphique, en deuxième position à droite des menus
+déroulants. Ce bouton affiche en permanence une icône de forme
+hexagonale mettant en évidence les couleurs ou motifs primaires et
+secondaires choisis. Ces couleurs et motifs sont alors prêts à être
+mis en oeuvre sur le canevas graphique.
+
+#BEGIN topPatSel "Bandeau supérieur du Sélecteur"
+Le Sélecteur affiche sur le bandeau supérieur des menus les motifs
+primaires et secondaires courants du canevas graphique associé 
+(si plusieurs tels canevas ont été ouverts, il s'agit du dernier
+à partir duquel le bouton d'ouverture du Sélecteur a été activé ou
+réactivé).
+
+A la droite des deux motifs primaires se trouve une icône représentant
+une région hexagonale ayant comme bord le motif primaire et comme
+intérieur le motif secondaire. La largeur de ligne du bord coïncide
+avec la largeur de ligne courante, et la couleur du fond est également
+la couleur de fond courante du canevas graphique. Noter qu'un clic sur
+l'icône hexagonale permet de retourner au canevas graphique actif,
+mais n'a aucun effet sur les sélections effectuées.
+
+Par contre, un clic sur le motif primaire ou secondaire sélectionne
+celui de deux motifs qui pourra être modifié, et positionne la flèche
+indicative en conséquence.
+
+#BEGIN leftPatSel "Sélection des Couleurs"
+Sur le panneau central gauche se trouve la roue et les boutons de 
+sélection des couleurs. Le bouton "Saisie" permet de saisir un pixel
+à partir d'une fenêtre quelconque de l'écran, tandis que le bouton 
+"Enregistrer" ajoute la couleur sélectionnée à la palette des couleurs
+présentes dans le panneau inférieur. Voir "Roue de Sélection des couleurs"
+pour plus de détails.
+
+Nota: Toute manipulation de la Palette de Couleurs affecte instantanément
+les couleurs du canevas, et ne peut être inversée par "Défaire".
+
+#BEGIN rightPatSel "Sélection des Motifs"
+Le panneau central droit affiche un petit canevas graphique permettant
+d'éditer de nouveaux motifs. La taille des motifs par défaut est
+24x24, mais il est possible de choisir une taille arbitraire à l'aide
+du menu "Taille". Les autres menus disponibles dans la fenêtre de
+l'Editeur de Motifs comportent des fonctionnalités semblable à ceux
+des fenêtres de canevas, et toutes les opérations de dessin peuvent
+être utilisées pour éditer le motif. 
+
+Les motifs peuvent être sauvegardés individuellement grâce à l'option
+"Sauvegarder sous..."  dans le menu "Canevas" du Sélecteur, ou être
+sauvegardés globalement avec l'ensemble de la palette à l'aide de
+l'option "Sauvegarder la Palette" du menu "Palette". Des palettes
+préalablement enregistrées peuvent également être chargées à l'aide de
+l'option "Charger Palette".  Consulter la rubrique "Fichiers de
+Configuration de Palettes" pour de plus amples détails.
+
+#BEGIN bottomPatSel "Palette de Couleurs et Motifs"
+Le panneau inférieur du Sélecteur affiche la liste des couleurs ou 
+motifs initialisés par les fichiers de configuration ou précédemment
+édités par l'utilisateur. 
+
+Un simple clic sur une des icônes active la couleur et le motif comme
+motif primaire ou secondaire, en fonction de la position de la flèche
+sur le panneau supérieur.
+
+Un double clic met l'icône en "mode d'édition", en sorte que
+l'utilisation ultérieure du bouton "Enregistrer" remplacera la couleur
+ou le motif par ceux qui auront été sélectionnés sur les panneaux
+centraux. 
+
+Enfin, un double "double-clic" sur une icône de motif charge ce motif
+sur le canevas graphique d'édition. 
+
+Le bouton 3 (de droite) active un menu déroulant offrant diverses
+options (marquage en mode d'édition, arrêt du mode d'édition,
+chargement dans le canevas, suppression).
+
+#BEGIN grabpattern "Capture de Couleurs et de Motifs"
+Une méthode rapide pour ajouter une nouvelle couleur ou un nouveau
+motif consiste à utiliser les boutons "Saisie" et "Capture".  Ces
+boutons permettent à l'utilisateur de choisir n'importe quelle couleur
+ou n'importe quelle zone colorée apparaissant sur l'écran.
+
+Un clic sur le bouton "Enregistrer" permet de mémoriser la sélection
+et de la rendre active. Il est à noter que si la couleur est déjà
+présente dans la palette, une pression du bouton "Enregistrer" aura
+simplement pour effet d'activer cette couleur.
+
+Nota: La palette de motifs et couleurs peut être sauvegardée pour
+réutilisation ultérieure à l'aide de l'option "Sauvegarder Palette..."
+dans le menu "Palette" de la fenêtre de canevas.
+
+#BEGIN colorwheel "Roue de Sélection des couleurs"
+La Roue de Sélection des couleurs permet l'accès aux modèles de couleurs
+TSV (Teinte, Saturation, Valeur) ou RVB (Rouge, Vert, Bleu). La roue
+des couleurs représente le modèle TSV, tandis que les glissières
+rouges, vertes, et bleues servent à manipuler la couleur dans l'espace RVB. 
+Les modifications de l'un ou l'autre de ces modèles de couleurs sont bien
+entendus coordonnées entre elles.
+
+Les couleurs peuvent être sélectionnées sur la roue de couleurs en 
+cliquant un point spécifique avec la souris. Une autre possibilité est
+de choisir un point du périmètre de la roue (un clic dans le cadre à
+l'extérieur de la roue atteindra ce but), puis de fixer la valeur de
+l'intensité lumineuse. Les couleurs peuvent également être modifiées 
+directement composante par composante au moyen des glissières rouges, 
+vertes, et bleues ou en écrivant les valeurs numériques appropriées 
+dans les entrées de textes.
+
+Le bouton "Saisie" permet à l'utilisateur de choisir n'importe quelle 
+couleur présente sur l'écran. En mode d'affichage en pseudo-couleurs, 
+la couleur exacte sera fonction de la palette graphique X de la fenêtre
+choisie.
+
+#BEGIN configfile "Fichiers de Configuration de Palette"
+Les couleurs et motifs présents dans le panneau des palettes du
+"Sélecteur de Couleurs et Motifs" sont chargés chaque fois que le
+sélecteur est ouvert, en suivant un certain ordre de préséance
+des fichiers de configuration : 
+#NL 
+	.XPaintrc dans le répertoire local de l'utilisateur 
+#NL
+	.XPaintrc dans le répertoire courant 
+
+#POP
+#BEGIN range_select "4.7.2. Sélecteur de Variance Chromatique" 
+Le "Sélecteur de Variance Chromatique" s'ouvre en cliquant sur le 
+bouton adéquat du menu "Sélecteurs". Il est alors possible de 
+sélectionner un intervalle (ou plutôt un domaine) de couleurs en
+fixant une couleur de référence et en déterminant la variance
+autorisée pour chacune des composantes Rouge, Verte, et Bleue de la
+couleur. Une couleur est dans l'intervalle correspondant si ses 
+composantes R,V,B diffèrent de la couleur de référence d'une 
+quantité inférieure ou égale à la variance. La couleur de référence 
+par défaut est le blanc.
+
+Le bouton "Pixel Delta" permet à l'utilisateur de choisir une couleur autre 
+que la couleur de référence, de façon à la variance par rapport à celle-ci.
+
+De plus amples informations sur les couleurs et l'utilisation du Sélecteur 
+de Couleurs peuvent être trouvées dans la rubrique "Editeur de Motifs" 
+de la section "Fenêtre de Canevas".
+
+#BEGIN brush_selector "4.7.3. Sélecteur de Pinceaux"
+Le Sélecteur de Brosses est une petite fenêtre grâce à laquelle la brosse
+courante peut être modifiée. Cette sélection affecte seulement les 
+outils "Pinceau/Brosses" et "Gomme". 
+
+Les brosses initialement disponibles sont définies lors de la
+compilation à partir des fichiers inclus 'bitmaps/paint*.xpm'. 
+L'utilisateur peut introduire de nouvelles brosses grâce à des
+fichiers de configurations du type de .XPaintrc.
+
+La syntaxe à mettre en oeuvre se présente sous la forme
+#NL
+	brush BeginData
+#NL
+	...
+#NL
+	EndData
+#NL
+et elle est similaire à celle utilisée pour les motifs en noir et blanc.
+(Un motif de couleur serait aussi accepté, mais dans ce cas seuls les
+pixels noirs servent à définir la forme de la brosse; les autres ont le
+même effet que des pixels blancs - c'est-à-dire pas d'effet).
+
+Le plus simple est de créer un motif noir et blanc, de mémoriser ce motif
+à l'aide d'une sauvegarde globale de la palette, puis de changer 
+l'identificateur 'pattern' en 'brush' à l'aide d'un éditeur de textes.
+
+#BEGIN font_browser "4.7.4. Sélecteur de Polices de Caractères"
+Le navigateur de Polices de Caractères permet de mettre en oeuvre
+n'importe quelle police disponible sur le système, afin qu'elle puisse
+être employée lors de la saisie de textes dans le canevas graphique. 
+Une police est choisie en sélectionnant chacune des caractéristiques
+référencées par les listes verticales (Espacement, Famille, Poids,
+Nombre de points), jusqu'à ce que la Police soit déterminée de manière
+unique et puisse ainsi apparaître dans la fenêtre de sélection.  Il
+est à noter que les listes s'ajustent de manière intéractive pour
+refléter les polices compatibles avec les choix déjà faits. Pour
+déselectionner l'une des caractéristiques, il suffit de cliquer dans
+la partie vide suivant la fin de la liste.
+
+Si le serveur X supporte l'affichage de polices à taille variable, la liste
+"Points" (taille ou "nombre de points" de la police) comportera le champ "0". 
+On peut alors sélectionner ce champ et taper dans la ligne d'entrée texte 
+spécifique "Points" la valeur désirée du nombre de points.
+
+Ne pas oublier de cliquer sur le bouton "Appliquer" pour que le choix
+souhaité devienne effectif.
+
+#BEGIN script_editor "4.7.5. Editeur de scripts C"
+L'Editeur de Scripts C peut être utilisé pour écrire des scripts en
+langage C, par exemple pour définir un filtre programmable. 
+
+Cette possibilité sera appréciée par les programmeurs qui veulent
+implémenter leurs propres routines de filtres. 
+
+Le bouton "Compiler" compile le script C script comme une librairie
+dynamique ???.so, et, en cas de succès de la compilation, lie
+dynamiquement cette librairie à Xpaint.  
+
+Plusieurs exemples figurent dans le répertoire share/filters. Notez que 
+vous devez impérativement avoir gcc installé sur votre système pour
+pouvoir mettre en oeuvre cette fonctionnalité.
+
+#POP
+#POP
+#BEGIN printMenu "5. Utilitaire d'Impression" 
+L'utilitaire d'impression offre la possibilité d'ajuster arbitrairement
+la taille et la position du dessin à l'intérieur de la page à imprimer.
+Le format de la page (Letter, A4, etc) est lui-même ajustable. Un bouton
+de commutation permet de forcer ou non la conservation de l'aspect
+(rapport des facteurs de zoom vertical et horizontal).
+
+Il y a aussi des commutateurs pour les modes Portrait et Paysage,
+ainsi que pour l'envoi de données vers une imprimante ou vers un
+fichier. La résolution PostScript par défaut est 72 dpi (dot per inch).
+Elle peut être augmentée en utilisant une subdivision des pixels et 
+une interpolation des couleurs. Une subdivision de 5 x 3 signifie que 
+chaque pixel de l'image est découpé en 15 sous-pixels au niveau des
+données d'impression ; ceci est effectué en interpolant les couleurs 
+des pixels voisins, avec 5 subdivisions dans la direction horizontale 
+et 3 subdivisions dans la direction verticale (le nombre maximal de
+subdivisions permis est 255 dans chaque direction). 
+
+Le bouton "Prévisualisation" crée un fichier PostScript temporaire
+et le transmet en lecture à un visualiseur PostScript, "gv"
+par défaut. Le visualiseur PostScript peut être redéfini
+intéractivement et initialisé au moyen du paramètre
+   "Canvas.print*form*psviewer*string: ..."
+dans le fichier des app-defaults.
+
+#BEGIN fileformat "6. Formats d'Image" 
+XPaint supporte une assez grande variété de formats d'images, en fonction
+des librairies graphiques disponibles au moment de la compilation. Certains 
+des formats supportés par le code source peuvent donc éventuellement ne pas
+être accessibles dans la version compilée dont vous disposez.
+
+La table de ci-dessous fournit un court sommaire des caractéristiques
+de formats d'image supportés par XPaint. Notez que tous les formats
+d'images ne sont pas équivalents, et que la conversion d'un format en
+un autre format peut entraîner une dégradation de l'image.
+
+La profondeur de couleur est précisée en termes du nombre de bits
+employés pour stocker les couleurs dans l'image. Ceci signifie
+qu'une profondeur de 1-bit peut seulement stocker des images noires
+et blanches, alors que les formats de couleurs 24-bit peuvent stocker 
+des images contenant jusqu'à 2**24 (approximativement 16 millions) 
+de couleurs. Indépendamment du format d'image, les images sauvegardées 
+reflèteront au mieux les capacités du type d'affichage utilisé 
+(c'est-à-dire par exemple qu'une image de couleur chargée sur un
+écran à échelle de gris sera sauvée comme une image en échelle de gris). 
+Reportez-vous à la section "Perte possible de données" pour plus de détails. 
+
+Le dispositif de masque d'image offre la possibilité d'avoir des images
+de forme quelconque, et pas seulement rectangulaires, ces images peuvent
+avoir des trous ou des zones non colorées. Voir "Sauvegarder Région..." et 
+"Charger le Tampon..." pour plus d'information. 
+
+Des informations plus détaillées sur chaque format d'image sont 
+repertoriés à la fin cette section.
+#NL
+                Lecture    Ecriture    Profondeur      Masque
+#NL
+GIF             oui        oui         8-bit           non
+#NL
+ICO             oui        oui         16-bit          oui
+#NL
+JPEG	        oui        oui         24-bit          non
+#NL
+PNG             oui        oui         8, 24-bit       oui
+#NL
+PPM             oui        oui         24-bit          non
+#NL
+PDF             oui        oui*        24-bit          non
+#NL
+PS              oui        oui*        24-bit          non
+#NL
+SGI             oui        oui         24-bit          non
+#NL
+TIFF            oui        oui         8, 24-bit       oui
+#NL
+XBM             oui        oui         1-bit           non
+#NL
+XPM             oui        oui         8-bit           oui
+#NL
+XWD             oui        oui         24-bit          non
+
+* ATTENTION : si un fichier PS ou PDF est lu, puis sauvegardé sous le 
+même nom, toutes les données internes du format (composantes textuelles,
+procédures PostScript, polices de caractères, etc) sont irrémédiablement
+perdues. La sauvegarde se fait en effet uniquement sous forme de données
+bitmap, aux formats respectifs PS ou PDF.
+
+GIF - Graphics Interchange Format
+#NL
+	Format très courant d'images, utilisé autrefois
+#NL
+	par un grand nombre de plate-formes.
+#NL
+	Souffre malheureusement de problèmes de Licence
+#NL
+	(brevet UNISYS) pour l'algorithme de compression. 
+#NL
+	Boycottez le format GIF, car PNG est meilleur !
+
+ICO - Icon Format (Microsoft)
+#NL
+	Format utilisé par Microsoft pour les icônes,
+#NL
+	la taille est limitée à 256x256 au plus.
+#NL
+	Ce format est présent ici  uniquement pour
+#NL
+	des raisons de compatibilité. A éviter autant
+#NL
+	que possible !
+
+JPEG - Joint Photographic Experts Group Format
+#NL
+	Un format standardisé pour stocker les
+#NL
+	images en couleurs ou en échelle de gris,
+#NL
+	particulièrement adapté aux photographies
+#NL
+	et aux scènes naturelles. Autorise un taux
+#NL
+	de compression très élevé, mais au prix 
+#NL
+	d'une légère dégradation de la qualité.
+
+PNG - Portable Network Graphics Format
+#NL
+	Un nouveau format pour remplacer le GIF et,
+#NL
+	dans une certaine mesure, le TIFF. Le format
+#NL
+	PNG dispose d'un meilleur moteur de compression
+#NL
+	que GIF ou TIFF, et n'est pas affecté par la
+#NL
+	dégradation des données (à la différence de
+#NL
+	JPEG). L'utilisation de PNG est recommandée !
+
+PPM - Portable PixMap Format
+#NL
+	C'est le format d'image fourni par le paquetage
+#NL
+	d'utilitaire graphiques PBMPlus/NetPBM. Celui-ci permet
+#NL
+	de convertir les images dans un grand nombre d'autres
+#NL
+	formats.
+
+PDF - Portable Document Format
+#NL
+	PDF est un format de document specifié par la
+#NL
+	compagnie Adobe Inc. Il est largement utilisé
+#NL
+	pour tous types de documents mettant en oeuvre
+#NL
+	simultanément du texte et des images.
+
+PS - Format PostScript
+#NL
+	Le format PostScript est le standard employé par la
+#NL
+	plus grande partie des imprimaantes et des systèmes
+#NL
+	de traitement de textes (sous Unix...)
+
+SGI - Format Silicon Graphics, Inc., 
+#NL
+	Un format d'image propre à SGI, supporté par
+#NL
+	les bibliothèques des machines SGI. Ce format
+#NL
+	n'est pas disponible sur les autres plateformes.
+
+TIFF - Tagged Image File Format
+#NL
+	Format d'image assez complexe employé par XPaint
+#NL
+	comme format par défaut. 
+
+XBM - X Window BitMap
+#NL
+	Format blanc d'image noir et blanc employé très
+#NL
+	fréquemment par le système de fenêtrage X.
+
+XPM - X Window PixMap
+#NL
+	Le format XPM stocke les images sous forme de 
+#NL
+	code C (texte d'ASCII), qui peut être inclus dans 
+#NL
+	les programmes en C ou C++ utilisant des icônes.
+
+XWD - X Window Dump
+#NL
+	Format utilisé pour les copies d'écran sous le système
+#NL
+	de fenêtrage X.
+
+#BEGIN about "7. A Propos de XPaint"
+NOTA: XPaint est un logiciel libre (Open Source et gratuit). Depuis 
+la version 2.6.3, il est maintenu par Jean-Pierre Demailly 
+(demailly@ujf-grenoble.fr), sauf pour ce qui concerne le code PNG, 
+écrit et maintenu par Greg Roelofs (newt@uchicago.edu). 
+
+L'auteur des versions initiales de XPaint est David Koblas, qui en a
+poursuivi le développement jusqu'à la version 2.1.1. Les versions 
+2.2.1 à 2.5.7 ont été développées par Torsten Martinsen (torsten@image.dk)
+et les versions 2.5.8 à 2.6.2 par Torsten Martinsen et Jean-Pierre
+Demailly. Veuillez ne pas envoyer de rapports de bogue, etc., à 
+David Koblas ou Torsten Martinsen.
+
+Le message ci-dessous est la traduction de "l'A-Propos" original dans
+le fichier de description de la version 2.1.1. 
+
+               ----------------------------
+
+Nous espérons que vous trouverez ce logiciel utile. S'il vous arrive de 
+repérer des bogues ou avez des commentaires à faire à l'auteur, vous 
+pouvez envoyer un message.
+
+Ce logiciel a été créé dans le but d'être librement partagé. Si vous 
+trouvez du plaisir à employer XPaint, l'auteur apprécierait que vous 
+lui adressiez un don sous forme de biscuits, d'argent, d'emploi,
+ou quoi que ce soit d'autre...
+
+Si vous ou votre société recherchez un consultant expérimenté, contactez
+l'auteur pour plus de détails. 
+
+David Koblas (koblas@netcom.com)
+#NL
+Extra Mile Consulting
+#NL
+PO Box 1352
+#NL
+Mountain View, CA 94042-1352 USA
+
+#BEGIN copyright  "8. Licence d'utilisation" 
+Copyright (C) 1993 - 1994, David Koblas 
+#NL
+Copyright (C) 1995 - 2000, Torsten Martinsen 
+#NL
+Copyright (C) 2000 - 2005, Jean-Pierre Demailly
+#NL
+Copyright (C) 1996 - 2002, Greg Roelofs 
+#NL
+Copyright (C) 1997, Scott D. Nelson
+
+Tout utilisateur a, sans exigence de contrepartie, la permission de 
+mettre en oeuvre, de copier, de modifier et de distribuer ce logiciel 
+ainsi que sa documentation, et ceci dans n'importe quel but, sous réserve
+que la présente licence d'utilisation apparaisse dans toutes les copies,
+et à condition que la notification du copyright et de la licence figurent 
+dans la documentation fournie. Il n'y a aucune garantie que ce logiciel 
+soit réellement conforme à ses spécifications prédéfinies ou à tout autre
+usage présupposé. Le logiciel est donc fourni "tel quel", sans garantie 
+spécifique ou implicite.
+
+

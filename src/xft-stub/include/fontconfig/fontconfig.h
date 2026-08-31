@@ -47,6 +47,7 @@ typedef struct {
 } FcValue;
 
 #define FC_FAMILY "family"
+#define FC_FOUNDRY "foundry"
 #define FC_STYLE "style"
 #define FC_SIZE "size"
 #define FC_PIXEL_SIZE "pixelsize"

@@ -1,0 +1,50 @@
+A short guide on how to build and install XPaint
+================================================
+
+First, *read* the comments in README.
+
+Obviously, you need an ANSI C compiler - only gcc is supported - and you need
+the following libraries to be installed, together with their associated
+development packages :
+  X11  libraries (libX11, libXext, libXt, libXmu, libSM, libICE, libXp)
+  libXpm
+  libz
+  libpng
+  libtiff
+  libjpeg
+
+Most Unix/Linux distributions should already provide all this
+
+Building xpaint
+---------------
+
+Check that all paths etc. in 'Local.config' are correct.
+Be sure to add any flags needed for your machine.
+
+Then do	'./configure' and 'make'.
+
+In case you would like to change the Athena widget set wich is
+automatically selected by 'configure', choose one of the following
+options:
+
+0)      'make' or 'make xaw3dxft'
+By default, this uses the included (improved) Xaw3d widgets which 
+have support for UTF8 / freetype and anti-aliased fonts in the menus.
+This is now the recommended option.
+
+Or use one of the Xaw library clones if one is available as a shared 
+library on your system :
+1)	'make xaw'              (plain old/ugly Xaw widgets)
+2)	'make xaw3d'            (Xaw3d widgets)
+3)	'make xaw3dg'           (Xaw3d enhanced widgets from Debian)
+4)	'make xaw95'            (Xaw95 widgets)
+4)	'make nextaw'           (neXtaw widgets)
+
+Installing xpaint
+-----------------
+
+As usual, type
+	'make install'
+
+and to install the man page
+	'make install.man'

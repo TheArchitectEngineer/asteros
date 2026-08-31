@@ -1,0 +1,164 @@
+#!/bin/bash
+# Copyright 2007, J.-P. Demailly <demailly@fourier.ujf-grenoble.fr>
+# Licence : GPLv3
+
+BASE=`pwd | tr " " "_"`
+BASE=`basename $BASE`
+
+echo -n "Suffix type of images (png/jpg/...) ? "
+read SUFF
+if test "$SUFF" = "" 
+then
+  SUFF=png
+fi
+
+echo -n "Radix name of pages ? "
+read RADIX
+
+echo -e "\
+/* Xpaint-image */\n\
+\n\
+#define PERCENT 100.0\n\
+#define GRAY 1\n\
+#define PAPERX 596\n\
+#define PAPERY 842\n\
+#define SHIFTX 0.0       /* percent of page width */\n\
+#define SHIFTY 0.0       /* percent of page height */\n\
+#define ALTERNATE 1      /* alternate SHIFTX 1 or -1 */\n\
+\n\
+#include <Xpaint.h>\n\
+#include <stdio.h>\n\
+\n\
+\n\
+/* \n\
+ * The key-word \"ImageCreate\" is reserved for user-defined image routines;\n\
+ * Such a routine should create and process an image.\n\
+ * \n\
+ * Pixels are unsigned char arrays p[0]=red, p[1]=green, p[2]=blue\n\
+ * (thus each value should be in the range 0..255)\n\
+ */\n\
+\n\
+Image * ImageCreate()\n\
+{\n\
+    Image * input;\n\
+    FILE * fd;\n\
+    char buf[100];\n\
+    int sign;\n\
+    \n\
+    static PageInfo pinfo;\n\
+\n\
+    input = ImageFromFile(\"xpaint_input\");\n\
+\n\
+    fd = fopen(\"__page_number\", \"r\");\n\
+    fgets(buf, 80,fd);\n\
+    sign = atoi(buf);\n\
+    fclose(fd);\n\
+    if (sign & 1) sign = 1 ; else sign = ALTERNATE;\n\
+\n\
+    /* Don't forget this otherwise xpaint may crash if input does not exist */\n\
+    if (!input) \n\
+    {\n\
+       	       printf(\"Read failure : 'xpaint_input' !!\0134n\");\n\
+               exit(0);\n\
+    }\n\
+     \n\
+    pinfo.width = input->width;\n\
+    pinfo.height = input->height;\n\
+    pinfo.rx = (int) (SHIFTX * 0.01 * (float)PAPERX * sign);\n\
+    pinfo.ry = (int) (SHIFTY * 0.01 * (float)PAPERY);\n\
+    pinfo.wsubdiv = 1;\n\
+    pinfo.hsubdiv = 1;\n\
+    pinfo.wpercent = PERCENT * (float)PAPERX/((float)pinfo.width);\n\
+    pinfo.hpercent = PERCENT * (float)PAPERY/((float)pinfo.height);\n\
+    printf(\"Image size : %d x %d\", pinfo.width, pinfo.height);\n\
+    printf(\"  -->  resizing  %4.2f %% x %4.2f %%\0134n\",\n\
+	   pinfo.wpercent, pinfo.hpercent);\n\
+    pinfo.wbbox = PAPERX;\n\
+    pinfo.hbbox = PAPERY;\n\
+    pinfo.orient = 0;\n\
+    pinfo.gray = GRAY;\n\
+    pinfo.eps = 0;\n\
+    pinfo.compress = 1;\n\
+    pinfo.pdf = 0;\n\
+\n\
+    WriteResizedPS(\"xpaint_output.ps\", input, &pinfo);\n\
+    exit(0);\n\
+    return NULL;\n\
+}\n\
+" > /tmp/xpaint_print_script.c
+
+emacs -fn 9x15 /tmp/xpaint_print_script.c
+
+FIRST=First
+COUNT=0
+i=0
+i0=0
+echo "Starting $BASE.pdf ..."
+echo ""
+
+while [ 1 ] 
+do
+  if test "$[$i<10]" == "1"
+  then
+    j=0$i
+    k=00$i
+  else
+    j=$i
+    if test "$[$i<100]" == "1"
+    then
+      k=0$i
+    else
+      k=$i
+    fi
+  fi
+  FILE="$RADIX"$i.$SUFF
+  if ! [ -r "$FILE" ]
+  then
+    FILE="$RADIX"$j.$SUFF  
+  fi
+  if ! [ -r "$FILE" ]
+  then
+    FILE="$RADIX"$k.$SUFF  
+  fi 
+  if ! [ -r "$FILE" ]
+  then
+     COUNT=$[$COUNT+1]
+     if test "$[$COUNT<100]" == "1"
+     then
+        i=$[$i+1]
+        i0=$i
+        continue	
+     else
+        echo "No more pages seem to be there. Job over."
+	echo ""
+	echo "Check file $BASE.pdf"
+	echo ""	
+	break
+     fi
+  fi
+  COUNT=0
+  echo "$[1+$i-$i0]" > __page_number
+  echo "Xpaint : processing $FILE  as PDF file ..."
+  rm -f xpaint_input  
+  ln -s "$FILE" xpaint_input
+  xpaint -iconic /tmp/xpaint_print_script.c 2>/dev/null
+  mv xpaint_output.ps __page_$j.ps
+  ps2pdf __page_$j.ps
+  rm -f __page_$j.ps  __page_new*
+
+  if test "$FIRST" == "First"
+  then
+    FIRST=""
+    mv -f __page_$j.pdf $BASE.pdf
+    PREV=__page_$j
+  else
+    mv -f $BASE.pdf $PREV.pdf
+    pdfconcat -o $BASE.pdf $PREV.pdf __page_$j.pdf 2>&1 1>/dev/null
+    PREV=__page_$FIRST-$j
+  fi
+  i=$[$i+1]
+done
+
+rm -f __page*
+rm -f xpaint_input
+rm -f /tmp/xpaint_print_script.c

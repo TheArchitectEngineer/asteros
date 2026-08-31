@@ -1,0 +1,21 @@
+alpha-channel is now fully supported along with PNG format, starting with 
+version 2.8.9 of Xpaint.
+
+Jean-Pierre Demailly
+demailly@fourier.ujf-grenoble.fr
+January 6, 2010
+
+-------------------------------------------------------------------------
+
+Note that the writing of alpha-channel images in PNG format is still not
+supported.  This is mainly laziness (or busy-ness) on my part, but I have
+to get some other things done. :-)  I'll get back to it one of these days...
+The PNG debug messages are now optional, at least.
+
+Problems with the PNG support can be reported to me.  More generic XPaint
+problems should probably go to Torsten.  Note that the original author,
+David Koblas, is no longer involved; don't pester him with anything.
+
+Greg Roelofs
+newt@pobox.com
+21 August 1996

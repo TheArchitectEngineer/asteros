@@ -1,0 +1,372 @@
+.\" $Id: xpaint.man.in,v 1.20 2010/03/06 23:15:32 demailly Exp $
+.\" 
+.TH xpaint 1 "XPAINT_RELEASE"
+.SH NAME
+xpaint \- Simple Paint program
+.SH SYNOPSIS
+.B xpaint
+[
+.RI \-size " WIDTH" x HEIGHT
+] [
+.RI \-winsize " WIDTH" x HEIGHT
+]
+.br
+[
+.RI \-zoom " VALUE"
+]
+.RI \ \-8\ |\ \-12\ |\ \-24\ \ \ [\ \-visual " VISUAL" \ ]\ \ [\ \-dpi " DPI" \ ]
+.br
+[\ \-canvas\ ] [\ \-fullpopup\ ] [\ \-simplepopup\ ] [\ \-nomenubar\ ]
+.br
+[\ \-screenshot\ ] [\ \-nowarn\ ] [\ \-astext\ ] [
+.RI \-undosize " VALUE"
+]
+.br
+[
+.RI \-operation " NUMBER"
+]\ [
+.RI \-filter " FILE"
+]\ [
+.RI \-proc " FILE"
+] 
+.br
+[
+.RI \-rcfile " FILE"
+]\ [
+.RI \-msgfile " FILE"
+]\ [
+.RI \-helpfile " FILE"
+]\ [
+.RI \-sharedir " DIR"
+]
+.br
+[
+.RI \-encoding " 0/8/16"
+]\ [
+.RI \-menufont " FONT"
+]\ [
+.RI \-textfont " FONT"
+]
+.br
+[
+.RI \-lang " LANGUAGE"
+]\ [
+.RI \-twistcolor " VALUE"
+]\ [
+.RI \-hilitcolor " VALUE"
+]
+.br
+.IR [\ /o\ ]\ [\ /c\ ]\ [\ /l\ ]\ FILENAMES " ..."
+.br
+.SH DESCRIPTION
+.I XPaint
+is a color image editing tool which features most standard paint 
+program options, as well as advanced features such as image processing
+algorithms.
+It allows for the editing of multiple images simultaneously and supports
+various formats, including PPM, XBM, TIFF, JPEG, etc. 
+.PP
+The functionality of XPaint is divided into a toolbox area for selecting
+the current paint operation and paint windows for modifying/creating
+images.
+Each paint window has access to its own color palette and set
+of patterns, although the paint operation in use is globally selected
+for all windows. 
+.PP
+XPaint runs on a variety of displays.
+It should be noted that saving images will adapt them to the current display
+type (i.e. a color image loaded on a greyscale screen will be saved as a grey
+image).
+.PP
+There is also an extensive on-line help system available.
+.SH OPTIONS
+By default all images given on the command line are listed in the browser
+of preselected files, but only the first one will be displayed. The /o 
+switch (resp. /c, /l) indicates that the next images will be opened in a
+graphical canvas (resp. in the clipboard, resp. again listed in the file
+browser).
+.PP
+In addition to being able to specify image files to open,
+the following options are available on the command line:
+.RS 0.5i
+.TP 1i
+.BI \-size " w" x h
+Default width and height for new paint canvas being opened.
+.TP 1i
+.BI \-winsize " w" x h
+Default width and height for new canvas window being opened.
+.TP 1i
+.BI \-zoom " z"
+Default zoom value of image being opened. Reduction can be obtained
+by specifying for example :3 or \-3 which yields reduction factor 1/3.
+Only non zero integers and inverses of integers are allowed.
+.TP 1i
+.B \-8
+Use an 8 bit PseudoColor visual.
+.TP 1i
+.B \-12
+Use a 12 bit PseudoColor visual.
+.TP 1i
+.B \-24
+Use a 24 bit TrueColor visual.
+.TP 1i
+.BI \-visual " VISUAL"
+Use
+.I VISUAL
+instead of the default visual. See also
+the section VISUAL FORMAT below for the list of possible visual types.
+.TP 1i
+.BI \-dpi " DPI"
+Use
+.I DPI
+as dpi (dot per inch) value for vector format images such as PS, PDF, SVG,
+and TeX, LaTeX documents. Default is 300. The option has no effect for 
+bitmap images.
+.TP 1i
+.BI \-lang " LANGUAGE"
+Use
+.I LANGUAGE
+instead of the default language set by the environment.
+.TP 1i
+.BI \-encoding " 0/8/16"
+Use UTF8, or one of the usual earliers 8bit locales (or one of the rare 
+16bit locales). Default is 0, i.e. UTF8.
+.TP 1i
+.BI \-menufont " FONT"
+Use
+.I FONT
+in the menu fonts. This should be specified according to the fontconfig
+library specifications. Default is 
+.I Liberation\-10:matrix=0.85 0 0 0.9
+, that is Liberation font with a suitable matrix scaling.
+.TP 1i
+.BI \-textfont " FONT"
+Use
+.I FONT
+as default text font. This should be specified according to the fontconfig
+library specifications. Default is
+.I Times\-18
+, that is Times at 18pt.
+.TP 1i
+.BI \-twistcolor " VALUE"
+Use an hexadecimal color value
+.I #PQRSTU
+in order to indicate insensitive items in the menus through a color 
+twist \- if # is replaced with | (resp. &, ^) the resulting value is 
+an OR (resp. AND, XOR) of the specified normal color with the
+given hexadecimal value. When #PQRSTU is replaced by ~PQ, the option sets
+a transparency level instead.
+.TP 1i
+.BI \-hilitcolor " VALUE"
+Use
+.I VALUE
+to modify background color for highlighted items. Use an hexadecimal
+value 
+.I #PQRSTU
+which is either close to 
+.I #000000
+or close to 
+.I #ffffff
+for best results.
+.TP 1i
+.BI \-sharedir " DIR"
+Use
+.I DIR
+instead of the default share directory (e.g. /usr/share/xpaint).
+.TP 1i
+.BI \-rcfile " FILE"
+Load
+.I FILE
+instead of the default RC file specified at compile time. See also
+the section RC FILE FORMAT below.
+.TP 1i
+.BI \-msgfile " FILE"
+Load
+.I FILE
+instead of the default message file specified in the app-defaults file
+(if any). The directory is relative to the share directory, unless FILE
+starts with a slash or a dot character.
+.TP 1i
+.BI \-helpfile " FILE"
+Load
+.I FILE
+instead of the default help file specified in the app-defaults file
+(if any). The directory is relative to the share directory, unless FILE
+starts with a slash or a dot character.
+.TP 1i
+.B \-canvas
+Popup an empty canvas on startup.
+.TP 1i
+.B \-fullpopup
+This controls whether the floating canvas popup shows the whole menu from
+the canvas menubar.
+.TP 1i
+.B \-simplepopup
+This controls whether the floating canvas popup just shows the edit commands.
+.TP 1i
+.B \-nomenubar
+Do not show menu bar on top of canvas windows.
+.TP 1i
+.B \-screenshot
+Operate xpaint in screenshot mode from start-up.
+.TP 1i
+.B \-operation " NUMBER"
+Start with operation <NUMBER> set in tool panel.
+.TP 1i
+.B \-undosize " NUMBER"
+Set undo memory limit to <NUMBER> (default is 1 \- only one undo !)
+.TP 1i
+.B \-filter " FILE"   
+Define filter at start-up by using <FILE> as C-script.
+.TP 1i
+.B \-proc " FILE"   
+Define and execute procedure at start-up by using <FILE> as C-script.
+.TP 1i
+.B \-nowarn
+Do not emit warnings about possible data loss due to different depth of
+display and image.
+.TP 1i
+.B \-astext
+Try to load as text those files which fail to be detected as a proper 
+image format.
+.TP 1i
+.B \-help
+Give a summary of the available options.
+.RE
+.SH TOOLBOX
+The toolbox window is displayed when XPaint is started.
+The toolbox is used to select an operation which can then be applied to any
+image area presented (painting window, fat bits, pattern editor, etc.).
+The window has a selection of painting operations (as icons) and several pull
+down menus.
+.SH PAINTING WINDOW
+The painting window holds a canvas area for painting the displayed image,
+menus for performing operations on this image, and primary and secondary
+color/pattern palettes along with buttons for adding to these.
+
+.SH VISUAL FORMAT
+The display visual to use may be specified using the
+.B \-visual
+option.  Choices for the argument are: 
+TrueColor, PseudoColor, DirectColor, StaticColor, 
+StaticGray, GrayScale, or the decimal visual 
+number (from xdpyinfo).  Examples:
+.RS 0.5i
+.TP 1i
+.B  \-visual TrueColor
+.TP 1i
+.B  \-visual GrayScale
+.TP 1i
+.B   \-visual PseudoColor
+.TP 1i
+.B   \-visual 47
+.RE
+
+Alternatively, \-8, \-12, and \-24 are also acceptable
+for specifying pseudo8, pseudo12, and truecolor24 respectively.
+
+.SH RC FILE FORMAT
+The RC file can be used to customize the color/pattern palettes.
+If a system-wide RC file is specified with the
+.B \-rcFile
+option, that file is read first; otherwise, the defaults specified at compile
+time are loaded.
+Then, the file
+.B .XPaintrc
+is searched for first in the user's home directory and then in the current
+directory. Any settings specified here are appended to the one in the
+system-wide RC file.
+
+Any time a new canvas is created, the
+.B .XPaintrc
+file is read again if it has changed.
+
+The RC file can contain any of the following entries, in any order: 
+
+.RS 0.5i
+.TP 1i
+.B #
+or
+.TP 1i
+.B !
+at the start of a line initiates a comment.
+The rest of the line is ignored.
+.TP 1i
+.BI solid " color"
+where
+.I color
+is a color in standard X11 format (eg. 
+.BR GoldenRod1 ,
+.BR #a2b5cd 
+- see also
+X(1))
+adds a solid color to the palette.
+.TP 1i
+.BI "pattern BeginData" " bitmap " EndData
+where
+.I bitmap
+is a bitmap specification in XBM or XPM format, adds a fill pattern to
+the palette.
+
+Note that there must be a newline after 
+.BR BeginData ,
+and that
+.B EndData
+must appear on a line by itself.
+
+.TP 1i
+.BI pattern " filename"
+where
+.I filename
+is a file containing a bitmap in XBM or XPM format, also adds a 
+pattern to the palette.
+.RE
+
+The squares in the palette have a default size of 24 by 24 pixels. This can be
+changed by setting the
+.B XPaint.patternsize
+resource to a number between 4 and 64.
+
+.\" \-\- section on BRUSH keyword commented out until some point in the future
+.\"    when the information is actually used
+.\" 
+.\" .TP 1i
+.\" .BI "brush BeginData" " bitmap " EndData
+.\" where
+.\" .I bitmap
+.\" is a bitmap specification in XBM or XPM format, adds a brush pattern to
+.\" the brush selector box.
+.\" 
+.\" .BR NOTE :
+.\" The
+.\" .B brush
+.\" keyword currently has no effect.
+.\" 
+.\" .TP 1i
+.\" .BI brush " filename"
+.\" where
+.\" .I filename
+.\" is a file containing a bitmap in XBM or XPM format, adds a brush
+.\" pattern to the brush selector box.
+.\" 
+.\" .BR NOTE :
+.\" The
+.\" .B brush
+.\" keyword currently has no effect.
+
+.SH AUTHORS
+The original author is David Koblas, koblas@netcom.com.  
+Around 1992, he wrote this : I am interested in how this program is 
+used, if you find any bugs, I'll fix them; if you notice any rough spots, 
+or think of some way in which it could be better, feel free to drop me
+a message.
+
+Torsten Martinsen, torsten@danbbs.dk, has taken maintenance from 1996
+to 2000 approximately, from version 2.2 to version 2.6.2. 
+
+Jean-Pierre Demailly, demailly@fourier.ujf-grenoble.fr, who started
+maintaining Xpaint around 1999, is to blame for any (mis)features added 
+in version 2.5.8 and in the following releases.
+
+Many people, too numerous to mention, have contributed to the development of
+XPaint. See ChangeLog in the source distribution for details.

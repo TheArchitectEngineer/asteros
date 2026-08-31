@@ -1,0 +1,21 @@
+#include <ctype.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/Intrinsic.h>
+#include <X11/StringDefs.h>
+
+#include "XPAINT_SHAREDIR/include/Paint.h"
+#include "XPAINT_SHAREDIR/include/PaintP.h"
+#include "XPAINT_SHAREDIR/include/xpaint.h"
+#include "XPAINT_SHAREDIR/include/graphic.h"
+#include "XPAINT_SHAREDIR/include/image.h"
+#include "XPAINT_SHAREDIR/include/misc.h"
+#include "XPAINT_SHAREDIR/include/region.h"
+#include "XPAINT_SHAREDIR/include/text.h"
+

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+LIST=`/bin/ls share/filters` 
+SHAREDIR=$1
+mkdir -p share/out
+
+for i in $LIST ; 
+do 
+./substads -single share/filters/$i share/out/$i XPAINT_SHAREDIR $SHAREDIR
+done
+

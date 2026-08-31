@@ -1,0 +1,242 @@
+solid	white
+solid!	grey80
+solid!	grey60
+solid!	grey40
+solid!	grey20
+solid	black
+solid!	indianred1
+solid!	firebrick1
+solid	red
+solid!	red2
+solid!	red3
+solid!	red4
+solid!	#c0ffc0
+solid!	#80ff80
+solid	green
+solid!	green2
+solid!	green3
+solid!	green4
+solid!	royalblue
+solid!	royalblue3
+solid	blue
+solid!	blue2
+solid!	blue3
+solid!	blue4
+solid!  mediumorchid1
+solid!  mediumorchid2
+solid!  purple1
+solid!  purple2
+solid!  purple3
+solid!  purple4
+solid!  antiquewhite1
+solid!  bisque
+solid!  bisque2
+solid!  #dec6ab
+solid!  bisque3
+solid!  bisque4
+solid!	pink
+solid!	pink2
+solid!	lightmagenta
+solid!	lightmagenta2
+solid	magenta
+solid!	magenta2
+solid!	magenta3
+solid!	magenta4
+solid!	lemonchiffon
+solid!	khaki1
+solid	yellow
+solid!	yellow2
+solid!	yellow3
+solid!	yellow4
+solid!	lightcyan
+solid!	#c0ffff
+solid	cyan
+solid!	cyan2
+solid!	cyan3
+solid!	cyan4
+solid!  moccasin
+solid!  burlywood1
+solid!  orange
+solid!  orange2
+solid!  orange3
+solid!  orange4
+
+pattern BeginData
+#define xx_width 2
+#define xx_height 2
+static unsigned char xx_bits[] = { 
+   0x02, 0x01 };
+EndData
+pattern BeginData
+#define xx_width 2
+#define xx_height 2
+static unsigned char xx_bits[] = {
+  0x00, 0x02, };
+EndData
+pattern BeginData
+#define xx_width 4
+#define xx_height 4
+static unsigned char xx_bits[] = { 
+   0x00, 0x0f, 0x00, 0x00 };
+EndData
+pattern BeginData
+#define xx_width 4
+#define xx_height 4
+static unsigned char xx_bits[] = { 
+   0x04, 0x04, 0x04, 0x04 };
+EndData
+pattern BeginData
+#define xx_width 4
+#define xx_height 4
+static unsigned char xx_bits[] = { 
+   0x01, 0x08, 0x04, 0x02 };
+EndData
+pattern BeginData
+#define xx_width 4
+#define xx_height 4
+static unsigned char xx_bits[] = {
+  0x08, 0x01, 0x02, 0x04, };
+EndData
+pattern BeginData
+#define xx_width 4
+#define xx_height 4
+static unsigned char xx_bits[] = {
+  0x01, 0x00, 0x00, 0x00, };
+EndData
+pattern BeginData
+#define xx_width 4
+#define xx_height 6
+static unsigned char xx_bits[] = {
+  0x01, 0x02, 0x04, 0x08, 0x04, 0x02, };
+EndData
+pattern BeginData
+#define xx_width 8
+#define xx_height 8
+static unsigned char xx_bits[] = {
+  0x01, 0x01, 0x01, 0xff, 0x10, 0x10, 0x10, 0xff, };
+EndData
+pattern BeginData
+#define xx_width 8
+#define xx_height 16
+static unsigned char xx_bits[] = {
+  0x1c, 0x22, 0x41, 0x41, 0x41, 0x22, 0x1c, 0x00, 0xc1, 0x22, 0x14, 0x14,
+  0x14, 0x22, 0xc1, 0x00, };
+EndData
+pattern! BeginData
+/* XPM */
+static char * tweed_xpm[] = {
+"16 16 5 1",
+" 	c #FFFFFFFF7f7f",
+".	c #000096585965",
+"X	c #FFFF0000FFFF",
+"o	c #EFBED75C0000",
+"O	c #4924D75C0000",
+" ... XXX ooo OOO",
+"...   X ooo   O ",
+"..     ooo     .",
+". O   ooo X   ..",
+" OOO ooo XXX ...",
+"  OOO o   XXX . ",
+"   OOO     XXX  ",
+"  o OOO   . XXX ",
+" ooo OOO ... XXX",
+"ooo   O ...   X ",
+"oo     ...     o",
+"o X   ... O   oo",
+" XXX ... OOO ooo",
+"  XXX .   OOO o ",
+"   XXX     OOO  ",
+"  . XXX   o OOO "};
+EndData
+pattern! BeginData
+/* XPM */
+static char * weave_xpm[] = {
+"16 16 5 1",
+" 	c #000000000000",
+".	c #F8F86969A6A6",
+"X	c #0000FFFF0000",
+"o	c #14142929F8F8",
+"O	c #B1B12929F8F8",
+" ... XXX ooo OOO",
+"...   X ooo   O ",
+"..     ooo     .",
+". O   ooo X   ..",
+" OOO ooo XXX ...",
+"  OOO o   XXX . ",
+"   OOO     XXX  ",
+"  o OOO   . XXX ",
+" ooo OOO ... XXX",
+"ooo   O ...   X ",
+"oo     ...     o",
+"o X   ... O   oo",
+" XXX ... OOO ooo",
+"  XXX .   OOO o ",
+"   XXX     OOO  ",
+"  . XXX   o OOO "};
+EndData
+pattern! BeginData
+/* XPM */
+static char * xxx_xpm[] = {
+"8 8 8 1",
+" 	c #3333FFFFFFFF",
+".	c #0000DDDD0000",
+"X	c #FFFF00000000",
+"o	c #00000000DDDD",
+"O	c #99990000FFFF",
+"+	c #FFFFFFFF3333",
+"@	c #FFFF00009999",
+"#	c #FFFFFFFFFFFF",
+"  ..XXo.",
+"  ..Oooo",
+"+ @@#ooo",
+"@@@@@ Oo",
+"#XXX@...",
+"  X oo.X",
+"#+OOOo@.",
+"++..#XX."};
+EndData
+pattern! BeginData
+/* XPM */
+static char * xxx_xpm[] = {
+"32 32 8 1",
+" 	c #FFFFFFFFFFFF",
+".	c #99990000FFFF",
+"X	c #FFFF00009999",
+"o	c #FFFFFFFF3333",
+"O	c #00000000DDDD",
+"+	c #0000DDDD0000",
+"@	c #FFFF00000000",
+"#	c #3333FFFFFFFF",
+"   .             XXXXXX      o  ",
+"  .   .     OO              o   ",
+" .   .      OO        +    o   o",
+".   .          ooooo  +   o   o ",
+"   .                  +  o   o  ",
+"  .       @   @   .   + o   o   ",
+" . ++    @   @    .   +o   o    ",
+".  ++   @   @     .   +   o     ",
+"       @   @      .      o      ",
+"      @   @       .             ",
+"     @   @            #   #     ",
+"    @   @       O      #   #    ",
+"                 O      #   #   ",
+"+++++             O      #   #  ",
+"             O     O      #   # ",
+"   .....     O  O   O      #   #",
+"             O   O   O      #   ",
+"         oo  O    O   O         ",
+"  X      oo  O     O            ",
+"   X                O   ooooo X ",
+"    X                O        X ",
+"     X   #####        O       X ",
+"  X   X        ..        XX   X ",
+"   X   X       ..        XX   X ",
+"    X   X             +         ",
+"     X           +   +          ",
+"      X         +   +           ",
+"@@@@@  X       +   +  @      @@ ",
+"        X     +   +   @      @@ ",
+"             +   +    @         ",
+" ##  OOOOO  +   +     @         ",
+" ##        +          @#####    "};
+EndData

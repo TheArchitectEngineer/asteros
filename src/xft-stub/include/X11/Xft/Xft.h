@@ -11,6 +11,7 @@
 #define _XFT_H_
 
 #include <X11/Xlib.h>
+#include <X11/extensions/Xrender.h>
 #include <fontconfig/fontconfig.h>
 
 #ifdef __cplusplus
@@ -20,10 +21,6 @@ extern "C" {
 #define XFT_VERSION 20301
 
 typedef unsigned char XftChar8;
-
-typedef struct {
-	unsigned short red, green, blue, alpha;
-} XRenderColor;
 
 typedef struct {
 	XRenderColor color;
@@ -46,20 +43,52 @@ typedef struct _XGlyphInfo {
 	short xOff, yOff;
 } XGlyphInfo;
 
+/* XftFontSet/XftResult/XftPatternGetString/XftFontSetDestroy are real
+ * Xft's own aliases onto the fontconfig types/calls above -- kept as
+ * the same aliases here, not reimplemented.
+ */
+typedef FcFontSet XftFontSet;
+typedef FcResult XftResult;
+#define XftResultMatch FcResultMatch
+#define XftPatternGetString FcPatternGetString
+#define XftFontSetDestroy FcFontSetDestroy
+
+#define XFT_FAMILY FC_FAMILY
+#define XFT_FOUNDRY FC_FOUNDRY
+#define XFT_STYLE FC_STYLE
+
 FcPattern *XftXlfdParse(const char *xlfd_name, Bool ignore_scalable, Bool complete);
 
 XftFont *XftFontOpenName(Display *dpy, int screen, const char *name);
 XftFont *XftFontOpenPattern(Display *dpy, FcPattern *pattern);
 void XftFontClose(Display *dpy, XftFont *pub);
 
+Bool XftInitFtLibrary(void);
+
+/* Font *enumeration*, same "no real fontconfig to ask" situation as
+ * FcFontList -- but unlike that one, this is the only font list
+ * XPaint's own font-selector dialog (fontSelect.c's FontSelect())
+ * ever shows the user, so an honestly-empty list would just make that
+ * dialog useless. Reporting exactly the one real font
+ * XftFontOpenName actually resolves everything to (see xft_stub.c)
+ * is the honest answer here -- it is the complete, accurate set of
+ * fonts this stub can actually render.
+ */
+XftFontSet *XftListFonts(Display *dpy, int screen, ...);
+
 XftDraw *XftDrawCreate(Display *dpy, Drawable drawable, Visual *visual, Colormap colormap);
 void XftDrawChange(XftDraw *draw, Drawable drawable);
 void XftDrawDestroy(XftDraw *draw);
+
+FcBool XftColorAllocValue(Display *dpy, Visual *visual, Colormap cmap,
+			   const XRenderColor *color, XftColor *result);
+void XftColorFree(Display *dpy, Visual *visual, Colormap cmap, XftColor *color);
 
 void XftDrawRect(XftDraw *draw, const XftColor *color, int x, int y, unsigned int width, unsigned int height);
 void XftDrawStringUtf8(XftDraw *draw, const XftColor *color, XftFont *pub, int x, int y,
 			const XftChar8 *string, int len);
 
+void XftTextExtents8(Display *dpy, XftFont *pub, const XftChar8 *string, int len, XGlyphInfo *extents);
 void XftTextExtentsUtf8(Display *dpy, XftFont *pub, const XftChar8 *string, int len, XGlyphInfo *extents);
 
 #ifdef __cplusplus

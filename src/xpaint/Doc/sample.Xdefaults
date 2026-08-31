@@ -1,0 +1,9 @@
+
+!
+! geometry resources
+!
+XPaint.geometry: 230x355+70+0
+XPaint.brush.geometry: 230x140+70+400
+XPaint.tfill.geometry: 230x140+70+400
+Canvas.geometry: +325+0
+

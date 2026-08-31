@@ -12,6 +12,7 @@
  ("XFM", EXEC, "/bin/xfm"),
  ("XEyes", EXEC, "/bin/xeyes"),
  ("XEdit", EXEC, "/bin/xedit"),
+ ("XPaint", EXEC, "/bin/xpaint"),
  ("Image Viewer", EXEC, "/bin/wmiv /usr/share/WindowMaker/Backgrounds"),
  ("Mozilla Firefox", EXEC, "firefox"),
  ("Workspaces", WORKSPACE_MENU),

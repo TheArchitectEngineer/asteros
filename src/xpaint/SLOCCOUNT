@@ -1,0 +1,38 @@
+SLOCCount estimate of xpaint 2.9.1
+
+SLOC	Directory	SLOC-by-Language (Sorted)
+40326   top_dir         ansiC=40100,sh=226
+25070   xaw3dxft        ansiC=24654,yacc=247,lex=126,sed=43
+6877    rw              ansiC=6877
+1558    share           ansiC=1367,sh=191
+87      build           sh=87
+0       Doc             (none)
+0       app-defaults    (none)
+0       bitmaps         (none)
+0       icons           (none)
+
+
+Totals grouped by language (dominant language first):
+ansiC:        72998 (98.76%)
+sh:             504 (0.68%)
+yacc:           247 (0.33%)
+lex:            126 (0.17%)
+sed:             43 (0.06%)
+
+
+
+
+Total Physical Source Lines of Code (SLOC)                = 73,918
+Development Effort Estimate, Person-Years (Person-Months) = 18.33 (219.99)
+ (Basic COCOMO model, Person-Months = 2.4 * (KSLOC**1.05))
+Schedule Estimate, Years (Months)                         = 1.62 (19.41)
+ (Basic COCOMO model, Months = 2.5 * (person-months**0.38))
+Estimated Average Number of Developers (Effort/Schedule)  = 11.33
+Total Estimated Cost to Develop                           = $ 2,476,449
+ (average salary = $56,286/year, overhead = 2.40).
+SLOCCount, Copyright (C) 2001-2004 David A. Wheeler
+SLOCCount is Open Source Software/Free Software, licensed under the GNU GPL.
+SLOCCount comes with ABSOLUTELY NO WARRANTY, and you are welcome to
+redistribute it under certain conditions as specified by the GNU GPL license;
+see the documentation for details.
+Please credit this data as "generated using David A. Wheeler's 'SLOCCount'."

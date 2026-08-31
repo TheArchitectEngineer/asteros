@@ -1,0 +1,72 @@
+\*text:900 2250*\\
+This is a "rough" document, but hopefully if you are interested in
+adding a new paint operator to xpaint, it should make a good 
+starting point.
+
+The interface to add new functions is as follows, all operations have
+two functions named (where OP == Function name, ## == concatination):
+	void *	OP ## Add(Widget w)
+	void	OP ## Remove(Widget w, void *local)
+
+Thus for the Pencil operation you have a PencilAdd() and PencilRemove()
+function.  Then what is needed is add a two lines to Operation.c, one
+of GENERATE_OP( OP ), and a entry in the iconList[] table for the icon
+that is displayed for the operation.
+
+Your Add method is expected to return a pointer to whatever local 
+instance information that your operator might need to keep track of,
+which is the argument into the Remove method.  Also, usually I
+use this data pointer are the information to pass into the event
+methods as well.
+
+Events handlers are added using the:
+	OpAddEventHandler(Widget, surface, mask, flag, function, data)
+and OpRemoveEventHandler() is used to remove them.  The Widget
+argument should be the same ass the Widget passed into the add
+function.  The surface argument is whether you want events on either
+the Window or the Pixmap, or both (you still are required to update
+the Window if you aren't zoomed).
+
+The first thing your operator should do before it changes the drawable
+is call UndoStart{Point,Rectangle}, which will cause a new undo
+buffer to be allocated for your operator.  
+
+Operators are passed an info structure, important parts are:
+	isFat		Boolean
+		-- the XtWindow() is zoomed, you should only
+		   draw on the window if you know how, when 
+		   this is set.
+	surface		OpSurface == enum { opPixmap, opWindow }
+		-- what surface you are being called with
+		   either the backing store pixmap or the
+		   actuall window
+	drawable	Drawable (either the window or pixmap)
+		-- what the drawable ID is, this in only valid
+		   after the call to UndoStart()
+	filled_gc	GC
+		-- the graphic context you should use for
+		   all your drawing operations.
+	x, y		int
+		-- The x and y position of the event,
+		   these may be in the zoomed coordinate
+		   on the Window, while they will always
+		   be the real x, y for the Pixmap.
+	realX, realY	int
+		-- The real x and y position of the event, if 
+		   gridding is on x,y is modified by the gridding 
+		   factor.  This only should be used in rare cases 
+		   where it is non-sensical to pay attention to the 
+		   grid factor (ie flood fill).
+	zoom 		int
+		-- the current zoom factor, if isFat is True.
+
+The XtNcompress value for the paint widet controlles wheather
+or not motion events are compressed into a single event if
+possible. Thus:
+	XtVaSetValues(w, XtNcompress, False, NULL);
+says that your operator is interested in all motion events
+(ie. the pencil, or paint brush).
+
+Generally, if you look at the operators that I have
+provided there is probably an example of every atrocity that
+I might be able to think of using the above information.

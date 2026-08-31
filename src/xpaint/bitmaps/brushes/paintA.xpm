@@ -1,0 +1,9 @@
+/* XPM */
+static char * paintA_xpm[] = {
+"3 3 3 1",
+"  	c #FFFFFFFFFFFF m white s A",
+"X 	c #79E77DF779E7 m black s C",
+"o	c #000000000000 m black s E",
+" X ",
+"XoX",
+" X "};

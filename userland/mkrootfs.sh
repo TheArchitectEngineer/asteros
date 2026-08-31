@@ -270,6 +270,25 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/lib/X11/xedit/lisp ::/usr/lib/X11/xedit/
 		fi
 	fi
+	if [ -f build/xorg-target-root/bin/xpaint ]; then
+		echo "xpaint found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xpaint ::/bin/xpaint
+		if [ -f build/xorg-target-root/usr/share/X11/app-defaults/XPaint ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/share 2>/dev/null || true
+			mmd -i "$ROOTFS_IMG" ::/usr/share/X11 2>/dev/null || true
+			mmd -i "$ROOTFS_IMG" ::/usr/share/X11/app-defaults 2>/dev/null || true
+			mcopy -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/X11/app-defaults/XPaint ::/usr/share/X11/app-defaults/XPaint
+		fi
+		# SHAREDIR (/usr/share/xpaint) -- brushOp.c's brushboxResized()
+		# loads bitmaps/brushbox.cfg (and the brushes/elec pattern
+		# bitmaps it references) from here at runtime; help/messages
+		# are xpaint*helpFile/xpaint*msgFile's own app-defaults paths,
+		# both relative to shareDir.
+		if [ -d build/xorg-target-root/usr/share/xpaint ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/share 2>/dev/null || true
+			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/xpaint ::/usr/share/
+		fi
+	fi
 	if [ -f build/xorg-target-root/bin/wmiv ]; then
 		echo "wmiv found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/wmiv ::/bin/wmiv

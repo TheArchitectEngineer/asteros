@@ -1,0 +1,147 @@
+Release notes for XPaint 2.8.19
+-------------------------------
+
+XPaint has been created by David Koblas in 1991 and maintained by him 
+up to version 2.1.1, appeared end of 1994. Then Torsten Martinsen 
+<torsten.martinsen@bullestock.net> took up development until version
+2.5.7, around end of 1996. Since 1999, starting with xpaint 2.5.8,
+new versions of XPaint have been developped by Jean-Pierre 
+Demailly  <demailly@fourier.ujf-grenoble.fr> who has taken up 
+maintainance since 2000 - although on a somewhat slow and irregular
+rythm.
+
+Starting with version 2.6.4, Xpaint can be easily internationalized,
+and this is even more true with 2.8.17+ since Xpaint now fully supports 
+UTF8 encoding and Truetype/Freetype fonts.
+
+In order to add a new (still unsupported) language, it is sufficient to
+translate the app-default file and set it as 'XPaint_xy.ad.in' where
+'xy' are the first two letters of the LANG parameter defining the
+language. Also 'XPaint_xy.ad.in' should point to appropriate localized
+files 'Messages_xy' (and optionally 'Help_xy') reproducing the
+structure of 'Messages' and 'Help' respectively. Check for instance
+'XPaint_fr.ad.in' to see how things work. If you do not provide a
+translation of the (somewhat lengthy) Help file, the English 'Help' will
+be loaded as a fallback. (Note: Since version 2.8.17, these files should
+be UTF8-encoded if xaw3dxft is used).
+
+Please do NOT send bug reports etc. to David Koblas or Torsten Martinsen.
+
+To compile this program, you will need:
+
+	- an ANSI C compiler (such as GCC),
+	- the Xpm library, version 3.4c or later
+
+To compile with support for TIFF images, you must have the TIFF library,
+version 3.2 or later. 
+
+To compile with support for JPEG images, you must have version 6 of the JPEG
+library from The Independent JPEG Group, released 2-Aug-95. Newer versions
+should also work.
+
+To compile with support for PNG images, you must have the PNG library, version
+1.0.8 or higher.
+
+The TIFF/JPEG/PNG libraries can be downloaded from
+http://www.libtiff.org/
+http://www.ijg.org
+http://www.libpng.org/
+libpng itself requires zlib, which can be found at
+http://www.zlib.org/
+
+Xpaint can be compiled just with the standard X11 libraries, the Xt toolkit
+plus the freetype2 and fontconfig libraries. It used to require also
+one of the Athena widget library clones, but the recent versions (since
+version 2.8.17) rely on an included xaw3d clone with support for UTF8 and
+TrueType fonts.
+
+Fallback compilation options are offered to compile Xpaint with
+existing shared Xaw libraries. This will yield a fully functional
+program, but the look and feel might be a little bit dry (or even 
+just ugly with the standard Xaw coming with Xorg).
+
+XPaint is known to have been successfully built on the following platforms:
+	- Linux 2.6.x,  Xorg various versions, Xaw/Xaw3d/Xaw95/neXtaw widgets
+	- Linux 2.4.19, XFree86 4.2.1, GCC 3.2.1
+	- Linux 2.2.16, XFree86 3.3.6, EGCS 2.91.66
+	- Linux 2.0.18, XFree86 3.1.2, GCC 2.7.2
+	- Solaris 2.4, 2.5, 2.6
+	- SunOS 4.1, 4.1.4
+	- FreeBSD, NetBSD, BSD386
+	- DEC Alpha, native cc
+	- AIX
+	- SGI IRIX-6.2
+	- HP-UX A.09.05 A 9000/735, native cc
+
+Any feedback on problems is welcome, but remember to include the following in
+your bug report:
+	- The version number of XPaint
+	- The system you are using (e.g. 'Linux 1.3.14', 'Solaris 2.4')
+
+See 'INSTALL' for installation instructions.
+
+See 'Doc/ChangeLog' for the history of changes since the early days,
+and a list of people who have contributed patches and bug reports in
+all these years.
+
+See 'Doc/Operator.doc' for a description of XPaint internals.
+
+See 'Doc/sample.Xdefaults' for an example of setting resources for XPaint.
+
+See 'README.old' for the original README.
+
+See 'README.PNG' for notes on the PNG support.
+
+See 'TODO' for a list of possible improvements.
+
+The most recent version of XPaint is always available from
+
+	http://sourceforge.net/projects/sf-xpaint/
+
+Thanks to the many beta testers who put up with the first buggy releases.
+
+------------------------------------------------------------------------------
+
+(An old list of bugs which is mostly out of date)
+
+KNOWN BUGS 
+
+The 'Transparent Brush' tool does not work well on colour mapped visuals with
+256 colours. The reasons are:
+	1) It is too slow. This could perhaps be fixed.
+	2) All entries in the colour map are used up in rather quickly.
+	3) The limited number of colours give rise to round-off errors
+	   when computing the new pixel colours.
+
+Undo/Redo exhibits some weirdness in certain circumstances.
+
+Selecting a region enables the 'Last Filter' menu item.
+
+The following causes a SIGSEGV (reported by Hans Dietmar Jäger
+<jagger@uni-paderborn.de>):
+
+	open a file A
+	open another file B
+	do Image -> Change Size to file A, change Width, press TAB and 
+        leave the dialog open
+	do Image -> Change Size to file B, change Width and leave the 
+        dialog open try to change Height by pressing TAB or clicking 
+        mouse-left in the Height field
+
+-Torsten Martinsen (torsten@image.dk)
+
+The following are new due and are related to the -visual flag:
+	1) DirectColor colormap is wrong.
+
+	2) Xaw3d only works in 8 bit mode -- has a problem with
+	   button = XtCreateManagedWidget(...) menu bar in menu.c
+	   in anything higher than 8 bits.
+
+	3) The smear tool fails in anything greater than 8 bit mode
+	   because XPutImage in smear() in brushOp.c is failing.
+	   Probably caused by depth mismatch somewhere in call
+	   to smear.
+
+-Scott D. Nelson (nelson18@llnl.gov), August 1997
+
+NOTE: You *must* have X11R5 or newer. X11R4 is obsolete and will *not* work.

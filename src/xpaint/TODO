@@ -1,0 +1,14 @@
+Possible roadmap for future releases :
+
+3. Add a text-based vector format editor, and turn xpaint into a 
+   DTP program via TeX/LaTeX/PostScript edition.
+
+---------------------------------------------------------------------------
+
+DONE (somehow)
+
+1. Embed a more capable and more responsive PostScript viewer (gv-like) in
+   the ReadPS routines 
+   
+2. Add a PostScript vector format
+

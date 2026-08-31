@@ -1,0 +1,23 @@
+/* XPM */
+static char * fill_r1_xpm[] = {
+"16 17 3 1",
+" 	c #E79DE79DE79D",
+".	c #FFFF00000000",
+"X	c #FFFFFFFFFFFF",
+"                ",
+"                ",
+"      ....      ",
+"    ..XXXX..    ",
+"   .XXXXXXXX.   ",
+"   .XXXXXXXX.   ",
+"  .XXXXXXXXXX.  ",
+"  .XXXXXXXXXX.  ",
+"  .XXXXXXXXXX.  ",
+"  .XXXXXXXXXX.  ",
+"   .XXXXXXXX.   ",
+"   .XXXXXXXX.   ",
+"    ..XXXX..    ",
+"      ....      ",
+"                ",
+"                ",
+"                "};

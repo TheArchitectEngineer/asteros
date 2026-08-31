@@ -68,7 +68,7 @@ typedef unsigned long u_long;
 typedef unsigned int u_int;
 typedef unsigned short u_short;
 typedef unsigned char u_char;
-typedef long key_t;
+#include <sys/_types/_key_t.h> /* key_t -- real Darwin defines this via the same guarded header, not inline here; a bare "typedef long key_t" here previously conflicted with sys/_types/_key_t.h's typedef __int32_t key_t whenever both got included in one translation unit (first surfaced by xpaint/magnifier.c's <sys/ipc.h>) */
 typedef char *caddr_t;
 /* BSD legacy fixed-width aliases (src/xnu/bsd/sys/_types/_u_intNN_t.h) --
  * distinct from <stdint.h>'s uintN_t (no underscore): several vendored

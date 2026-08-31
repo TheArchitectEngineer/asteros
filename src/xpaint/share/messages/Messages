@@ -1,0 +1,499 @@
+# XPaint Messages version 2.9.0
+#DEFAULT_TITLE
+Untitled
+#CANT_FIND_PRINTCAP_FILE
+Can't find printcap file in %s
+#USAGE_FOR
+Usage for
+#CANNOT_INSTALL_XPM_ICON
+Cannot install XPM icon
+#NO_MATCH_FOUND_FOR_VISUAL
+No match found for visual\n
+#BAD_VISUAL_TYPE_SPECIFICATION
+%s: bad visual type specification '%s'\n
+#YOUR_CANVAS_DEPTH_IS_THAT_MANY_BITS
+\nYour canvas depth is %d bits.\n\n
+#SEPARATOR_STRIP_ONE
+     =============================================================\n
+#WARNING_ONE
+     WARNING!  Most true-color images will suffer major data loss!\n
+#SEPARATOR_STRIP_TWO
+     ================================================================\n
+#WARNING_TWO_A
+     WARNING!  Most color-mapped (palette) and true-color images will\n
+#WARNING_TWO_B
+     lose information irreversibly!\n
+#WARNING_THREE_A
+     Normal images (color-mapped, 8-bit grayscale, 24-bit true-color)\n
+#WARNING_THREE_B
+     will not lose any color info, but non-true-color images may be\n
+#WARNING_THREE_C
+     promoted to 24-bit mode.\n\n
+#GO_UP_ONE_DIRECTORY_LEVEL
+../ (Go up 1 directory level)
+#NO_FILE_NAME_SUPPLIED
+No file name supplied
+#UNABLE_TO_GET_REGION
+Unable to get region
+#UNABLE_TO_CREATE_IMAGE
+Unable to create image
+#UNABLE_TO_CREATE_IMAGE_FOR_SAVING
+Unable to create image for saving
+#UNABLE_TO_LOAD_FILTER
+Unable to load filter
+#UNABLE_TO_LOAD_PROCEDURE
+Unable to load procedure
+#ERROR_SAVING_FILE
+Error saving file:\n   %s
+#NO_REGION_SELECTED_PRESENTLY
+No region selected presently
+#NO_SUCH_FILE_OR_DIRECTORY
+No such file or directory:\n   %s
+#UNABLE_TO_OPEN_INPUT_FILE
+Unable to open input file "%s"\n   %s
+#IMAGE_FORMATS
+Auto_Detect Best Guess
+PNG_Format PNG Format
+PNG_Interlaced PNG (interlaced)
+GIF_Format GIF Format
+JPEG_Format JPEG Format
+TIFF_Format TIFF Format
+BMP_Format BMP Format
+ICO_Format ICO Format
+PPM_Format PPM Format
+SGI_Format SGI Format
+XBM_Format XBM Format
+XPM_Format XPM Format
+XWD_Format XWD Format
+LXP_Format LXP Format
+PS_Format PS Format
+PDF_Format PDF Format
+TEX_Format TEX Format
+CSC_Format C Script
+#END_IMAGE_FORMATS
+#POSITION
+Position
+#VALUE
+Value
+#RED_COLOR
+Red
+#GREEN_COLOR
+Green
+#BLUE_COLOR
+Blue
+#RED_VARIANCE
+Red Variance
+#GREEN_VARIANCE
+Green Variance
+#BLUE_VARIANCE
+Blue Variance
+#SNAP_SPACING_X
+Spacing in x:
+#SNAP_SPACING_Y
+Spacing in y:
+#ENTER_DESIRED_SNAP_SPACING
+Enter desired snap spacing
+#LEVELS
+Levels (0-20):
+#NUMBER_OF_UNDO_LEVELS
+Number of undo levels
+#IMAGE_NUMBER
+Image number
+#RECALL_AN_IMAGE
+Recall an image
+#REMOVE_AN_IMAGE
+Remove an image
+#REMOVE_FILE
+Remove file
+#ZOOM
+Zoom:
+#CHANGE_ZOOM_FACTOR_FOR_IMAGE
+Change zoom factor for image
+#ANGLE_IN_DEGREES
+Angle (in Degrees):
+#ENTER_DESIRED_ROTATION
+Enter desired rotation
+#ENTER_TWOBYTWO_MATRIX_ENTRIES
+Entries of 2x2 matrix  [ a11, a12 ; a21, a22 ]
+#ENTER_POINTS
+Enter points
+#MUST_BE_ODD
+(must be odd):
+#ENTER_MASK_SIZE_FOR_OIL_PAINT_EFFECT
+Enter mask size for oil paint effect
+#ENTER_MASK_SIZE_FOR_SMOOTHING_EFFECT
+Enter mask size for smoothing effect
+#ENTER_DESIRED_NOISE_VARIANCE
+Enter desired noise variance
+#DISTANCE_PIXELS
+Distance (pixels):
+#ENTER_THE_DESIRED_SPREAD_DISTANCE
+Enter the desired spread distance
+#WIDTH_X_HEIGHT_OR_SINGLE_NUMBER
+(width x height, or single number):
+#ENTER_DESIRED_MEGAPIXEL_SIZE
+Enter desired megapixel size
+#ENTER_MASK_SIZE_FOR_DESPECKLE_FILTER
+Enter mask size for despeckle filter
+#BLACK_LEVEL
+Black level (%):
+#WHITE_LEVEL
+White level (%):
+#ENTER_LEVELS_FOR_CONTRAST_ADJUSTMENT
+Enter levels for contrast adjustment
+#ENTER_THRESHOLD_FOR_SOLARIZE_FILTER
+Enter threshold for solarize filter
+#ENTER_DESIRED_SHIFT_FOR_RGB_COMPONENTS
+Desired shift for RGB Components
+#RED_SHIFT
+Red    (-100% -> +100%)
+#GREEN_SHIFT
+Green (-100% -> +100%)
+#BLUE_SHIFT
+Blue   (-100% -> +100%)
+#ENTER_DESIRED_NUMBER_OF_COLORS
+Enter desired number of colors
+#ENTER_DESIRED_ALPHA_CHANNEL_PARAMETERS
+Enter desired alpha channel parameters
+#ALPHA_CHANNEL_SHOULD_BE_CREATED
+Alpha channel should first be created,\nthen saved and reloaded from memory
+#ALPHA_MODE
+alpha mode
+#ALPHA_BACKGROUND_VALUE
+alpha background value
+#ALPHA_FOREGROUND_VALUE
+alpha foreground value
+#ALPHA_THRESHOLD_VALUE
+alpha threshold value
+#EXPANSION_PARAMETERS
+Expansion parameters
+#EXPANSION_FACTOR
+Expansion factor
+#DO_INTERPOLATION
+Do interpolation
+#DOWNSCALING_PARAMETERS
+Downscaling parameters
+#DOWNSCALING_FACTOR
+Downscaling factor
+#SIZE_WIDTH
+Width:
+#SIZE_HEIGHT
+Height:
+#SIZE_ZOOM
+Zoom:
+#ENTER_DESIRED_IMAGE_SIZE
+Enter the desired image size
+#WIDTH_AND_DESIRED_LINE_STYLE
+Width and desired line style (example ======---, = fill, - blank)
+#LINE_WIDTH
+Width:
+#DASH_STYLE
+Dash style:
+#CAP_STYLE
+Cap style:
+#CAP_HINT
+0 Default, 1 None, 2 Butt, 3 Round, 4 Projecting
+#JOIN_STYLE
+Join style:
+#JOIN_HINT
+0 Default, 1 Miter, 2 Round, 3 Bevel
+#GRID_DRAWING_MODE
+Grid drawing mode
+#GRID_LINES_OR_OTHER
+Lines, dots, crosses, squares (0/1/2/3)
+#GRID_USES_SNAP
+Grid uses snap lattice (0/1)
+#GRID_COLOR
+Grid color
+#OPACITY
+Opacity (%):
+#ENTER_THE_DESIRED_BRUSH_PARAMETERS
+Enter the desired brush parameters
+#DENSITY
+Density (%):
+#ENTER_THE_DESIRED_FRACTAL_DENSITY
+Enter the desired fractal density
+#DYNAMIC_WIDTH
+Width:
+#DYNAMIC_MASS
+Mass:
+#DYNAMIC_DRAG
+Drag:
+#ENTER_THE_DESIRED_DYNAMIC_PENCIL_PARAMETERS
+Enter the desired dynamic pencil parameters
+#SPRAY_RADIUS
+Radius:
+#SPRAY_DENSITY
+Density:
+#SPRAY_RATE
+Rate:
+#ENTER_THE_DESIRED_SPRAY_PARAMETERS
+Enter the desired spray parameters
+#ARROWHEAD_TYPE
+Arrow type:
+#ARROWHEAD_SIZE
+Arrow size:
+#ARROWHEAD_ANGLE
+Arrow angle:
+#ENTER_THE_DESIRED_ARROWHEAD_PARAMETERS
+Enter the desired arrow head parameters
+#BOX_ROUND_CORNER_ABSOLUTE_SIZE
+Box round corner absolute size
+#BOX_ROUND_CORNER_RELATIVE_SIZE
+Box round corner relative size
+#ENTER_THE_DESIRED_ROUND_CORNER_SIZE
+Enter the desired round corner size
+#NUMBER_OF_SIDES_OF_POLYGON
+Number of sides of polygon
+#STARLIKE_POLYGON_INNER_RATIO
+Starlike polygon inner ratio
+#ENTER_THE_DESIRED_SPECIAL_POLYGON_PARAMETERS
+Enter the desired special polygon parameters
+#GRADIENT_ANGLE
+Angle (degrees):
+#GRADIENT_PAD
+Pad (%):
+#GRADIENT_HORIZONTAL_OFFSET
+Horizontal offset (%):
+#GRADIENT_VERTICAL_OFFSET
+Vertical offset (%):
+#GRADIENT_STEPS
+Steps:
+#ENTER_THE_DESIRED_GRADIENT_FILL_PARAMETERS
+Enter the desired gradient fill parameters
+#PATTERN_WIDTH
+Width:
+#PATTERN_HEIGHT
+Height:
+#ENTER_THE_DESIRED_PATTERN_SIZE
+Enter the desired pattern size:
+#YOU_MUST_HAVE_AT_LEAST_ONE_ENTRY
+You must have at least one entry
+#NO_INFORMATION_TO_SAVE
+No information to save
+#UNABLE_TO_OPEN_FILE
+Unable to open file '%s'
+#UNABLE_TO_OPEN_FILE_FOR_WRITING
+Unable to open file '%s' for writing
+#OVERWRITE_FILE
+Overwrite file '%s' ?
+#UNSAVED_CHANGES_WISH_TO_QUIT
+There are unsaved changes,\nare you sure you wish to quit?
+#UNSAVED_CHANGES_WISH_TO_CLOSE
+Unsaved changes!\nDo you really wish to close?
+#UNSAVED_CHANGES_WISH_TO_REVERT
+Unsaved changes!\nDo you really wish to revert?
+#RESIZING_WARNING_CANNOT_BE_UNDONE
+Resizing\n\nWarning: this operation cannot be undone\nContinue?
+#AUTOCROP_WARNING_CANNOT_BE_UNDONE
+Autocrop\n\nWarning: this operation cannot be undone\nContinue?
+#ARE_YOU_SURE_YOU_WANT_TO_CROP_THE_IMAGE_TO_THE_SIZE_OF_THE_REGION
+Are you sure you want to crop the\nimage to the size of the region?
+#BAD_SNAP_SPACING
+Bad snap spacing.\nShould be between 2 and 100
+#BAD_NUMBER_OF_UNDO_LEVELS
+Bad number of undo levels.\nShould be between 0 and 20
+#INVALID_ZOOM
+Invalid zoom
+#INVALID_MASK_SIZE
+Invalid mask size
+#INVALID_NOISE_VARIANCE
+Invalid noise variance
+#INVALID_SPREAD_DISTANCE
+Invalid spread distance
+#INVALID_PIXEL_SIZE
+Invalid pixel size
+#INVALID_WHITE_LEVEL
+Invalid white level
+#INVALID_BLACK_LEVEL
+Invalid black level
+#INVALID_SOLARIZATION_THRESHOLD
+Invalid solarization threshold
+#INVALID_RGB_PERCENTAGES
+Invalid percentages for RGB variation
+#INVALID_NUMBER_OF_COLORS
+Invalid number of colors
+#INVALID_SCALING_FACTOR
+Invalid scaling factor
+#INVALID_ALPHA_CHANNEL_PARAMETERS
+Invalid alpha channel parameters
+#UNABLE_TO_CREATE_PAINT_WINDOW_WITH_IMAGE
+Unable to create paint window with image
+#FILE_WRITTEN
+File %s written...
+#FILE_SENT_TO_PRINTER
+Data sent to printer...
+#INVALID_WIDTH_MUST_BE_GREATER_THAN_ZERO
+Invalid width, must be greater than zero and less than 1000
+#DASH_IS_GIVEN_BY_ALTERNATING_THAT_MANY_CHARACTERS
+Dash style: alternate at most %d characters = or -
+#OPACITY_SHOULD_BE_BETWEEN_ZERO_AND_HUNDRED_PERCENT
+Opacity should be between 0 and 100 %
+#WIDTH_SHOULD_BE_BETWEEN_ONE_AND_ONE_HUNDRED
+Width should be between 1 and 100
+#MASS_SHOULD_BE_BETWEEN_TEN_AND_TWO_THOUSAND
+Mass should be between 10 and 2000
+#DRAG_SHOULD_BE_BETWEEN_ZERO_AND_FIFTY
+Drag should be between 0 and 50
+#RADIUS_SHOULD_BE_BETWEEN_ONE_AND_ONE_HUNDRED
+Radius should be between 1 and 100
+#DENSITY_SHOULD_BE_BETWEEN_ONE_AND_FIVE_HUNDRED
+Density should be between 1 and 500
+#RATE_SHOULD_BE_BETWEEN_ONE_AND_FIVE_HUNDRED
+Rate should be between 1 and 500
+#TYPE_SHOULD_BE_BETWEEN_ONE_AND_MAXTYPE
+Type should be between 1 and 3
+#SIZE_SHOULD_BE_BETWEEN_ONE_AND_ONE_THOUSAND
+Size should be between 1 and 1000
+#ANGLE_SHOULD_BE_BETWEEN_ZERO_AND_SIXTY
+Angle should be between 0 and 60 degrees
+#NUMBER_OF_SIDES_SHOULD_BE_BETWEEN_THREE_AND_ONE_HUNDRED
+Number of sides should be between 3 and 100
+#BOX_ROUND_CORNER_ABSOLUTE_SIZE_SHOULD_BE_BETWEEN_ZERO_AND_ONE_THOUSAND
+Box round corner absolute size should be between 0 and 1000
+#BOX_ROUND_CORNER_RELATIVE_SIZE_SHOULD_BE_BETWEEN_ZERO_AND_ONE
+Box round corner relative size should be between 0.0 and 1.0
+#BOX_ROUND_CORNER_ABSOLUTE_AND_RELATIVE_SIZE_CANNOT_BE_BOTH_POSITIVE
+Box round corner absolute and relative size cannot be both positive
+#INNER_RATIO_SHOULD_BE_BETWEEN_ZERO_AND_ONE
+Inner ratio should be between 0.0 and 1.0
+#HORIZONTAL_OFFSET_SHOULD_BE_BETWEEN_PLUS_MINUS_HUNDRED_PERCENT
+Horizontal offset should be between -100 and 100 %
+#VERTICAL_OFFSET_SHOULD_BE_BETWEEN_PLUS_MINUS_HUNDRED_PERCENT
+Vertical offset should be between -100 and 100 %
+#PAD_SHOULD_BE_BETWEEN_PLUS_MINUS_FOURTY_NINE_PERCENT
+Pad should be between -49 and 49 %
+#ANGLE_SHOULD_BE_BETWEEN_PLUS_MINUS_THREE_HUNDRED_SIXTY_DEGREES
+Angle should be between -360 and 360 degrees
+#NUMBER_OF_STEPS_SHOULD_BE_BETWEEN_ONE_AND_THREE_HUNDRED
+Number of steps should be between 1 and 300
+#LOST_ERROR_TERM
+Lost error term
+#FONT_SELECT_DESIRED_PROPERTIES
+Font: select desired properties (click in empty area to deselect)
+#UNABLE_TO_LOAD_REQUESTED_FONT
+Unable to load requested font
+#YOU_MUST_FIRST_COMPILE_A_C_SCRIPT
+You must first compile a C script (menu "Selectors")
+#C_SCRIPT_SUCCESSFULLY_COMPILED_AND_LINKED
+C script successfully compiled and linked
+#C_SCRIPT_COULD_NOT_BE_COMPILED_OR_LINKED
+C script could not be compiled or linked:
+#INVALID_WIDTH
+Invalid width
+#INVALID_HEIGHT
+Invalid height
+#INVALID_WIDTH_OR_HEIGHT_MUST_BE_GREATER_THAN_ZERO
+Invalid width or height,\nmust be greater than 0
+#INVALID_WIDTH_OR_HEIGHT_MUST_BE_LESS_THAN_HUNDRED_TWENTY_NINE
+Invalid width or height,\nmust be less than 129
+#INVALID_WIDTH_OR_HEIGHT_MUST_BE_BETWEEN_ZERO_AND_TWO_HUNDRED_FIFTY_SIX
+Invalid width/height specification must be between 0..256
+#DIRECTORIES
+Directories
+#FILES
+Files
+#LIST_LOADED_FILES
+* List of loaded files *
+#FILE_DOES_NOT_EXIST
+File %s does not exist
+#FILE_NOT_IN_THE_LIST
+File %s not in the list
+#OPEN_FILE_NAMED
+Open File Named:
+#SAVE_IN_FILE
+Save in File:
+#LOAD_FROM_FILE
+Load from File:
+#IMAGE_NUMBER_OUT_OF_RANGE
+Image number out of range
+#OUT_OF_MEMORY
+Out of memory\n
+#UNABLE_TO_ALLOCATE_SUFFICIENT_COLOR_ENTRIES
+Unable to allocate sufficient color entries.\n
+#TRY_EXITING_OTHER_COLOR_INTENSIVE_APPLICATIONS
+Try exiting other color intensive applications.\n
+#SHOULDNT_HAPPEN
+Shouldn't happen\n
+#ERROR_IN_XINTERNATOM
+Error in XInternAtom\n
+#CANNOT_GRAB_POINTER
+Cannot grab pointer.\n
+#INSUFFICIENT_RESOURCES_FOR_OPERATION
+Insufficient resources for operation.\n
+#PROBABLY_NOT_ENOUGH_MEMORY_TO_ALLOCATE_PIXMAP
+Probably not enough memory to allocate pixmap.\n
+#ERROR_CODE
+Error code:
+#UNKNOWN_IMAGE_FORMAT
+Unknown image format
+#OUT_OF_MEMORY_ALLOCATING_A_ROW
+%s: out of memory allocating a row\n
+#OUT_OF_MEMORY_ALLOCATING_AN_ARRAY
+%s: out of memory allocating an array\n
+#READ_ERROR
+%s: EOF / read error\n
+#WRITE_ERROR
+%s: write error\n
+#A_FILE_READ_ERROR_OCCURRED_AT_SOME_POINT
+%s: a file read error occurred at some point\n
+#A_FILE_WRITE_ERROR_OCCURRED_AT_SOME_POINT
+%s: a file write error occurred at some point\n
+#JUNK_IN_FILE_WHERE_BITS_SHOULD_BE
+%s: junk in file where bits should be\n
+#READ_ERROR_READING_MAGIC_NUMBER
+%s: EOF / read error reading magic number\n
+#JUNK_IN_FILE_WHERE_AN_INTEGER_SHOULD_BE
+%s: junk in file where an integer should be\n
+#CANT_HAPPEN
+%s: can't happen\n
+#MAXVAL_IS_TOO_LARGE
+%s: maxval is too large\n
+#BAD_MAGIC_NUMBER_NOT_A_PPM_PGM_OR_PBM_FILE
+%s: bad magic number - not a ppm, pgm, or pbm file\n
+#OUT_OF_MEMORY_COMPUTING_HASH_TABLE
+%s: out of memory computing hash table\n
+#OUT_OF_MEMORY_ALLOCATING_HASH_TABLE
+%s: out of memory allocating hash table\n
+#OUT_OF_MEMORY_GENERATING_HISTOGRAM
+%s: out of memory generating histogram\n
+#SAME_COLOR_FOUND_TWICE
+: same color found twice
+#COLORHIST_OUT_OF_MEMORY
+%s: out of memory\n
+#FATAL_LIBPNG_ERROR_LONGJMP_CALLED_WHILE_READING
+Fatal libpng error (longjmp() called while reading)
+#FATAL_LIBPNG_ERROR_LONGJMP_CALLED_WHILE_WRITING
+Fatal libpng error (longjmp() called while writing)
+#ERROR_PLTE_CHUNK_NOT_FOUND_IN_PALETTE_IMAGE
+Error:  PLTE chunk not found in palette image
+#STRIPPING_48_BIT_RGB_IMAGE_TO_24_BITS
+Stripping 48-bit RGB image to 24 bits
+#STRIPPING_16_BIT_GRAYSCALE_IMAGE_TO_8_BITS
+Stripping 16-bit grayscale image to 8 bits
+#STRIPPING_64_BIT_RGBA_IMAGE_TO_32_BITS
+Stripping 64-bit RGBA image to 32 bits
+#STRIPPING_32_BIT_GRAY_ALPHA_IMAGE_TO_16_BITS
+Stripping 32-bit gray+alpha image to 16 bits
+#UNKNOWN_PNG_IMAGE_TYPE
+Unknown PNG image type
+#READPNG_CANT_ALLOCATE_MEMORY_FOR_ROW_POINTERS_1
+ReadPNG:  can't allocate memory for row_pointers (1)
+#READPNG_CANT_ALLOCATE_MEMORY_FOR_ROW_POINTERS_2
+ReadPNG:  can't allocate memory for row_pointers (2)
+#UNABLE_TO_ALLOCATE_TEMPORARY_STORAGE_FOR_ALPHA_IMAGE
+Unable to allocate temporary storage for alpha image
+#READPNG_UNABLE_TO_MALLOC_PNG_DATA
+ReadPNG:  unable to malloc png_data\n
+#WRITEPNG_CANT_USE_ALPHA_MASK_WITH_COLORMAPPED_IMAGE
+WritePNG:  can't use alpha mask with colormapped image\n
+#WRITEPNG_SORRY_CANT_WRITE_ALPHA_IMAGES_YET
+WritePNG:  sorry, can't write alpha images yet\n
+#WRITEPNG_CANT_ALLOCATE_MEMORY_FOR_ROW_POINTERS
+WritePNG:  can't allocate memory for row_pointers
+#XPAINT_FATAL_LIBPNG_ERROR
+XPaint:  fatal libpng error: %s\n
+#XPAINT_EXTREMELY_FATAL_LIBPNG_ERROR
+XPaint:  EXTREMELY fatal libpng error: jmpbuf unrecoverable; terminating.\n
+#END_MESSAGES
+

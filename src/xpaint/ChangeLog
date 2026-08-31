@@ -1,0 +1,2699 @@
+2010-07-05  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.9.1.4
+
+        * fatBitsEdit.c, Paint.c , Paintregion.c : several fixes in 
+          handling of alpha channel in fatbits editor - some affecting
+          alpha channel image bits.
+
+        * app-defaults : change zoom labels to correct values xx:1 instead
+          of 1:xx
+
+        * graphic.c : prevent fatbits editor getting called undeservedly by 
+          GetNonDirtyCanvas() routine ; removing alpha channel now moves it
+          to memory rather than destroying it right away.
+
+        * rw/readWritePS.c : fix for compilation of TeX/LaTeX files being
+          called from random directories.
+
+        * minor fixes throughout - thanks to the SUSE-Packman maintainer
+          Detlef Reichelt <detlef@die-mafia.de> for help.
+
+2010-06-02  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.9.1
+
+        * Paint.c , Paintregion.c : fixes in alpha channel routines.
+
+        * fatBitsEdit.c : many fixes in fatbits editor. Refresh button added
+
+        * graphic.c : reload file procedure didn't reload alpha channel - this 
+          is now fixed.
+
+        * fontOp.c : potential segfault corrected.
+
+        * small other (mostly random) improvements.
+
+2010-05-16  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.9.0
+
+        * graphic.c, Paint.c :  big improvements in handling of
+          alpha channel ; alpha management menu is now explicit
+          from canvas menu bar. Support still not quite complete at 
+          this point (regions do not appear yet in alpha mode). 
+          Should come for 2.9.1...
+
+        * Paint.c, PaintRegion.c : fixed segfault occurring when using 
+          region operations in fatbits editor (regression introduced already 
+          in 2.8.9 which remained unnoticed up to 2.8.19 ...)
+
+        * fontOp.c, fontSelect.c : UTF8 support should now be essentially
+          complete.
+
+        * rw/readWritePNG.c : fixed bug when writing PNG_COLOR_TYPE_PALETTE
+          images with less than 16 colors (those images were wrongly 
+          converted to gray palette...)
+
+        * several other small fixes and improvements throughout.
+
+2010-04-17  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.19.1 (mostly cosmetic changes)
+
+        * fileBrowser.c : added "ongoing" mode in File Browser (widget no
+          longer closes when opening an image, allowing to browse files
+          continuously). Performed a substantial code clean-up as well.
+ 
+        * operation.c, graphic.c : menu improvements; one can now open an image
+          from any canvas window.
+
+        * misc.c : added RaiseWindow() routine to comply better with ewmh
+          specifications. XMapRaised() replaced by RaiseWindow() throughout.
+
+        * "snapshot" replaced by "screenshot" throughout.
+
+2010-04-05  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.19
+
+        * fileBrowser.c : fixed minor annoyance in "save" and "saveas" 
+          routines - name of file is now again remembered when a filename
+          has already been set.
+
+        * graphic.c : fixed bug in ToolSelection switcher; "font" menu 
+          replaced by more powerful "text" menu; new entry added
+          to edit/write text from text editor embedded in font browser.
+
+        * iprocess.c : fixed bug in filter "adjust RGB colors"
+
+        * fontSelect.c, fontOp.c : text sample is now editable, and this text
+          can be imported on canvases. This includes being able to set fonts,
+          colors, linespacing (etc) as editable text. Any UTF8 encoded file 
+          can be read and edited, and a small number of special commands 
+          are available to format such texts; for hints on how to use this,
+          see "Doc/TextFormat.doc". Xpaint can thus  be used as a text editor
+          (sort of!), useful e.g. to create posters with text and graphics.
+
+        * rw/readWritePS.c : support for reading a file as "enriched text".
+
+        * main.c : new command line options -textfont and -astext, the latter
+          for opening files as enriched text.
+
+        * share/bin/imgmerge : small tweak to use a static PageInfo struct, 
+          otherwise imgmerge would segfault (gcc bug ?)
+
+2010-03-13  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.18
+
+        * Minor fixes (UTF8 names in windows, rare segfault when using
+          external viewer)
+
+        * rw/readWritePNG.c : xpaint now saves correctly gray images
+          which have an alpha channel.
+
+        * rw/rwTable.c : introduces auto-detect mode for writing
+          files (image type is guessed from suffix of file name, 
+          and set to PNG as a fallback).
+
+        * xaw3dxft : changed library name to libXaw3dxft to avoid
+          interfering with regular libXaw3d. Added hooks in 'configure'
+          to (possibly) install and compile it as a shared library. 
+          Corrected an issue in xaw3dxft/List.c which could sometimes
+          lead to a fatal X error.
+
+        * Added man pages for imgmerge and pngconcat (provided by Debian
+          maintainer Josue Abarca)
+
+        * Removed dependency on Xft.h in PaintP.h which had the unfortunate
+          effect of breaking C-Script compilation, e.g. in imgmerge.
+
+2010-03-06  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.17
+
+        * Xpaint is now fully UTF8 compliant. This has been done rather
+          cheaply by linking statically with a modified xaw3d library 
+          which is UTF8 & Freetype aware. This also means that anti-aliasing
+          is enabled in the menus and text widgets, and that the X core font
+          protocol is no longer used anywhere.
+
+        * By default, Xpaint no longer depends on external xaw/xaw3d/xaw3dg 
+          libraries as it is compiled with its own improved xaw3d clone;
+          this only adds approximately 250 kB to the binary executable.
+
+        * Xpaint can still be used with 8 bit encoding by specifying the
+          command option 'xpaint -encoding 8'. However the resource files
+          XPaint* Messages* Help* should then preferably be converted back
+          to a 8bit locale, otherwise some strange characters will show up
+          in the menus, at least in languages which use non ASCII characters.
+
+2010-02-17  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.16.1
+	
+	* fontSelect.c, misc.c : introduced clickFocusCallback which
+	  fixes keyboard focus in fontSelect and in color picker
+	  ascii text input widgets (problem occurred e.g. under KDE).
+	  Use 2.8.16 with xpaint-2.8.16-keyboard-input.patch.
+	
+2010-02-12  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.16
+
+        * graphic.c, fontOp.c, fontSelect.c : Xpaint now uses the Xft protocol 
+          to display fonts, so that (in particular) all TrueType fonts are
+          available, and the corresponding glyphs are nicely anti-aliased
+          without resorting to a use of sub-pixel resolution.
+          Another benefit is the possibility of rotating text, or even 
+          applying arbitrary linear transformation (however, writing fonts
+          with a pattern instead of a plain color is no longer possible
+          directly - for this, one can use instead masks or a fill
+          procedure).
+
+        * rw/readWritePNG.c : applied small patch from Stefan Husmann
+          (Arch Linux maintainer) to take care of API deprecation
+          in newer versions libpng-1.4.x.
+
+2010-02-01  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.15
+
+        * PaintRegion.c : finally found and corrected long standing bug 
+          which plagued iteration of filters and undo procedures.
+
+        * fileBrowser.c : several GUI improvements.
+
+        * rw/readWritePS.c : improved handling of BoundingBoxes. 
+          Fixed bug in the use of 'psselect' which was found on the Fedora
+          bugzilla list (many thanks to Paulo Roma Cavalcanti 
+          <promac@superig.com.br> for analyzing the issue)
+
+2010-01-29  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.14
+
+        * graphic.c : memory management simplified and improved; added CRC32
+          checksum control to avoid duplicates.
+
+        * rw/readScript.c : fixed potential bug occurring in rare circumstances.
+
+        * Various fixes in batch scripts 'imgmerge', 'batch.c' and 'xpaint_ocr'
+          GPLv3 licence specified there.
+
+        * Included new debian files released by Debian maintainer Josué Abarca
+
+        * xpaint.man.in : corrected a \- issue (thanks again to Josué Abarca)
+
+2010-01-20  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.13
+
+        * Paint.c : corrected nasty bug
+
+        * graphic.c : GUI improvements. Border color of paint widget now
+          indicates status of image (red: non editable, green: resize enabled,
+          blue: has an alpha layer, black: otherwise).
+
+        * image.c : ImagaToPixmap() et al modified so as to manage alpha
+          channel mode once for all (rather than repeating this for each 
+          of the image loaders).
+
+2010-01-18  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.12
+
+        * misc.c, graphic.c : some more fixes for alpha channel issues.
+
+2010-01-17  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.11
+
+        * fileBrowser.c : browserResized() : included patch for accommodating 
+          bug in certain versions of the Xaw3d library
+
+        * Paint.c : PwGetPixmap() modified so as to work independently of
+          zoom value. Saving a file under zoom<1 now works !!
+
+        * graphic.c : there is now support for adjusting join and cap style
+          of lines being drawn. Fixed handling of memory box.
+
+        * Code for alpha channel completed and made more robust 
+          (substantial changes in graphic.c, Paint.c, PaintRegion.c)
+
+2010-01-10  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.10
+
+        * graphic.c : many GUI improvements. Some alpha channel fixes.
+          (arbitrary linear transformation of alpha channel still not
+           implemented).
+
+        * lineOp.c : fixed arrow and vector drawing under zoom != 1
+          (were correctly written to pixmap but incorrectly shown on canvas).
+
+        * fileBrowser.c : a few cosmetic changes to make code more robust.
+
+        * rw/readWritePNG.c : fixed readPNG() for non transparent PNG 
+          images possessing a palette of colors.
+        
+2010-01-06  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.9
+
+        * polygonOp.c : segfault bug corrected. Polygonal regions can now
+          be selected correctly under zoom values other than 1.
+
+        * xpaint.h : various API modified to include alpha channel 
+          (in images, paint canvases, clipboard, memory stack...)
+
+        * PaintUndo.c : implemented alpha channel in Undo stacks
+
+        * PaintRegion.c, graphic.c : routines to set/show/edit the alpha 
+          channel are now implemented in a fairly complete manner.
+
+        * readWritePNG.c : xpaint now saves a canvas with an alpha channel
+          as a PNG file with a corresponding alpha channel.
+
+        * readWriteXPM.c : xpaint now saves a canvas with an alpha channel
+          as an XPM file with a "None" color (reduced to a 0/1 mask).
+          (By default, alpha<128 is considered to be transparent and 
+          alpha>=128 to be opaque. The threshold value 128 can be
+          changed from the options.)
+
+        * readGIF.c : xpaint can now read alpha channel of GIF89 files
+          possessing transparent pixels (setting transparent pixel in
+          writeGIF.c not yet implemented).
+
+2009-12-09  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.8
+          Interim release with partial support for transparent images; alpha
+          channel is now correctly read when loading PNG and XPM images.
+          Easier management and writing support will be implemented
+          in 2.8.9.
+
+        * rw/readGIF.c : xpaint will now open all frames of animated 
+          GIF images, and not just the first frame - support of this 
+          feature was already there, but had never been made accessible
+          from the GUI !
+
+        * rw/readWritePNG.c : xpaint now detects PNG images possessing an
+          alpha channel and loads them properly. The RGB values and alpha
+          channels can be edited separately (but not yet mixed back easily).
+
+        * rw/readWriteLXP.c : preliminary implementation of layered xpaint 
+          image format LXP. File share/c_scripts/templates/image.c used as
+          template.
+
+        * pattern.c : new button introduced to modify background color (thus
+          duplicating functionality from the separate background color 
+          widget).
+
+        * fileBrowser.c : widget improved. Four new buttons added to get 
+          directly to home, root and current directory, and to show/hide
+          dot files. The browser of loaded files now has buttons for
+          editing C scripts and managing layers (implementation somehow
+          works, but is not yet complete).
+ 
+        * iprocess.c : corrected segfault bug occurring in 
+          certain circumstances, e.g. when loading recursive image C-scripts.
+          In particular, "layer" example share/c_scripts/layers/combine.c
+          now works again.
+
+2009-11-18  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.7.3 (very minor changes)
+
+        * graphic.c : corrected very tiny bug in resizeCanvas() routine
+          which resulted in occasional disappearance of Fatbits cursor,
+          when the canvas was resized under certain zoom reduction values.
+
+        * fatBitsEdit.c : added convenience routine 
+          FatbitsEditorDestroy(paint)
+          (not yet used inline - could possibly be used from C scripts).
+
+        * small addition in Local.config file
+
+2009-11-15  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.7.2 (very minor changes)
+
+        * Further cosmetic fixes and code cleaning ; X error handler
+	  improved (just in case).
+
+        * snapshot.c : taking a snapshot from the tools window now unmaps
+          the window (so that any window stacked behind can be captured);
+	  spurious warning 'bad pixmap' from libX11 has been eliminated.
+
+2009-11-06  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.7.1 (released only as a patch to 2.8.7).
+
+        * Further cosmetic improvements and code cleaning not really 
+          worth bothering (e.g. popup menus which, when users change
+          their mind and no longer want to use them, may not immediately
+          popdown as would be expected when clicking randomly outside, e.g. 
+          on the canvas ...)
+
+2009-11-04  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.7 released.
+
+        * graphic.c, menu.c, PaintEvent.c : a substantial number of 
+          cosmetic changes made to further improve the menu behaviour.
+
+        * fileName.c renamed as fileBrowser.c
+
+        * fileBrowser.c : Some "flickering" issues in the browser have
+          been corrected. The file browser of "loaded files" now include 
+          ad hoc fields and buttons for modifying the scaling of 
+          vector format images (PS/PDF/DVI/TeX/LaTeX/SVG) as well as 
+          for selecting a page in multi-page documents. Now, Xpaint can 
+          thus be used as a practical viewer for such documents - though
+          for this purpose it's certainly not as fast and optimized as
+          specialized viewers ...
+
+        * readWritePS.c : multipage PostScript files require 'psselect'
+          from the psutils package. (This is a very simple program so
+          we may consider including it in the next version of xpaint 
+          to remove that dependency.) DVI files are now accepted, along
+          with PS/PDF/TeX/LaTeX/SVG.
+
+        * print.c : selecting PDF option now (really) saves file as PDF
+          rather than PostScript.
+
+        * Merged Changelog and (unmaintained) file Doc/CHANGES
+
+2009-10-27  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.6.1 released.
+
+	* bug fixes : 
+	  main.c : xpaint did not accept setting default zoom < 100%
+	           through command line
+	  graphic.c : underestimated evaluation of canvas window size
+	              for large images, resulting in image not being
+	              fully displayed even when it could.
+	  PaintRegion.c : segfault bug occurring in certain circumstances
+	                  when dragging a region outside viewport, in
+	                  region transparency mode.
+
+2009-10-26  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.6 released.
+
+        * Extensive changes in many parts, to provide capability for
+          zoom = 1/n, while performing all possible operations under
+          such a zoom. This means that anti-aliasing can be obtained
+          by using e.g. zoom = 1/3 and then cloning the canvas with
+          the given reduction.
+
+        * magnifier.c: Introduced a magnifying glass, based on code of
+          'xlupe' by Thomas Runge (runge@rostock.zgdv.de)
+
+        * operation.c: menu now includes an item to open the magnifying
+          glass, and a browser for all images which have been opened or
+          loaded from the command line.
+	  
+	* fileName.c : the buildBrowser() routine has been extended to
+	  have a mode ('type=4') showing the list of loaded images.
+
+        * graphic.c: edit menu includes 2 items for cloning the canvas
+          (with or without reduction)
+ 
+        * a lot of bugs have been ironed out, e.g. a crash in the polygon
+          selection area, and a very long-standing bug in the memory 
+          management of menu.c which used to cause (fortunately unfrequent) 
+          random crashes.
+
+2009-10-16  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.5 released.
+
+        * graphic.c, user visible changes : added a zoom button and a 
+          new toggle allowing to resize the canvas, using mouse or arrow 
+          keys. Several other related improvements have been made for 
+          zooming/resizing, along with a few minor fixes (the layer example
+          "layer.c" compiles again without segfaulting.) 
+
+2009-10-13  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.4 released.
+
+        * pattern.c : Fixed segfault bug in color/pattern budget, which
+          occurred when creating new brushes.
+
+        * print.c : added new toggle so as to possibly produce a compressed 
+          PS file, or send to printer a PDF file rather than a PS file. The
+          annoying printing notification popup has been replaced by a less
+          intrusive notification. Many other small improvements - e.g.
+          output postcript file can be selected with a file browser.
+
+        * rw/readWritePS.c : the PostScript generator has been considerably
+          improved. XPaint is now capable of producing strongly compressed
+          PostScript files, of weight increased hardly by more than 
+          30%-35% when starting from a PNG file of the same resolution, 
+          and the process is faster than before - it seems that even gimp 
+          does not yet take care of this, its PS files can often be reduced 
+          to less than 50% of their current size (huge thanks to Peter Szabo
+          for showing the way with his sam2p program.)
+          A standalone 'ppmtops' utility has been included for potential 
+          re-use elsewhere.
+
+        * Clarification of the licence. Xpaint is an old program, many
+          parts of which were written at a time when the GPL was not so 
+          pervasive. To the best knowledge of the current maintainer, 
+          all parts where written under permissive licences which are 
+          compatible with the GPL. J.-P. Demailly thus puts under the GPLv3 
+          all code developped by him in the last twelve years - that's 
+          probably more than 30% of the total amount of code, and the 
+          program as a whole should thus be considered as GPLv3. All 
+          related utilities ('ppmtops', C scripts, etc) are also put 
+          under the GPLv3.
+
+2009-10-01  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.3 released.
+
+        * Included 2 patches from Mandriva packagement experts, fixing 
+          some minor compilation problems and potential security issues.
+
+        * rw/readWritePS.c : xpaint is now able to display TeX, LaTeX,
+          PDF and SVG files using image conversion from external ad hoc
+          programs. Option -dpi <dpi value> can be used to adjust
+          size of image.
+
+2009-10-01  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.2 released.
+
+        * pattern.c : found and fixed two long standing segfault bugs
+          (fortunately occurring only in not so frequent circumstances)
+
+        * Set default gridcolor to grey80 on TrueColor displays, 
+          a less intrusive color than black.
+
+2009-09-29  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.1 released.
+
+        * Introduced rectangular (not just square) snap grids.
+	  Color of grid can be changed to arbitrary color.
+
+	* graphic.c : corrected segfault bug in simplemenu switcher
+	  (selector popup).
+
+2009-09-27  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.8.0 released.
+
+        * Menu popups have been entirely reworked. Their behaviour is now
+          more fluid - and similar to the default behaviour of modern
+          toolkits like GTK/qt - so users should feel less disturbed.
+          (this required numerous changes in menu.c and app-defaults)
+
+        * Fixed size handling of Canvas windows under maximize/unmaximize
+          procedures.
+
+        * Stability should be considerably improved. Some memory leaks
+          have been removed as well.
+
+	* Added new command line options:
+	  -undosize <num>  (set undo memory limit)
+	  -operation <num> (start with operation <num> set in tool panel)
+	  -filter <file>   (define filter by using <file> as C-script)
+	  -proc <file>     (define procedure by using <file> as C-script)
+
+	* Added support for using menu popups in C script filters
+          See share/c_scripts/filters/clean.c
+          for an example. This means that C script filters can involve
+	  adjustable parameters which can be easily changed (i.e. without
+	  needing a recompilation each time the parameters are changed.)
+
+	* Added support for using menu popups in C script procedures
+          See  share/c_scripts/procedures/proc_with_params.c
+          for an example
+
+	* iprocess.c, rw/readScriptC.c : added support for running
+          batch jobs (for mass processing of images, using xpaint as the
+          engine); see
+	    share/c_scripts/batch/batch.c
+	    share/bin/imgmerge
+
+        * Added batch script 'imgmerge' which uses xpaint to convert
+          and concatenate image files into a single PDF file. This also
+          makes use of Peter Szabo's 'pdfconcat' program (GPL, included).
+
+	* Added support for OCR (with the ocrad engine by default)
+          The OCR engine(s) can be specified in the bash script
+          /usr/share/xpaint/c_scripts/bin/xpaint_ocr
+	  This means that xpaint can be easily used as a GUI for command
+	  line OCR engines ('xpaint_ocr' makes use of the 'xless' pager,
+	  by default, but any other pager/editor can be used instead).
+
+        * brushOp.c: system wide brushes are no longer hardwired, and can
+          now be configured from the SHAREDIR directory.
+
+        * Added additional brushes provided by John David Gray
+          <kahdgarxi@gmail.com> which are useful to draw electronic
+          circuitry. Also included a patch of him introducing three new
+          patterns and extending the drawVisibleGrid() routine
+          in Paint.c
+
+        * Fixed (and improved as well) behaviour of snap and grid
+          routines, also using ideas of JD Gray.
+
+        * Changed rotations to use trigonometric positive rotation rather
+          than clockwise. This was too unnatural to me !
+
+        * Numerous bug fixes. Thanks to Mattis Michel <sic_zer0@hotmail.com>
+          for correcting a bug in the snap routines and for providing
+          further improvements; Mattis noticed - and urged correction -
+          of a critical bug in the "Load clipboard" procedure; he also
+          suggested putting WM hints on minimal size of widgets so as to 
+          avoid random crashes under wild resizing of the windows.
+
+	* Updated the man page - which had actually been neglected
+	  for a couple of years ...
+
+
+2005-09-12  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Work on version 2.7.9 started (never published)
+
+        * Minor bugfixes in graphic.c : zoomed windows are now  correctly
+          initialized; the canvas size bug (which started in 2.6.9 and is
+	  due to a Xaw widget misbehavior) is now better understood and
+	  properly fixed.
+
+2005-09-09  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.8.1 released.
+
+	* PaintRegion.c : fixed bug analyzed by Greg Roelofs
+	  <newt@pobox.com>. Routine for fake-transparency of
+	  selected regions no longer crashes xpaint when zoom > 1.
+
+2005-08-13  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.8  released.
+          (Minor enhancements and bug fixes)
+
+	* main.c, fileName.c : merged a patch from Greg Roelofs
+	  <newt@pobox.com> which fixes a few bugs occurring when message
+	  files were corrupted, absent or didn't match the current version,
+	  or when the app-defaults file could not be found.
+
+	* fixed position of buttons in "Save as" dialog; corrected another
+	  bug which could produce segfaults or various annoyances (e.g.
+	  blank input text box)
+
+	* operation.c : corrected inconsistent color behaviour of
+	  "Tools" window under screen depths less than 24
+	 
+	* graphic.c : work-around for a bug which was apparently
+	  related to the Xaw/Xaw3d toolkits (??) (infinite loop when
+	  creating canvas size w x h with w = 640 and h != 480 ... )
+	 
+	* graphic.c : corrected some minor misbehaviour of the
+	  region operators (motions)
+	
+	* implemented a more or less consistent behaviour of the
+	  Escape key.
+
+	* fixed the default undolevels to 6, since modern computers
+	  can stand it.
+	 
+	* rw/readWritePS.c : as a (very) preliminary step towards adding
+	  DTP capabilities, xpaint can now read TeX/LaTeX documents
+	  (magic string should be %TEX or %LTX, respectively). This is
+	  still not very usable, though, since the editing capabilities
+	  are not yet implemented.
+	 
+2005-05-08  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.7  released.
+          (Major enhancements)
+	 
+	* splineOp.c : implemented selection of spline regions
+
+	* lineOp.c : implemented arrow heads, 3 types of arrow heads
+	  are now available
+
+        * boxOp.c : implemented boxes with round corners
+
+	* polygonOp.c : implemented regular and starlike polygons
+	  (also available for filling and selection of regions).
+	 
+	* operation.c : XPaint now has 30 tools instead of 27.
+
+	* Numerous smaller fixes and enhancements
+
+2005-04-10  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.6_3 released.
+      
+        * Incorporated RPM spec file and debian build files
+
+	* Fixes in pattern.c in deletePatternCB()
+
+2005-04-01  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.6_2 released.
+
+	* Fix in print.c which could cause segfaults
+
+2005-03-31  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.6_1 released.
+
+	* Fix in dynPencil.c which caused segfaults
+
+2005-03-30  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.6 released.
+
+	* Bug hunting continued. The open file dialog should now behave
+	  properly, taking snapshots should no longer segfault, nor
+	  editing patterns.
+	 
+2005-03-18  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.5 released.
+
+	* Support for scrolling with mouse wheel button
+
+	* Support for neXtaw widgets
+
+	* Bug fixes (randomly occurring segfault fixed -
+	  nargs = 0 not properly reinitialized in menu bar routine !)
+
+	
+2005-02-19  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.4 released.
+
+	* All popup windows now behave properly under resize requests.
+	  This corrects former (extremely buggy) behaviour.
+
+	* Segfault bug in Print popup corrected
+
+	* The transparency activation/disactivation of selected regions
+	  under mouse clicks has been substantially improved.
+	 
+	* Xaw95 widgets have been removed from the source tree, and
+	  Xaw3d is now the recommended widget set.
+
+2005-01-26  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.7.3 released.
+
+	* Incorporated OpenVMS port by Jouk Jansen
+	  <joukj@hrem.stm.tudelft.nl>
+	  http://nchrem.tnw.tudelft.nl/openvms/software2.html
+	 
+	* PNG is now the default image format
+
+	* Corrected long standing bug in StdSnapshotCallback() in graphic.c
+
+        * Added -clipboard option which loads files from command line
+          into clipboard.
+	 
+2004-10-16  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.7.2 released.
+
+	* Added .bmp format (read/write)
+
+	* Support for .ico format with 24 or 32 bits per pixel.
+
+	* Now opens a confirmation dialog in case a file is going to be
+	  overwritten.
+
+	* Improved printer management - this should now work at least
+	  with BSD printing systems and with CUPS.
+	  	
+2004-08-21  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.7.1 released.
+
+	* added 'Stain' procedure in the Pencil tool options, based on
+	  suggestions by Ross Clement <R.P.Clement@westminster.ac.uk>
+
+	* The 'Unselect region' procedure can now be found under the
+	  Edit popdown menu rather than under the Region popdown menu
+
+        * added Spanish localization files thanks to the work of
+	  Maria Dolores Almansa Tejada <dolores.almansa@corazondemaria.org>
+	 
+	* improved the Print Utility (under Linux/BSD systems, the list of
+	  printers now appears as a pulldown menu)
+	 
+
+2003-07-01
+
+	* libpnmrw.c, writeGIF.c : merged MandrakeSoft's "errno patch"
+
+2003-06-09  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.7.0 released.
+
+	* iprocess.c : added (still rather crude) implementation of user
+          defined C scripts. Users can now define their own 3D (or 2D)
+          routines to build arbitrary graphs, plots, 2D-3D objects or
+          images. This also allows using "layers" within xpaint. Check
+          the examples from the C script widget menu to see how this works.
+
+	* graphic.c : implemented a new "memory" widget which can be used
+          to manipulate layers graphically.
+
+        * Merged patch by Greg Roelofs <newt@pobox.com> that fixes an
+          image-corruption bug in WritePNG() (fix in image.c), plugs some
+          memory leaks (row_pointers) in ReadPNG(), and adds support for
+          converting a gray palette image to grayscale PNG (also in
+	  WritePNG()).
+
+	* Xaw95 : finally fixed the behaviour of scrollbars in viewport
+	  widgets; scrollbars don't appear anymore unless they are needed.
+
+	* main.c : the scrollbar bugfix allowed to remove unnecessary
+	  resize calls, so the XAW95 switch has been removed there...
+
+	* polyOp.c : fixed infinitesimal bug, which caused horizontal
+	  and vertical segments not to appear during mouse motion.
+
+	* menu.c : fixed bug in floating popup menu (incorrect default
+	  position for zoom > 1)
+
+	* PaintRegion.c : added rounding procedure in multiplication
+          of matrices mm(), to avoid artefacts for rotations by 90, 180
+          or 270 degrees.
+
+        * PaintRegion.c, selectOp.c : implemented suggestion by
+	  Greg Roelofs; the selected region becomes semi-transparent if
+	  the Alt key is pressed.
+
+2003-02-18  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.6.9 released.
+
+	* selectOp.c : Fixed some minor misbehaviour of region selection
+          operators.
+
+	* menu.c : Improved the 'XtTranslations' mechanism; as a consequence,
+	  the floating popup menu widget now has a more fluid behaviour.
+
+	* iprocess.c : The 'Compile' button now issues more explicit
+          comments indicating success or failure.
+
+	* main.c : added -simplepopup and -fullpopup otions. This controls
+	  whether the floating canvas popup just shows the edit commands or
+          the whole menu from the menubar. As a consequence, a few changes
+	  have been also necessary in graphic.c and menu.c.
+
+	* corresponding updates in xpaint.man, app-defaults and help files.
+
+2003-02-09  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.6.8 released.
+
+	* Cleared-up a lot of compilation warnings.
+
+	* main.c : added -snapshot option. This runs silently xpaint
+	  in snapshot capture mode, and opens the widgets after the screen
+	  capture has been made.
+
+        * print.c, graphic.c : fixed "close routine" of Print and
+          External popups, which could result in a segfault under certain
+          circumstances, and/or in popups lock-up.
+
+	* arcOp.c : Greatly improved procedures for drawing arcs
+          of circles or arcs of ellipses - 4 options are now available
+
+	* splineOp.c : it is now possible to draw an arbitrary combination
+	  of Bézier cubics and line segments. Bug fixes : display is now
+          correct even under zoom factor larger than 1.
+
+	* lineOp.c : Implemented arrows, following suggestion by
+	  Larisa Shapiro <larisa@mmi.co.il>
+
+	* operation.c / Line Menu : Implemented dash styles
+
+	* iprocess.c : implemented user defined filters. This is made
+	  through C scripts which are compiled as shared libraries with gcc,
+	  and dynamically linked to xpaint. See ./share/filters/merge.c
+	  for an example. A new Script Editor widget has been introduced
+	  to facilitate the scripting process.
+
+	* chroma.c : removed confusing Ok button (it had exactly
+	  the same effect as the Apply button, closing the window
+          afterwards - instead, just click Apply, and then Close...)
+
+	* snapshot.c : put XFlush(dpy) and XGrabServer(dpy) in correct
+	  order. No more "menu widget ghosts" trailing around...
+
+	* rw/readWriteICO.c : partial support for reading/writing
+	  Microsoft's icon format, based on ico2xpm code.
+
+	* rw/readWritePS.c : xpaint now also has (kind of!) *write*
+          support for PDF format.
+          CAUTION : the output is just raw bitmap PDF data. If you
+          overwrite an existing PDF file, all formatting data and any
+          other information embedded in the input file is irretrievably
+	  lost, especially all embedded text.
+
+2002-11-24  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.6.7 released.
+
+	* Implemented many suggestions by Andre Pascual (at least the first
+	  four items) <andre@linuxgraphic.org> :
+
+	* graphic.c : The last filter that has been applied can now be
+          undone without using the clipboard - and it really works!
+
+	* graphic.c : implemented a new canvas widget that provides a quick
+	  access to all colors and patterns from the palette. The menu bar
+	  has been simplified and reorganized.
+
+	* pattern.c : added a "Close" button.
+
+	* fatBits editor : moving the fatBits hot spot by dragging the
+          mouse on the canvas works again. Removed the unneeded "Position"
+          button.
+
+        * graphic.c : Added to the "Region Menu" a general
+          "Linear Transformation" procedure which can be applied to
+          arbitrary regions. Coding fairly trivial since this was already
+          implemented but had not been made available from the menu ...
+
+	* graphic.c : Moved the "tilt" region operation to the Filter Menu.
+
+	* graphic.c : The "Clone region" procedure now takes care of
+	  geometry, i.e. one can clone a distorted area as well
+
+	* brushOp.c : brushes defined in the RC file are now *really*
+          effective in the Brush Selector, and saved together with the
+	  palette editor. The pattern Editor also allows to save
+	  patterns as new brushes.
+
+	* DefaultRC : added new default colors and patterns
+
+	* bitmaps/
+	  Added a new set of smaller (and nicer) tool icons, derived from
+          work by Peter Keel (killer@discordia.ch)
+
+2002-11-06  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.6.6 released.
+
+	* New filter available : Modify RGB components by given percentage
+
+	* Filter operations can now be undone (just the last step...) -
+          this is done by copying the current region to the clipboard,
+          immediately before applying the filter.
+
+        * Window menu bars can now be hidden or shown again.
+	  A new option -nomenubar initializes paint windows without
+	  menu bars. Might be helpful for running xpaint on PDA's...
+
+	* Improved window-resize routines. New option -winsize is there
+          in order to predefine canvas window size from command line.
+       
+        * cutCopyPaste.h  renamed  'region.h'
+
+	* Numerous bug corrections. Xpaint-2.6.6 now appears to be very
+          stable, considerably more than 2.6.3--2.6.5, possibly more than
+          2.6.2 which still had a few issues especially with snapshot and
+          fractal fill operations.
+
+2002-10-28  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.6.5 released.
+
+	* Removed dependency on sed script ad2c.script. All "sed-like"
+	  preprocessing is done instead by the C program substads.c
+
+	* graphic.c : extensive reworking of the canvas menus.
+          For this purpose, graphic.c  has been merged with cutCopyPaste.c.
+	  All menus are now available from the canvas top menu bar, or
+	  from the popup menu by clicking with button 3 on the canvas.
+
+	* pattern.c : extensive reworking. There is now a unified color
+	  and pattern selector. This selector operates independently from
+	  the canvas windows
+
+	* xaw95 : the modified Athena widget set Xaw95 has been included.
+	  This provides a much more modern aspect to xpaint...
+
+	* Imakefile : has been extended to support compiling and linking
+	  with Xaw95. Default is still plain Xaw. Use instead 'make xaw95'
+	  or 'make xaw95static' to compile with Xaw95.
+
+	* Corrected several minor glitches of version 2.6.4.
+
+2002-09-24  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+        * Version 2.6.4 released.
+
+	* Reworked the organization of buttons in the Toolbox widget.
+	  Toolbox now fits on 640x480 displays.
+
+        * print.c : corrected bug that affected the size of the page, in
+          case the format was changed.
+
+        * splineOp.c : added a switch with the Control key to commute
+          interactively between Closed and Closed-up spline curve types.
+
+	* operation.c : initialized tfillStepStr to maximal value 300 in
+          true color mode, and to 25 in pseudo-color mode.
+
+        * main.c : added routines to handle external 'Help' and 'Messages'
+          files. Added a possibility to change the app-default file according
+          to the environment parameter "LANG".
+
+        * removed all (or most...) explicit message strings scattered over the
+          various C source files, and replaced them with pointers to the new
+	  msgText[] message data structure. As a result, XPaint can now be
+          internationalized without modifying the code.
+
+        * Imakefile : has been updated to accommodate all new files that come
+          up with the internationalization (app-defaults, Help, Messages).
+
+	* README : updated to include internationalization stuff.
+
+2002-09-03  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.6.3 released.
+
+	* Changed writePS.c to readWritePS.c, and added correspondingly
+          ReadPS, TestPS and TestPDF routines. As a result, xpaint now
+          reads PostScript and PDF formats, thanks to a 'gs' system call.
+          
+	* print.c : added a "Print Utility" widget which should help a
+          lot for adjusting the size and position of the image on the page
+	  when printing.
+
+	* graphic.c : added 'ext_im_viewer' and 'ext_ps_viewer' parameters.
+          The external image viewer can now be called even when the current
+	  image has not been saved (a temporary file is used for that purpose).
+
+	* snapshot.c : cleaned up a little bit the code and -- hopefully --
+          removed a memory leak.
+
+	* XPaint.ad.in:
+	  Made some changes, corrections and additions
+          (*XPaint*SimpleMenu*translations, *Canvas*Box*Paint*translations)
+	  as a work-around to accommodate strange behaviour under some
+          XFree-4.0.x servers.
+          Added accordingly a "return" case when Button3 is pressed in
+          all press() routines, although Button3 should not occur.
+
+	* Added an option XAW95 in the Imakefile, so that xpaint can be
+          linked smartly against Xaw95 widgets (the resulting look of the
+          widgets is _so much nicer_ with Xaw95 than with plain Xaw...)
+
+	* Added fractal density parameter (so that water and sky colors
+          become somewhat more realistic).
+
+	* increased the default width of the color selector and of the
+          pattern editor -- so that the scrollbars are now wide enough to
+          become accurate and efficient.
+
+	* Changed "File" menu to "Canvas" menu in toolbox, because it is
+          mainly concerned with canvases and not so much with files.
+
+        * Added "Erase all" function in the "Edit" menu (after realizing
+          that some beginners had difficulties figuring out how to blank
+          the picture...)
+
+	* readRC.c: tried a security fix from Debian maintainer in the
+	  openTemp() routine. Finally removed it because it didn't seem
+          to work on my machine...
+
+	* Imakefile: added a "realclean" option
+
+2001-06-12  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+            & Torsten Martinsen  <torsten@image.dk>
+
+	* Version 2.6.2 released.
+
+	* Local.config:
+	  According to Craig Ian Dewick <craig@lios.apana.org.au>, it is
+          not necessary to define MISSING_STRERROR with Solaris 8.
+
+	* XPaint.ad.in:
+	  Increased XPaint.height by three pixels on request from Greg Roelofs.
+
+2000-10-02  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+            & Torsten Martinsen  <torsten@image.dk>
+
+	* Version 2.6.1 released.
+
+	* splineOp.c, snapshot.c: Style cleanup.
+
+	* misc.h, fileName.c, rw/libpnmrw.c, rw/rwTable.c,
+	  rw/writeGIF.c, rw/writePS.c: Cygwin patch from Volker Zell.
+
+	* Help.txt: Fixed typo.
+
+2000-09-11  Torsten Martinsen  <torsten@image.dk>
+
+	* misc.h: Removed bogus prototype for main().
+
+	* dynPenOp.c:
+	  Fixed return type of timeout() (thereby eliminating warning).
+
+	* main.c: Changed return type of main() to int.
+
+2000-09-03  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* Version 2.6.0 released.
+
+	* merged a patch from Greg Roelofs fixing PNG read & write
+	  code for recent versions of the PNG library;
+	  older readPNG.c and writePNG.c combined into readWritePNG.c
+
+	* graphic.c: If the user tries to print a file that has never been
+	  saved, complain.
+
+	* README: Updated maintainer info.
+
+	* Imakefile: Changed version number.
+
+	* README: Updated URL for libraries.
+	  Describe use of Print option.
+
+2000-09-02  Torsten Martinsen  <torsten@image.dk>
+
+	* Version 2.5.9 released.
+
+	* cutCopyPaste.c, cutCopyPaste.h, graphic.c, operation.c:
+	  Added Snapshot.
+
+	* XPaint.ad.in: Added resources for Snapshot.
+
+	* Imakefile: Added snapshot.c.
+
+	* README: Changed version number.
+
+	* Help.txt: updates to document Snapshot tool.
+
+	* Local.config:
+	  Added FEATURE_FRACTAL and FEATURE_TILT to EXTRA_DEFINES.
+	  Libraries are now assumed to live in /usr, not /usr/local.
+
+	* cutCopyPaste.h: Added Refresh functionality.
+	  Added Clone functionality.
+
+	* ops.h: Added Spline prototypes.
+
+	* fileName.c: Added StdCloneRegionFile().
+
+	* misc.h: Added StdCloneRegionFile() prototype.
+
+	* polyOp.c: Changed MAXP to 200.
+
+	* menu.h: Changed MI_SEPERATOR to MI_SEPARATOR.
+
+	* operation.c: Changed MI_SEPERATOR to MI_SEPARATOR.
+	  Added Spline functionality.
+
+	* XPaint.ad.in: Changed width & height.
+	  Added Spline resources.
+	  Added Clone & Print resources.
+	  Added Tilt & Refresh resources.
+
+	* chroma.c, color.c:
+	  Define NeedFunctionPrototypes before including Scrollbar.h.
+
+	* pattern.c: Fixed spelling.
+
+	* cutCopyPaste.c: Fixed spelling error in comment.
+	  Added Refresh functionality.
+	  Added Clone functionality.
+
+	* graphic.c: MI_SEPERATOR changed to MI_SEPARATOR.
+	  Added some new menu items.
+	  Added printCallback().
+
+	* README: Updated version.
+
+	* Imakefile: Added splineOp.c.
+
+2000-08-29  Torsten Martinsen  <torsten@image.dk>
+
+	* Version 2.5.8 released.
+
+	* rw/writeTIFF.c: Bug fix; writing TIFF was broken for depth > 8.
+
+Sat Aug  5 17:26:11 2000  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* snapshot.c: new file; introduces a new "Snapshot" operation 
+          (grabbing a window or mouse-selected rectangle from screen)
+
+        * splineOp.c: new file. Implements basic spline curve operation.
+
+	* Help.txt: update Help file accordingly
+	  Document 'Spline Curve', 'Clone Region', 'Print', and 'Refresh'.
+
+Thu Jul 27 11:46:51 2000  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* graphic.c: Introduced a "Clone region" function
+	* splineOP.c: created basic spline curve operations
+	* rw/writeTIFF.c: Bug fix; writing TIFF was broken for depth > 8.
+
+Wed Dec  1 17:12:23 1999  J.-P. Demailly  <demailly@fourier.ujf-grenoble.fr>
+
+	* operation.c: Reorganized order of icons in main control panel
+        * graphic.c: Added a "Print" option in the file menu, to the effect
+          of calling an external printing utility (xv is a good candidate)
+
+Sun Jan 31 10:41:18 1999  Torsten Martinsen  <torsten@image.dk>
+
+        * Version 2.5.7 released.
+
+	* Help.txt, README: Fixed addresses.
+
+Tue Dec  8 13:42:29 1998  Torsten Martinsen  <torsten@image.dk>
+
+        * Version 2.5.6 released.
+
+	* menu.c: Include menu.h as suggested by Ralph Raby <r.raby@ic.ac.uk>.
+
+Sat Sep 12 20:44:01 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* Imakefile: Version number inc'ed.
+
+Fri Aug 21 16:40:47 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* Help.txt: Removed "(beta)" from about text.
+	  Added 1998 to copyright notice.
+
+Fri Aug 21 16:30:03 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* iprocess.c:
+	  Added change by James G. Feeney <james@albion.nurealm.net> :
+
+		I suggest that a more useful edge extension to use in the
+		smoothing function would be the original image reflected at
+		the edges for the edge extensions, and the original image
+		reflected at the corners for the corner extensions.
+		This approach still allows "smoothing" with smoothing
+		distances larger than the original image size (a long but
+		narrow canvas maybe?), since the extended image would simply
+		be the reflection and then the re-reflection.
+		This approach simply assumes that the "smoothing" source-image
+		is a reflective-tiled version of the original image.
+		This reflective-tiling approach avoids the artifacts and
+		subsequent problems mentioned, is easy to visualize, and
+		produces predictable results. Furthermore, I believe this
+		approach is appropriate for _all_ the effects generated by
+		convolution.
+
+
+Sat Jun 27 18:52:36 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* Imakefile: Undid change made to support OS/2 that used the
+	  LibraryTargetName() macro. Now use linker path to achieve the
+	  same. Suggested by John Breslin <breslin@cadence.com>.
+
+Tue Jun  9 21:16:38 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+        * Version 2.5.5 released.
+
+	* misc.h: If using glibc, do not define random().
+
+	* main.c: The 'visual' patch introduced in 2.5.1 assumed that there
+	  was never more than 5 arguments on the command line. Fixed. Reported
+	  by Mirsad Todorovac <mtodorov@grf.hr>.
+
+	* Various changes for glibc.
+
+Thu May 21 21:17:23 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* fillOp.c:
+	  press(): Free allocated memory as suggested by Richard Hirst
+	  <richard@sleepie.demon.co.uk>.
+
+Sun Apr 26 01:06:38 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* texture.c: OS/2 patch from Alexander Mai 
+          <st002279@hrzpub.tu-darmstadt.de>.
+
+Thu Apr 16 19:42:01 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* Version 2.5.4 released.
+
+	* iprocess.c: Patch from Andreas Czechanowski
+ 	  <andreas@inspc44b.ins.uni-stuttgart.de>: 1) The convolution
+ 	  routine for the image filters has been speeded up: The sum of all
+ 	  matrix elements only has to be computed once, not while processing
+ 	  every pixel.  2) Inverting an image crashed, at least on my
+ 	  24bpp-display.
+
+	* chroma.c:
+	  Patch from Andreas Czechanowski 
+            <andreas@inspc44b.ins.uni-stuttgart.de>:
+	  The "select color range" dialog had been bound to the Canvas from
+	  where it was opened the first time. When another Canvas was opened
+	  and the first one was closed, calling "select color range" from
+	  the new Canvas caused a crash.
+
+	* brushOp.c:
+	  Patch from Andreas Czechanowski 
+            <andreas@inspc44b.ins.uni-stuttgart.de>:
+	  Transparent brush now ensures to reach the "final" color when
+	  painting over at one place long enough. There was a roundoff
+	  problem when converting float to integer.
+
+	* INSTALL: Added SCO tip from William Bader <william@nscs.fast.net>.
+
+Mon Mar 23 21:39:51 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* operation.c, Local.config, misc.h:
+	  FreeBSD compatibility fixes from Justin M. Seger
+	  <jseger@freebsd.scds.com>.
+
+Tue Feb 24 20:41:08 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* fileName.c, misc.h:
+	  Added CygWin32 portability patches from Arlindo da Silva
+	  <arlindo@niteroi.gsfc.nasa.gov>.
+
+Thu Jan 22 21:03:09 1998  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* Version 2.5.3 released.
+
+	* Imakefile, Local.config, PaintRegion.c, fileName.c:
+	  OS/2 portability patches from Alexander Mai
+	  <st002279@hrzpub.tu-darmstadt.de>.
+
+	* xpaint.h, misc.h, fillOp.c: Added SCO portability patches from
+	  William Bader <william@nscs.fast.net>.
+
+Tue Dec 16 20:40:27 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* dynPenOp.c: Don't use the HZ macro. Reported by Jim Spath
+	  <jspath@mail.bcpl.lib.md.us>.
+
+	* dynPenOp.c: Initial revision
+
+Sat Oct 25 14:27:42 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+        * Version 2.5.2 released.
+
+	* brushOp.c: Added patch to make strokes continuous even when the
+	  mouse is quickly dragged. Contributed by Davor Cubranic
+	  <cubranic@cs.ubc.ca>.
+
+Wed Sep  3 19:31:07 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* Help.txt, README, brushOp.c, chroma.c, color.c, colorEdit.c,
+	  dialog.c, fatBitsEdit.c, fileName.c, graphic.c, main.c, menu.c,
+	  misc.c, misc.h, pattern.c, text.c, xpaint.h, xpaint.man.in:
+	  Added Scott Nelson's patch to allow setting the visual from the
+	  command line.
+
+Fri Aug 22 08:14:22 1997  
+
+	* Version 2.5.1 released. 
+
+        * main.c: added patch to allow setting the visual from the
+	  command line (new option -visual)
+          contributed by Scott D. Nelson  <nelson18@llnl.gov>
+
+	* Support for standard X visual syntax.
+
+Wed Aug 13 19:45:37 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+        * Version 2.5 released.
+
+	* ops.h, operation.c, XPaint.ad.in, Imakefile, Help.txt:
+	  Added Dynamic pencil tool. Contributed by Tor Lillqvist 
+          <tml@iki.fi>.
+
+Mon Aug 11 18:09:32 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* README: Added SGI to list of platforms.
+
+Mon Jul 14 17:37:11 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* selectOp.c: releasePolyBand(): Removed surplus 'mask' argument.
+
+Sat Jul 12 17:56:03 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* PaintEvent.c, fatBitsEdit.c:
+	  Fixed bug where hot spot was offset to SE.
+
+	* Local.config: Dont' mention DTRUNC_SNAP.
+
+Tue Jun 24 20:30:18 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* README: Fixed .dk.dk typo (again!).
+
+Tue Jun 24 20:20:19 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* XPaint.ad.in:	Added new font/colour scheme from Bernd Johannes
+	  Wuebben <wuebben@math.cornell.edu>.
+
+Sat May 31 08:29:23 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* Version 2.4.9 released.
+
+	* Local.config: Don't hardcode CDEBUGFLAGS.
+
+	* Imakefile: Don't distribute PGP* files.
+
+	* brushOp.c: Don't crash on images where width or height is less
+	  than that of the brush.
+
+Wed May  7 05:53:50 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* cutCopyPaste.c: Applied xword compatibility patch from Seth
+	  Alves <alve1182@cs.uidaho.edu>.
+
+Fri May  2 05:54:04 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* Help.txt: Updated range selection text as suggested by Rainer
+	  Dunker <rainer@dunker.e.ruhr.de>.
+	  Changed mail address.
+
+Wed Feb  5 19:08:45 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* brushOp.c: Set numsymbols in XpmAttributes structure.
+          Reported by Oliver Voigt <voigt@math.tu-berlin.de>.
+
+        * Don't crash when using transparent brush or Smear on
+	  images where width and/or height is less than the dimensions of
+	  the brush. Reported by Paco Hope <bah6f@cs.virginia.edu>.
+	  Note that the results of the Smear tool on such images might not
+	  be what you expect. 
+         
+      	* Local.config: Don't hardcode CDEBUGFLAGS. Reported by Mikhail
+	  Teterin <mi@aldan.ziplink.net>.
+	* cutCopyPaste.c: Applied xword compatibility patch from Seth Alves
+	  <alve1182@cs.uidaho.edu>.
+
+Wed Jan 29 18:32:39 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* Version 2.4.8 released.
+
+	* xpaint.man.in: I have moved to a new ISP. Please use the new 
+          address for all correspondence. 
+
+Mon Jan 27 06:45:46 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* cutCopyPaste.c:
+	  If FILTERNEEDSSELECTION was defined, we got a SIGSEGV when running
+	  a filter. Reported by Sylvain Meunier <sns@sns.fr>.
+
+Sun Jan 26 20:45:07 1997  Torsten Martinsen  <torsten@danbbs.dk>
+
+	* main.c:
+	  Patch from NIIBE Yutaka <gniibe@mri.co.jp> to handle workProc()
+	  correctly.
+
+Fri Nov  1 09:45:48 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.4.7 released.
+
+	* Local.config: Added XPM_INCLUDE. xpm.h can now have an arbitrary 
+          location.
+
+	* Imakefile: Added XPM_INCLUDE to DEFINES.
+
+	* operation.c, main.c, brushOp.c: Removed 'X11' from "X11/xpm.h".
+
+Tue Oct 29 08:59:40 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Imakefile: Added dependencies on '.version'.
+
+Tue Oct 29 08:48:44 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* fontSelect.c: Removed arbitrary limits on number of
+	  fonts that can be displayed in the font browser.
+          Reported by Sumit Bose <bose@physik.TU-Berlin.DE>.
+
+Fri Oct 25 13:20:32 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* fatBitsEdit.c: Fixed FatBits cursor movement bug reported by
+	  Hideaki Nishimura <nishimu@sdd.siznes.nec.co.jp>.
+
+Fri Sep 27 06:17:31 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* graphic.c: Fixed numbering screwup in definition of
+	  regionMenu[]. Thanks to nishimu@sdd.siznes.nec.co.jp (Hideaki
+	  Nishimura).
+
+Fri Sep  6 07:13:30 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* operation.c:
+	  Fixed bug with XpmCreatePixmapFromData() call at line 1015
+          in OperationInit().
+
+Thu Aug 29 05:24:30 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.4.6 released.
+
+	* README.PNG: Added Greg Roelofs' patch of 28Aug1996 (no more debug
+	  messages).
+
+        * Fix for spurious 'out of space' message when saving GIF images.
+
+Mon Aug 26 05:40:41 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* operation.c:	OperationInit(): Set Xpm 'closeness' attribute
+	  when creating toolbox icons. Submitted by Stefan Scharfenberg
+          <stefan_s@mucsun.sps.mot.com>.
+
+Fri Aug 23 06:08:22 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* operation.c:	OperationInit(): Check that sufficient colors are
+	  available for toolbox icons.
+
+Wed Aug  7 07:10:07 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* xpaint.man.in: Documented the 'patternsize' resource.
+
+Mon Aug  5 08:10:22 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Local.config: Added definition of DEPENDFLAGS.
+	  Added comment on AIX compilation flags.
+
+Thu Aug  1 12:59:32 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.4.5 released.
+
+	* README: Re-included pointer to libgr.
+	  Encourage clear bug reports.
+	  Updated WWW page pointer.
+
+	* main.c:
+	  SetIconImage(): Added fix from Matthias Braun: Check that XPM icon
+	  can be created. Submitted by Matthias Braun <browny@ise.fhg.de>.
+
+        * Added AIX compilation hint from Toralf Foerster
+	  <toralf.foerster@io-warnemuende.de>.
+
+	* Remove compiler warning in writePNG.c.
+
+	* Check that sufficient colors are available for toolbox icons.
+
+	* Man page updated.
+
+Wed Jun 19 19:02:29 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Paint.c:
+	  InitializeProc(): Always initialize 'undo' to avoid FatBits crashing.
+
+Tue Jun 18 10:04:47 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.4.4 released.
+
+	* rw/readGIF.c: Cleaned up formatting.
+
+	* rw/writeGIF.c: Added error checks for each call to fputc().
+
+Mon Jun 17 11:35:24 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* main.c: Removed call to XtSetLanguageProc().
+
+        * No longer crash when using Polygon and Shape tools in FatBits
+	  popup. Thanks to jspath@mail.bcpl.lib.md.us (Webmaster Jim) for
+	  reporting this
+
+	* INSTALL: Included other patch from Webmaster Jim.
+
+Sun Jun  9 17:31:28 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.4.3 released.
+
+	* rw/rwTable.c: Cleaned up formatting.
+
+        * PNG code: Don't exit() if no memory.
+
+Fri Jun  7 05:46:20 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.4.2 released.
+
+	* README: Upped version #.
+
+Thu Jun  6 10:45:55 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* misc.h: Line 22: Include _AIX in #if conditional for portability.
+          Submitted by Lars-Owe Ivarsson <Lars-Owe.Ivarsson@its.uu.se>
+
+        * Fix for non-GCC compilers ({read,write}PNG.c) from Lars-Owe Ivarsson
+
+Mon Jun  3 07:08:12 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* README: Added info on where to obtain libraries.
+
+	* Local.config: PNG support is enabled by default.
+
+	* .version: Initial revision
+
+Mon Jun  3 06:15:40 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Imakefile: Make sure XPaint.ad is made.
+
+	* Imakefile: Make sure xpaint.man is made.
+
+	* Imakefile: Include .version for setting version number.
+
+	* Local.config: BSD: Added path to TIFF_LIB and JPEG_LIB.
+
+	* readRC.c: Added prototype for mktemp() for AIX.
+
+Sun Jun  2 08:40:10 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Imakefile: Added README.PNG.
+
+	* imageComp.c: Added missing #define for sortABC().
+
+	* Imakefile: Help.txt should be Help.txt.in.
+
+Fri May 31 06:38:41 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.4.1 released.
+
+	* brushOp.c: Clear up a lot of Alpha cc warnings.
+
+	* Imakefile: Fix include path for stupid Alpha compiler.
+
+	* main.c: main(): argc is int, NOT Cardinal.
+
+	* image.c: Clear up a lot of Alpha cc warnings.
+
+	* fileName.c: Alphas use dirents too.
+
+	* size.c: Fix for the infamous 'sigsegv-crash-when-resizing' bug 
+          by Andreas Czechanowski <andreas@INS.uni-stuttgart.de>
+	  This should take care of the bug.
+
+	* selectOp.c:
+	  Fix: prevents xpaint from terminating with an X-Error "invalid 
+	  size in X_CreatePixmap" when the ellipse-shaped region is selected
+	  and one clicks the first mouse button on one point.
+
+        * Alpha and AIX portability fixes by Robert Patrick
+	  <Robert_Patrick@methi.ndim.edrc.cmu.edu>
+
+	* Small BSD portability fix from Chuck Robey <chuckr@Glue.umd.edu>.
+
+        * PNG support should actually work now.
+
+Tue May 28 09:23:16 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* XPaint.ad and xpaint.man did not get built automatically; they 
+          do now.
+
+	* main.c: Warning about data loss.
+	  Version number displayed in usage message.
+
+	* imageComp.c, image.h: ImageCompress() takes an extra argument.
+
+	* Help.txt: Now automatically generated. Fixes zero size problem.
+
+	* image.c, color.c: ImageCompress() takes an extra argument.
+
+	* Local.config: PNG support added.
+
+	* Imakefile: Automatic update of version # in xpaint.man and XPaint.ad.
+
+Tue May 28 07:45:08 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* README: Improved text about needed libraries.
+
+	* README: Version #.
+
+	* xpaint.man.in, XPaint.ad.in: Initial revision
+
+	* xpaint.man: Document -nowarn option.
+
+	* README: Refer to README.PNG.
+
+	* README.PNG: Initial revision
+
+	* README: Added URL for XPaint.
+
+	* Local.config:
+	  Added ARCH_DEFINES variable for architecture-specific defines.
+
+	* Imakefile: Added ARCH_DEFINES to DEFINES.
+
+	* Local.config: Removed space before argument to -L.
+
+Fri May 24 07:33:03 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.4 released.
+
+	* Changes by me:
+	- minor changes to Imakefile: added VERSION variable.
+	- protocol.c: Include stdio.h.
+        - Local.config: Version #. Also added Chuck Robey's BSD fix.
+        - INSTALL: Added missing font fix from Webmaster Jim.
+	  
+        * Additions by Greg Roelofs <roe2@midway.uchicago.edu>:
+	- PNG support (mostly complete, except writing of alpha-channel files;
+	  both interlaced and non-interlaced supported; still has debug msgs)
+	- added noforce param to ImageCompress() for PNG, TIFF writing of 8-bit
+	  images even on truecolor display (formerly promoted to 24-bit)
+	- version number in main title bar and in usage screen (and in PNG
+          files as part of the "Software" tEXt field)
+	- XPaint.ad:  fixed default width and height to accommodate new buttons
+	- added new startup warning and new Help section about data loss;
+	  warning can be killed with -nowarn option
+	- minor grammar fixes, corrections to image-format descriptions in Help
+	- Imakefile:  strip trailing spaces out of Help.txt before further
+	  processing
+	- changed "xpm.h" to <X11/xpm.h>:  should always be in .../include/X11
+
+Thu May 23 15:48:31 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* main.c: Only call XtSetLanguageProc() if XtSpecificationRelease >= 6.
+
+	* Imakefile: Removed XPAINT_TOP definition.
+
+	* README: Refer to TODO list.
+
+	* Imakefile: Added TODO.
+
+Wed May 15 09:26:56 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.3.1 released.
+
+	* A TODO list is included.
+
+	* Yet another BSD portability fix from Chuck Robey 
+          <chuckr@Glue.umd.edu>.
+
+	* Suggestion from jspath@mail.bcpl.lib.md.us (Webmaster Jim) for what
+	  do to if you don't have certain fonts - added to INSTALL.
+
+	* New feature: You can now set the size of the solid/pattern squares
+	  in the palette by setting the 'XPaint.patternsize' resource.
+	  Requested by Warwick Allison <warwick@cs.uq.edu.au>.
+
+	* Error check in protocols.c.
+
+	* NetBSD portability fix by jspath@mail.bcpl.lib.md.us (Webmaster Jim).
+
+	* Fix for obsolete DEC compiler by envbvs@epb1.lbl.gov (Brian V. Smith)
+
+	* XPaint.ad: Cleaned out 'nudge' resources.
+	  Inc'ed version #.
+
+	* xpaint.man: Inc'ed version #.
+
+	* graphic.c: Added support for setting of pattern size via resource.
+
+	* protocol.c: AddDestroyCallback(): Added error check.
+
+Mon May 13 08:17:52 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.3 released.
+
+	* Solaris portability fixes by Gary Houston <ghouston@isor.vuw.ac.nz>
+
+	* BSD portability fixes by Chuck Robey <chuckr@Glue.umd.edu>
+
+	* SunOS portability fix by Michael Gordon <M.F.Gordon@ee.ed.ac.uk>
+
+	* SGI and HPUX portability fix by Gary Love <love@nrlmry.navy.mil>
+
+	* readJPEG.c and writeJPEG.c: Don't use METHODDEF, as suggested by
+	  Jean-Claude Giese <Jean-Claude.Giese@loria.fr> (apparently the
+	  definition of METHODDEF has changed in recent versions of the IJG
+	  JPEG library).
+
+	* New feature: If you define ERRORBEEP in Local.config, XPaint will
+	  beep if you try to make an undo/redo and no more undos/redos are
+	  possible.
+
+	* Bug fix: 'Image/Change Size' no longer clears the canvas.
+
+	* Bug fix: the zoomed brush cursor should work better now.
+
+	* Paint.c: Fixed warning.
+
+	* Imakefile, XPaint.ad: Updated version number.
+
+	* README: Updated for 2.3.
+
+Sun May 12 08:17:01 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* PaintRegion.c: doCallBacks(): Fix warning.
+
+Fri May 10 09:53:06 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Local.config: Cleaned up CDEBUGFLAGS. Removed -DNEED_STRCASECMP.
+
+	* fatBitsEdit.c:
+	  FatCursorOff(): Now also works correctly for FatBits popup.
+
+	* misc.h: Added Gary Love's patch for SGI and HPUX.
+
+Thu May  9 11:21:44 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* brushOp.c: FatCursorOff() now takes an argument.
+
+	* fatBitsEdit.c: Fixed FatCursor bug.
+
+	* misc.h, iprocess.c, main.c, misc.c, sprayOp.c, texture.c, xpaint.h:
+	  Cleaned up use of RANDOM.
+
+Wed May  8 09:52:40 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Local.config: Added lots of portability fixes.
+
+	* iprocess.c: ImageSpread(): Replaced random() with RANDOM.
+
+	* misc.h: Added SunOS 4.1 portability fix.
+
+	* Paint.c: Fixed the 'Image/Change Size' bug.
+
+	* PaintUndo.c: Added ERRORBEEP feature.
+
+Tue May  7 11:18:21 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Local.config, misc.h, xpaint.h:
+	  Added BSD portability fixes by Chuck Robey <chuckr@Glue.umd.edu>.
+
+Fri May  3 16:15:58 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Local.config, xpaint.h, main.c: Added Solaris patch.
+
+Thu May  2 07:45:24 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+        * Version 2.2.1
+
+	* Bug fix: again possible to load/save XPM images
+
+	* Zero undo levels works
+
+	* Bug fix: changing image size no longer crashes XPaint
+
+	* Imakefile: Fixed tar target.
+
+	* xpaint.man, XPaint.ad, Imakefile: Updated version number.
+
+	* Paint.c: Bugfix: 'Add Pattern' and 'FatBits' no longer crash XPaint
+
+Tue Apr 30 15:38:06 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* rw/rwTable.c: Removed obsolete #ifdef HAVE_XPM clause.
+
+Tue Apr 30 11:39:12 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* graphic.c:
+	  undosizeOkCallback(): Changed 'Levels (1-20)' to 'Levels (0-20)'.
+
+Tue Apr 30 11:11:32 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Paint.c:
+	  SetValuesProc(): Initialize undo system when changing image size.
+
+	* PaintUndo.c: Fixed the case where undosize is zero.
+
+Tue Apr 30 08:57:31 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Imakefile: Added xpaint.man to TEXT variable.
+
+Mon Apr 29 05:03:50 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Manual page included
+
+	* Imakefile path fix: Local.config no longer contains absolute paths
+
+
+Sat Apr 20 13:02:23 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Version 2.2 released 
+          (to the largely unsuspecting public...)
+
+Fri Apr 19 09:56:38 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* cutCopyPaste.c: Removed testing code.
+
+	* README: cert takes no arguments.
+
+	* cert: Don't use arguments.
+
+	* Imakefile:
+	  Prevent multiple inclusion of rw/libpnmrw.h and rw/rwTable.h in
+	  filelist.
+
+	* PaintUndo.c: Ready for release.
+
+	* PaintP.h: 'valid' renamed to 'pushed'.
+
+	* Imakefile, Help.txt: Updated for release.
+
+	* Local.config: Cleaned up for release.
+
+	* cert: Added blurb about public key.
+
+	* Paint.c: Undo fixed.
+
+	* help.c: Reformatted.
+
+	* fillOp.c: buildFractalPixmap(): Added default clause to switch.
+
+	* INSTALL: Refer to Local.config.
+
+Thu Apr 18 07:47:19 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* XPaint.ad: Added 'Canvas*menu*edit*redo.label'.
+
+Wed Apr 17 19:58:26 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Paint.c: Make undo stacks circularly linked.
+	  Keep old canvas pixmap when changing # of undo levels.
+
+	* PaintP.h: Removed obsolete members.
+
+	* Paint.c: Fixes to code for changing # of undo levels.
+	  Cleaned up.
+
+	* PaintRegion.c: Cleaned up.
+
+	* PaintUndo.c: Fixed [Un,Re]doPush() bug.
+	  Changed 'base' to 'current'.
+
+	* graphic.c:
+	  undosizeCallback(): 'Buffer' changed to 'level' throughout.
+
+	* PaintP.h: Support new stack-based undo scheme.
+	  'base' member renamed to 'current'.
+
+	* Paint.c: Support new undo scheme.
+
+	* PaintUndo.c: Changed to new stack-based undo algorithm.
+
+Tue Apr 16 15:11:53 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* README: Reworked completely.
+
+	* Local.config: Cleaned up.
+
+	* Imakefile: Added certification support.
+
+	* Help.txt: Updated for 2.2.
+
+	* cert: Initial revision
+
+	* README: Updated for 2.2
+
+	* xpaint.man: Initial revision
+
+	* XPaint.ad: Added 'Canvas*menu*other*undosize.label'.
+
+	* XPaint.ad: Updated version number.
+
+	* cutCopyPaste.c: Reformatted.
+	  Added Redo to canvas popup menu.
+
+	* XPaint.ad: Added Canvas*paintBox.popup-menu.redo.label.
+
+Wed Apr  3 14:29:15 1996  Torsten Martinsen  <bullestock@dk-online.dk>
+
+	* Changed formatting of all source to K&R.
+
+Tue Feb 27 12:27:45 1996  Torsten Martinsen
+
+	* color.c: ColorPickerUpdateMap(): New function.
+	  New member 'bg' in LocalInfo so that we only have to look up the
+	  background pixel value the first time.
+
+	* chroma.c: ChromaDialog now uses the palette of the canvas.
+
+	* grab.c: Added comments.
+	  DoGrabImage() returns Image *.
+
+Mon Feb 26 22:34:47 1996  Torsten Martinsen
+
+	* graphic.c: Added 'Select Color Range' button to the right of
+	  palette area.
+
+	* fillOp.c: Fixed nasty
+	  'XImage-data-is-signed-so-macro-is-screwed-up' bug.
+
+	* color.c: Cleaned up.
+
+	* chroma.c: ChromaDialog(): Accept a Palette parameter and use
+	  that for calling ColorPickerPalette() instead of ColorPicker().
+
+	* operation.c: Removed ChromaDialog stuff.
+
+	* XPaint.ad: Changed 'XPaint*chroma' to 'Canvas*chroma'.
+
+	* Imakefile: Added chroma.c
+
+	* chroma.c: Initial revision
+
+	* selectOp.c: Split out chroma stuff into chroma.c
+
+	* iprocess.c: Cleaned up histogram stuff.
+	  Added ImageThicken() - #define'd out for now.
+
+	* graphic.c: Cleaned up.
+
+	* color.c:
+	  createBarText(): Fixed value for scrollbar resource 'XtNwidth'.
+
+	* color.c: createBarText(): Changed incorrect scrollbar resource
+	  'XtNlength' to 'XtNwidth'.
+
+	* Local.config: Removed the #define HaveXPM stuff.
+
+	* Help.txt: Added doc for Directional Smooth.
+	  Rearranged doc for Filter commands.
+
+	* operation.c: OperationSelectCallAcross(): Also set the Lasso popup.
+
+	* graphic.c: Added Directional Smooth filter.
+	  Reorganized Filter menu.
+
+	* iprocess.c: ImageNormContrast(): Call ImageHistogram().
+
+	* cutCopyPaste.c: StdRegionDirFilt(): Added.
+
+	* XPaint.ad: Canvas*menu*filter*dirfilt.label: Added.
+
+	* iprocess.c: ImageSmooth(): Free convolution matrix.
+	  ImageDirectionalFilter(): Added.
+
+Sun Feb 25 12:53:13 1996  Torsten Martinsen
+
+	* INSTALL: Removed USE_DRAND stuff.
+
+	* hash.c: Removed unused code.
+
+	* fatBitsEdit.c: FatbitsUpdate(): Accept -1 as zoom factor.
+
+	* size.c: sureCallback(): Call FatbitsUpdate().
+
+	* fatBitsEdit.c:
+	  FatbitsUpdate(): Only reposition view if the zoomed canvas is larger
+	  than the viewport.
+
+Sat Feb 24 15:51:16 1996  Torsten Martinsen
+
+	* fatBitsEdit.c:
+	  Changing the zoom on the canvas now resizes and repositions the
+	  fatbits cursor.
+
+Fri Feb 23 11:53:28 1996  Torsten Martinsen
+
+	* graphic.c: zoomOkCallback(): Call zoomUpdate().
+
+	* fatBitsEdit.c:
+	  Added the zoomUpdate() function to correct FatBits cursor window
+	  size when changing canvas zoom factor.
+
+Fri Feb 23 11:12:42 1996  Torsten Martinsen
+
+	* fatBitsEdit.c (zoomUpdate): Added.
+
+	* graphic.c (GraphicOpenFile): Made GraphicOpenFile() call
+	  GraphicOpenFileZoom instead of duplicating code.
+
+Thu Feb 15 11:03:50 1996  Torsten Martinsen
+
+	* fatBitsEdit.c (FatCursorSet): Free old fatcursor if present.
+	  (FatCursorSet): Don't insert event handlers here.
+
+	* Paint.c (InitializeProc): Init menuwidgets member.
+
+Wed Feb 14 15:02:02 1996  Torsten Martinsen
+
+	* Paint.c (resources): Added resource for XtNfilename.
+
+	* graphic.c: Removed all traces of nudge box code.
+	  (doRevert): Use work procedure to call XtDestroyWidget().
+
+Mon Feb 12 11:45:23 1996  Torsten Martinsen
+
+	* brushOp.c (wbrush): Manual clipping implemented.
+	  (smear): Same.
+
+Thu Feb  8 10:33:23 1996  Torsten Martinsen
+
+	* graphic.c: Junked EnableRevert() and EnableLast().
+
+	* brushOp.c (wbrush): Transparent brush now has soft edge.
+
+Wed Feb  7 13:06:34 1996  Torsten Martinsen
+
+	* brushOp.c (setCursor): Values in brushbits array are
+	  proportional to distance from center of brush, normalized to a
+	  maximum of 100.
+	  (smear): Mix colours according to values in brushbits array.
+	  Removed FATCURSOR conditionals.
+
+	* selectOp.c (keyPress): Detect cursor keys and move region 
+	  accordingly.
+
+	* PaintRegion.c (RegionMove): New function, called from selectOp.c
+	  to move region using cursor keys.
+
+	* selectOp.c (motion): Return if event->state is zero, i.e. no
+	  buttons pressed.
+
+	* cutCopyPaste.c (StdUndoCallback): If the region has not been
+ 	  moved or resized, call PwRegionOff() before doing the actual undo
+	  and restore the region selection afterwards.
+
+	* PaintRegion.c (PwRegionOff): New function, like PwRegionFinish()
+	  but doesn't write region.
+
+	* PaintRegion.c (writeCleanRegion): Added 'write' argument. Only
+	  call writeRegion() if this is True.
+
+Tue Feb  6 12:08:19 1996  Torsten Martinsen
+
+	* fillOp.c (similar): Returns 1 if pixel matches start pixel
+	  within current colour delta.
+	  (deltafill): Like fill(), except we use similar() instead of ==.
+	  (press): Added switch to handle calling deltafill() when appropriate.
+
+Mon Feb  5 13:32:45 1996  Torsten Martinsen
+
+	* operation.c (tfillPopup): Added option for selecting fill colour
+	  tolerance.
+
+	* selectOp.c (finishPolyBand): Added call to PwUpdateDrawable() to
+	  avoid leaving stray lines behind.
+
+Sat Feb  3 11:03:16 1996  Torsten Martinsen
+
+	* color.c (update): If default visual is statically allocated,
+	  don't use XStoreColor().
+
+	* Imakefile (MISC): Added XPaintIcon.xpm.
+
+	* main.c (workProc): Added 'done' kludge to try to fix problem
+	  with workProc being called too many times.
+
+	* size.c (sureCallback): Set dirty flag.
+
+	* misc.c (AutoCrop): Added. Also corresponding menu changes 
+	  in graphic.c.
+
+Fri Feb  2 10:21:37 1996  Torsten Martinsen
+
+	* PaintRegion.c (PwRegionAddScale): Call PwRegionTear() so that
+	  flipped region stays on screen.
+	  (regionGrab): If Shift is pressed, constrain rotation to multiples
+	  of 15 degrees.
+	  (regionButtonPress): Store root window coords in lastX/Y.
+	  (regionGrab): If Shift is pressed, constrain movement to
+	  horizontal or vertical.
+
+	* PaintP.h (PaintPart): Added lastX, lastY members.
+
+	* fileName.c (stdSaveCommonCallback): Show busy cursor while saving.
+
+Thu Feb  1 11:18:30 1996  Torsten Martinsen
+
+	* selectOp.c (finishPolyBand, pressPolyBand, motionPolyBand,
+	  releasePolyBand, SelectPolyAdd, SelectPolyRemove): Handles
+	  selecting irregular polygons.
+
+	* Help.txt (Fill): Document change mode.
+
+	* circleOp.c (draw): Don't draw circles just because 'center' is
+	  ticked. Also, simplified quite a bit.
+
+	* boxOp.c (press): Don't draw squares just because 'center' is ticked.
+
+	* operation.c: Only use Xpm icons.
+
+Wed Jan 31 21:18:38 1996  Torsten Martinsen
+
+	* iprocess.c (ImageQuantize): Completed.
+
+Tue Jan 30 00:00:36 1996  Torsten Martinsen
+
+	* graphic.c (doContrast): Displays histogram image in text dialog.
+
+	* iprocess.c (ImageHistogram): Added ruler to histogram image.
+
+	* PaintRegion.c (regionSetGripCursors): Removed second column of
+	  cursors array, as it was not used.
+
+	* iprocess.c (ImageHistogram): Builds histogram for an image, both
+	  as an array of ints and as an image.
+	  (ImageNormContrast): Now assumes that ImageHistogram has already
+	  been called for the image.
+
+	* image.c (ImageNewBW): Set image->isBW to True.
+
+Mon Jan 29 09:13:12 1996  Torsten Martinsen
+
+	* text.c (textPrompt): (Previously TextPrompt) Extra parameter
+	  'pix' allows displaying a pixmap in the dialog.
+	  (TextPrompt): Calls textPrompt.
+	  (TextPromptPixmap): Entry point for displaying pixmap in text
+	  dialog.
+
+	* selectOp.c (SelectChromaDialog): Call ColorPickerSetFunction to
+	  set up for calling deltaSP() when grabbing colour.
+	  (deltaSP): Just sets 'pixel' member in DialogInfo structure.
+
+	* color.c (ColorPicker): Set l->map so that it works on TrueColor
+	  visuals.
+
+	* main.c (SetIconImage): Removed unused 'flag' parameter.
+
+	* xpaint.man: Description of RC file improved a bit.
+
+	* readRC.c (ReadDefaultRC): Don't use compiled-in defaults if a
+	  default file is specified with -rcFile.
+
+Fri Jan 26 11:40:26 1996  Torsten Martinsen
+
+	* brushOp.c (setCursor): Call FatCursorSet (conditional on FATCURSOR).
+
+	* fatBitsEdit.c (AddSegment, CreateFatCursor, FatCursorDraw,
+	  FatCursorAddZoom, FatCursorRemoveZoom, FatCursorSet): Routines for
+	  handling outline cursors for FatBits popup completed. Bitmapped
+	  cursors junked due to server limits on cursor size.
+	  Conditional on FATCURSOR.
+
+	* brushOp.c (motion): Return if event->state is zero, i.e. no
+	  buttons pressed.
+
+Tue Jan 23 01:20:59 1996  Torsten Martinsen
+
+	* graphic.c (solarizeOkCallback, doSolarize): Added to enable
+	  setting threshold parameter.
+
+	* fatBitsEdit.c: Numerous changes, all conditional on FATCURSOR define.
+
+Mon Jan 22 10:24:42 1996  Torsten Martinsen
+
+	* fatBitsEdit.c (FatbitsEdit): Set cursor for fatbits popup from
+	  parent PaintWidget's fatcursor resource.
+
+	* PaintP.h (PaintPart): Added fatcursor member.
+
+	* graphic.c (graphicCreate): Use ADDCALLBACK macro to simplify
+	  code a bit.
+
+	* cutCopyPaste.c (ccpAddRegionFlipX through ccpAddRegionBlend):
+	  Junked, instead call XtAddCallback directly.
+
+	* graphic.c (graphicCreate): Items in regionMenu are always
+	  sensitive whether there is a selection or not.
+
+	* cutCopyPaste.c (stdImgProcess): If no selection, use entire
+	  canvas. (Old behaviour can be reinstated by defining
+	  FILTERNEEDSSELECTION).
+
+	* iprocess.c (ImageSolarize): Added function.
+	  (ImageQuantize): Added dummy.
+
+	* graphic.c (doRevert): Set pointer to busy shape while reverting.
+	  (doRevert): Set menu snap status correctly.
+	  (doRevert): Also save background colour.
+	  (graphicCreate): Get width and height of pixmap *before* using
+	  them.
+
+	* brushOp.c (BrushAdd, BrushRemove, SmearAdd, SmearRemove): Store
+	  brushPalette and brushGC in LocalInfo structure. This
+	  automatically handles multiple calls correctly.
+	  (BrushInit): Create initial brushImage.
+	  (selectBrush): Free old and create new brushImage.
+
+Fri Jan 19 09:07:29 1996  Torsten Martinsen
+
+	* graphic.c (rotate): Use rotateAngle instead of snapSpacing as
+	  default angle of rotation.
+	  (GraphicOpenFileZoom): Like GraphicOpenFile(), but with 'zoom'
+	  parameter - passed to graphicCreate(). Also returns the PaintWidget.
+	  (doRevert): Remember zoom factor of image.
+
+	* brushOp.c (setCursor): Compute numpixels member.
+	  (BrushRemove): Fixed SIGSEGV bug.
+	  (SmearRemove): Fixed SIGSEGV bug.
+	  (BrushAdd, BrushRemove): If called more than once, behave
+	  appropriately.
+
+	* PaintEvent.c (opHandleEvent): Made Snap round to closest grid
+	  line instead of truncating to next lower value. (Made conditional
+	  on TRUNC_SNAP define).
+
+Thu Jan 18 09:46:56 1996  Torsten Martinsen
+
+	* cutCopyPaste.c (stdImgProcess): Store current background colour
+	  in ImgProcessInfo for use by image processing routines.
+
+	* selectOp.c (chromaCut): Commented out weird statement that
+	  dereferences an uninitialized pointer.
+
+	* cutCopyPaste.c (StdRegionTilt): Added.
+
+	* graphic.c (regionMenu): Added Tilt item.
+	  (tiltRegionOkCallback): Added.
+	  (tiltRegion): Added.
+	  (graphicCreate): Add callbacks for Tilt ietm.
+
+Wed Jan 17 10:06:41 1996  Torsten Martinsen
+
+	* brushOp.c (smear): Use XGetSubImage instead of XGetImage to
+	  avoid creating and destroying the XImage each time.
+	  The image is created by SmearAdd and BrushSelect.
+	  (wbrush): Use XGetSubImage instead of XGetImage to
+	  avoid creating and destroying the XImage each time.
+	  The image is created by BrushAdd and BrushSelect.
+	  (wbrush): Added limit check to avoid XGetSubImage crashing on us.
+
+	* image.c (PixmapToImage): Junked 'htable' variable - never used.
+
+
+Mon Jan 15 09:01:40 1996  Torsten Martinsen
+
+	* brushOp.c (BrushSetMode): Added.
+
+	* operation.c (brushPopup): Added Opaque/Transparent item.
+
+	* brushOp.c (wbrush etc.): Added WBrush code.
+
+Fri Jan 12 09:10:53 1996  Torsten Martinsen
+
+	* graphic.c (EnableRevert): Added.
+	  (GraphicOpenFile): Set filename member and call EnableRevert().
+	  (graphicCreate): Now returns the PaintWidget. Previously, the
+	  return value was always equal to the 'shell' argument.
+	  Note: GraphicOpenFile() checks the return value of
+	  graphicCreate() - this is still not useful.
+	  (doRevert): Return immediately if the image was not changed since
+	  last save. Revert actually works now!
+
+	* fileName.c (stdSaveCommonCallback): Set filename when save is
+	  successful.
+
+	* PaintP.h: Added filename member to PaintWidget.
+
+	* Paint.c (DestroyProc): Free filename storage.
+	  (InitializeProc): Initialize filename member to NULL.
+
+	* Help.txt (filterMenu): Added help for Normalize Contrast filter.
+
+	* graphic.c (RG_CONTRAST_ITEM): Added to menu.
+
+	* iprocess.c (ImageNormContrast): Added. Histogram equalizes
+	  contrast of an image.
+
+	* cutCopyPaste.c (StdRegionContrast): Added.
+
+	* xpaint.man: Formatting of options made consistent with most
+	  other X man pages. Explanation of RC file syntax improved.
+
+Thu Jan 11 12:45:40 1996  Torsten Martinsen
+
+	* xpaint.man: Added documentation on RC file format.
+	  Added doc on -rcFile -popped, and -help options.
+	  Also slight formatting changes.
+
+	* readRC.c (readRC): Fixed bug where brushes in the RC file was
+	  treated as patterns.
+
+	* Imakefile: Added dependencies for all object files.
+
+	* iprocess.c (ImageAddNoise): Changed to use Gaussian noise.
+
+	* sprayOp.c (draw): Use gauss() in misc.c. Static function gauss()
+	  removed.
+
+	* misc.c (gauss): Function to produce a random normal variable.
+
+Wed Jan 10 11:43:14 1996  Torsten Martinsen
+
+	* Major prototype overhaul and cleanup.
+
+	* operation.c (struct IconListItem): Removed 'callback' member, as
+	  it is never used.
+
+	* iprocess.c (ImageSmooth): Uses N x N matrix.
+
+	* graphic.c (doSmooth): Added query for mask size.
+
+	* iprocess.c: Use ImgProcessInfo structure for parameters.
+
+	* graphic.c (oilPaintOkCallback, ..., doDespeckle): Use
+	  ImgProcessInfo structure for parameters.
+
+	* iprocess.c (convolve): Changed to allow N x N matrices. Calls
+	  to convolve() changed accordingly.
+
+	* fillOp.c (buildGradientPixmap): Bugfix for Linear fill.
+
+Tue Jan  9 10:41:16 1996  Torsten Martinsen
+
+	* fillOp.c (buildTexturePixmap): Added Linear gradient fill.
+	  (buildTexturePixmap): Added Conical gradient fill.
+
+	* Help.txt: Added help for gradient fill.
+
+Mon Jan  8 10:00:00 1996  Torsten Martinsen
+
+	* operation.c (tfillMenuCallback): Allows setting H/V offset and
+	  Pad for Radial Fill.
+
+	* fillOp.c (TfillSetParameters): Added. See preceding entry.
+
+	* operation.c: 	Texture Fill operator added.
+
+	* fillOp.c (press): Extra code to handle texture fill.
+	  (buildTexturePixmap): This function builds a Pixmap containing the
+	  desired texture.
+	  (TFillAdd, TFillRemove, TFillSetMode, TFillGetMode): Implements
+	  Texture Fill operator.
+
+	* Local.config (UseLargeIcons): Added this define to control
+	  search path for icon files.
+
+	* Moved old icons to ./bitmaps/old.
+
+Fri Jan  5 20:22:15 1996  Torsten Martinsen
+
+	* iprocess.c (ImageSpread): Removed 'iterations' parameter.
+
+	* graphic.c (doSpread): Removed 'iterations' parameter, now that
+	  we have Repeat Last.
+
+	* cutCopyPaste.c (stdImgProcess): Unified this with inplaceImgProcess.
+	  (stdLastImgProcess): Added function.
+
+	* Help.txt: Added doc for Repeat Last.
+
+	* graphic.c (RG_LAST_ITEM): Added 'Filter/Repeat Last' menu item.
+	  (doLast): Added function.
+
+	* iprocess.c (ImageDespeckle): Added function.
+
+	* Help.txt: Added Filter menu (oops). Added doc for Despeckle filter.
+
+	* graphic.c (RG_DESPECKLE_ITEM): Added 'Filter/Despeckle' menu item.
+
+	* rw/writeJPEG.c (WriteJPEG): Writing of greyscale JPEG files works now.
+
+	* rw/readJPEG.c (ReadJPEG): Loading of greyscale JPEG files works now.
+
+	* brushOp.c (press): Got SIGSEGV when using Brush tool before
+	  Smear tool had been used. Fixed.
+
+Wed Jan  3 21:42:45 1996  Torsten Martinsen
+
+	* rw/readJPEG.c (ReadJPEG): Prepare for handling of greyscale files.
+
+	* rw/writeJPEG.c: Created file.
+
+	* rw/rwTable.c (RWtable): Added entry for WriteJPEG().
+
+Wed Dec 27 12:07:34 1995  Torsten Martinsen
+
+	* brushOp.c (struct BrushItem): Added 'brushbits' member to store
+	  fast-access mask for Smear operation.
+	  (setCursor): Initialize 'brushbits' member.
+	  This fixes the 'uses-wrong-brush-mask' bug.
+
+Tue Dec 26 22:06:54 1995  Torsten Martinsen
+
+	* hash.c (HashAll): Out-#ifdef'd unused functions.
+
+	* palette.c (addColor): Now this works like I think it should.
+
+	* brushOp.c (smear): Fixed palette allocation bug. This operation
+	  actually works now!
+
+	* palette.c (allocN): Removed 'flags' parameter, as it is never used.
+	  (allocN): Removed 'ncolor' parameter, as it is always 1.
+	  (PaletteAlloc): Changed allocN() call.
+
+Mon Dec 18 09:30:40 1995  Torsten Martinsen
+
+	* New 40 x 40 versions of all icons. [f]blobOp bitmap files renamed
+	  to [f]freehandOp for better consistency.
+
+	* brushOp.c (SmearAdd, SmearRemove): Added functions.
+	  (draw): Added 'if' clause to handle Smear tool.
+	  Added 'isSmear' member to LocalInfo struct.
+
+	* bitmaps/brushOp.xpm: New 40x40 icon.
+
+	* Imakefile: Made operation.o depend on bitmaps.
+
+Sat Dec 16 17:38:49 1995  Torsten Martinsen
+
+	* graphic.c (doSpread): Interface to Spread changed to allow
+	  selecting # of iterations.
+
+	* iprocess.c (ImageSpread): Changed to perform several iterations.
+
+	* XPaint.ad, graphic.c: Split Region menu up into Region and
+	  Filter menus.	All image processing functions are now in the
+	  Filter menu, while the Region menu is reserved for Rotate, Crop,
+	  Nudge, and Reset.
+
+	* Help.txt (smear): Added brief help text for Smear tool.
+
+	* bitmaps/smearOp.xpm: Added corny icon for Smear tool.
+
+	* selectOp.c (SelectChromaDialog): Don't SIGSEGV when selecting
+	  'Select Range...' in Select tool popup.
+
+	* graphic.c (doRevert): Set size of image to correct values.
+	  Still doesn't work, though.
+
+Fri Dec 15 13:05:35 1995  Torsten Martinsen
+
+	* image.h (ImagePixel): Fixed nasty missing-parentheses-around-args
+	  bug in this macro.
+
+	* graphic.c (doRevert): Added call to PwRegionFinish() to make
+	  sure the region is not active after reverting.
+
+	* cutCopyPaste.c (inplaceImgProcess): Added this function to
+	  enable ImageSpread to be implemented more efficiently.
+
+	* iprocess.c (ImagePixelize): Wrote function.
+	  (ImageSpread): Wrote function.
+
+Wed Dec 13 00:01:52 1995  Torsten Martinsen
+
+	* graphic.c: Added skeleton functions for Blend, Spread, and
+	  Pixelize items.
+	  (oilPaintOkCallback): Added sanity check for mask size.
+	  (addNoiseOkCallback): Added sanity check for noise variance.
+
+	* Help.txt: Added missing doc on Oil Paint effect.
+	  Added doc on Blend, Spread, and Pixelize items.
+
+	* graphic.c (regionMenu): Added Blend, Spread, and Pixelize items.
+
+Tue Dec 12 13:01:05 1995  Torsten Martinsen
+
+	* graphic.c (oilPaint): Added query for mask size.
+
+	* iprocess.c (ImageOilPaint): Added variable mask size.
+
+	* graphic.c (cropToRegion): Added function.
+
+	* PaintRegion.c (RegionCropToRegion): Added function.
+
+Fri Dec  8 09:22:38 1995  Torsten Martinsen
+
+	* Imakefile: Created RWSRC etc. variables.
+
+	* rw/readJPEG.c: Support for reading JPEG with IJG release 6 works.
+	  Still needs improved error reporting.
+
+Wed Dec  6 14:03:09 1995  Torsten Martinsen
+
+	* Cleaned up various prototypes and removed unused variables.
+
+	* 'Add Noise' function is completed for now. Later add gaussian option.
+
+Sun Dec  3 01:34:44 1995  Torsten Martinsen
+
+	* random.c: Added file with RNG code from Phoenix.
+
+	* cutCopyPaste.c (ccpAddRegionAddNoise): Added function.
+	  (StdRegionAddNoise): Added function.
+
+	* iprocess.c (ImageAddNoise): Added function.
+
+	* graphic.c: Revert function completed. Does not work if the size
+	  of the image has been changed.
+
+Sat Dec  2 18:59:25 1995  Torsten Martinsen
+
+	* Indented all files.
+
+	* graphic.c (doRevert): Started adding 'Revert...' item in canvas menu.
+
+
+------------------------------------------------------------------------------
+
+Changes from XPaint 2.1.1 to XPaint 2.2
+by Torsten Martinsen
+April 1996
+
+1.  New features:
+
+1.1 Changed image processing functions (filters):
+	Filter commands uses whole canvas if no selection (#define
+	FILTERNEEDSSELECTION if you want the old behaviour)
+	'Smooth' filter now has variable mask size
+	'Oil Paint' filter now has variable mask size
+
+1.2 New image processing functions (filters):
+	'Add Noise'
+	'Blend'
+	'Despeckle'
+	'Directional Smooth'
+	'Normalize Contrast'
+	'Pixelize'
+	'Quantize Colors'
+	'Solarize'
+	'Spread'
+	'Repeat Last Filter' operation
+
+1.3 Changed operators:
+	Multiple undo and redo.
+	Fill operator takes color tolerance into account.
+	Draw centered boxes and ellipses that are not square.
+	Improved performance of Gaussian Spray.
+	Brush tool has 'Transparent' option which uses a soft-edged
+	brush (only works well on TrueColor visuals).
+	Brush cursor is the correct size when zooming.
+	Brush cursor in FatBits popup is the correct size.
+	Snap rounds instead of truncating (#define TRUNC_SNAP if you want the
+	old behaviour).
+
+1.4 Changed region functions:
+	Holding Shift down while moving a region constrains movement to
+	horizontal or vertical.
+	Holding Shift down while rotating a region constrains rotation to
+	multiples of 15 degrees.
+
+1.5 New region functions:
+	'Crop to Region' tool.
+	Cursor keys can be used to move region in 1 pixel steps.
+	Undo undoes region selection.
+
+1.6 New operators:
+	Select circle-shaped area.
+	Select polygon-shaped area.
+	Gradient fill (Conical, Square, Radial, Linear).
+	'Smear' tool.
+
+1.7 Miscellaneous new functions:
+	AutoCrop function - removes borders from an image.
+	'Revert' function.
+	Writing of JPEG files.
+
+1.8 Interface changes:
+
+	The 'Select Range' dialog now uses the color map of the current canvas. 
+	Therefore, it is no longer found in the toolbox, but in the palette
+	area (the 'Select Color Range' button).
+	New 40 x 40 icons. If you create a better set of icons, please let me
+	know.
+	'Region' menu split into 'Region' and 'Filter' menus, the latter for
+	image processing functions.
+	Busy cursor while saving.
+
+2  Fixed bugs:
+
+	Changing the image size no longer does funny things
+	to the fatbits cursor.
+	Changing the zoom on the canvas now resizes and
+	repositions the fatbits cursor.
+	FatBits cursor window changes size when changing zoom of canvas.
+	Problem with flipping region fixed.
+	In color picker, Enter now works in delta textwidgets.
+
+3  Source code changes:
+
+	Xpm and TIFF libraries no longer included in distribution.
+	Massive reformatting of all source files.
+	A couple of new source files.
+	Some unused code removed.
+	Toolbox uses Xpm icons exclusively.
+
+------------------------------------------------------------------------------
+
+Changes from 2.1.0 to 2.1.1
+by David Koblas
+December 1994	
+
+        Edit/Remove popup in Canvas palette area
+        Cut copy inter X app bug fixes
+        Able to load palettes
+        Fill now has a "change" choice which exhanges the selected
+                color with a new color
+        Added '-rcFile' commandline option to specify RC file
+        Optimizations for 8 deep bit screens
+        Added '-popped' to bring up an empty canvas on startup
+        Fixed GIF writing bug
+	Added Oil Paint image processing function
+
+------------------------------------------------------------------------------
+
+XPaint 2.1 Release Notes
+July 1993
+
+Welcome to the release of XPaint 2.1!  So, what does XPaint do for
+you?  Why many wonderful things of course.  XPaint is a reasonably
+versatile bitmap/pixmap editing tool.  XPaint came out of a problem
+editing some very large bitmaps, and wanting more functionality then
+was provided by bitmap. After XPaint 1.0 sat around for a LONG time,
+I finally ended up with a strong need to edit color pixmaps.  Presto,
+this is what has appeared from that problem.
+
+The short features list:
+	Usual paint operations:
+		Brushes, Spray paint, Pencil
+		Lines, Arcs, Pattern Fill, Text,
+		Boxes, Circles, Polygons.
+	Works on multiple images simultaneously.
+	Cut/Copy/Paste between all active images.
+	Fatbits/Zoom on the image windows.
+
+XPaint is slightly biased towards a MacPaint-like operation set, since
+this is the only paint program that I have ever used for more than 30
+seconds, but not to let this discourage you, it does quite a bit more.
+If you find some functionality missing and feel like adding it, there
+is a rough description of how the operations interface works, and I'd
+be more that willing to help you.
+
+The following file formats are supported:
+	X11 Bitmaps	reading	writing
+	PPM Format	reading writing
+	GIF Format	reading writing
+	PostScript		writing
+	XPM Format	reading writing
+	TIFF Format	reading writing (condinally compiled in)
+	SGI RGB Format	reading writing (only on SGI machines)
+If you have an image that is not in one of the supported formats I'd
+reccomend you take a look at the PBMPLUS toolkit (which is availbe
+for ftp from export.lcs.mit.edu, and other fine sites).
+
+XPaint is written using ANSI C (for the most part), and thus you need
+to have a compiler that understands function prototypes.  On most MIPS
+based machines this is the standard compiler, on a Sun SparcStation you
+will either need to use 'gcc' or 'acc' (from Sun).  If you have some
+other brand of workstation, try using 'gcc' if your compiler doesn't
+work.
+
+Hope you find this useful, 
+David Koblas 
+koblas@netcom.com

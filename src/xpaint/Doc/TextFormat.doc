@@ -1,0 +1,58 @@
+\*text:1500 2121*\\*zoom:-2*\\
+\*font:Liberation-24:style=Bold*\\*color:red*\\
+Use of enriched text files as input of Xpaint
+\*font:Liberation-18*\\*color:black*\\
+
+XPaint is now capable of reading text files in UTF8 encoding.
+The first line can specify e.g.
+\\*text:1500 2121*\\\\
+otherwise default size is 1536x2172
+
+The backslash character \\ is used as an escape character, and any
+special command must be given between \\* ... *\\
+To get a backslash printed, one must use two consecutive 
+such characters, i.e. \\\\
+A single \\ terminating a line can be used to prevent newlines
+
+
+
+\*font:Liberation-24:style=Bold*\\*color:red*\\
+List of special commands
+\*font:Liberation-18*\\*color:black*\\
+
+\*color:blue*\\\*font:Comic SANS MS-14:style=bold*\\\
+\*font:Comic SANS MS-14:style=bold*\\*color:black*\\*x:560*\\
+start writing in font Comic SANS MS (size 14, bold)
+\*font:Liberation-18*\\
+\*color:blue*\\\*color:green*\\\*color:green*\\*x:560*\\
+start writing in green
+\*color:blue*\\\*color#7801bc:*\\\*color:#7801bc*\\*x:560*\\
+start writing in RGB color #7801bc
+\*color:blue*\\\*rotation:-10*\\\*color:black*\\*x:560*\\
+\*rotation:-10*\write text rotated by -10 degrees in absolute \
+coordinates\*rotation:0*\
+\*rotation:0*\\*color:blue*\\\*+rotation:-5*\\\*color:black*\\*x:560*\\
+\*rotation:-15*\add -5 degrees to previous rotation angle\*rotation:0*\\
+\*+sy:120*\
+\*+sy:5*\
+\*color:blue*\\\*dilation:1.7*\\\*color:black*\\*x:560*\\
+\*dilation:1.7*\write characters with vertical dilation factor 1.7\*dilation:1*\
+\*color:blue*\\\*inclination:-0.3*\\\*color:black*\\*x:560*\\
+\*inclination:-0.3*\write characters with inclination -0.3\*inclination:0*\
+\*color:blue*\\\*linespacing:2.2*\\\*color:black*\\*x:560*\\
+\*linespacing:2.2*\use linespacing equal to 2.2 normal interline value
+\*linespacing:1*\\*color:blue*\\\*x:400*\\\*color:black*\\*x:400*\\
+shift text to absolute x value equal to 400
+\*color:blue*\\\*+x:50*\\\*color:black*\\*x:560*\\
+(previous portion of text) \*+x:50*\\
+shift text to relative +x value equal to 50
+\*color:blue*\\\*+y:10*\\\*color:black*\\*x:560*\\
+(previous portion of text) \*+y:10*\\
+shift text to relative +y value equal to 10\*+sy:20*\\*+sx:30*\
+\*color:blue*\\\*+sx:30*\\\*color:black*\\*x:560*\\
+shift position of carriage return 'start x' by relative +sx equal to 30\
+\*sx:200*\
+\*color:blue*\\\*sx:200*\\\*color:black*\\*x:560*\\
+shift position of carriage return 'start x' to absolute value sx=200
+
+

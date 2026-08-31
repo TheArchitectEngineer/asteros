@@ -1,0 +1,498 @@
+# XPaint Messages version 2.9.0
+#DEFAULT_TITLE
+Sin título
+#CANT_FIND_PRINTCAP_FILE
+El Archivo printcap no se encuentra en %s
+#USAGE_FOR
+Uso para
+#CANNOT_INSTALL_XPM_ICON
+Imposible instalar el icono XPM
+#NO_MATCH_FOUND_FOR_VISUAL
+Ningún tipo visual compatible\n
+#BAD_VISUAL_TYPE_SPECIFICATION
+%s : errónea especificación del tipo visual '%s'\n
+#YOUR_CANVAS_DEPTH_IS_THAT_MANY_BITS
+\ En el despliegue se utiliza la reserva de imágenes en colores %d-bits.\n\n
+#SEPARATOR_STRIP_ONE
+     ======================================================================\n
+#WARNING_ONE
+     ¡ATENCIÓN!  ¡La mayor parte de las imágenes en verdaderos colores serán degradadas!\n
+#SEPARATOR_STRIP_TWO
+     =====================================================================\n
+#WARNING_TWO_A
+     ¡ATENCIÓN!  La mayor parte de las imágenes de paleta de colores, del mismo modo que las\n
+#WARNING_TWO_B
+     imágenes en verdaderos colores, experimentarán una degradación irreversible!\n
+#WARNING_THREE_A
+     Las imágenes habituales (de paleta, grises 8-bits, colores 24-bits)\n
+#WARNING_THREE_B
+     no se degradarán, pero las otras imágenes, las de verdaderos colores\n
+#WARNING_THREE_C
+     pueden ser modificadas en modo 24-bits.\n\n
+#GO_UP_ONE_DIRECTORY_LEVEL
+../ (Ascender directorio 1 nivel)
+#NO_FILE_NAME_SUPPLIED
+No hay ningún nombre de archivo específico
+#UNABLE_TO_GET_REGION
+Imposible obtener la región
+#UNABLE_TO_CREATE_IMAGE
+Imposible crear la imagen
+#UNABLE_TO_CREATE_IMAGE_FOR_SAVING
+Imposible crear la imagen para guardarla
+#UNABLE_TO_LOAD_FILTER
+Imposible de cargar el filtro
+#UNABLE_TO_LOAD_PROCEDURE
+Imposible de cargar el procedimiento
+#ERROR_SAVING_FILE
+Error durante el proceso de guardar el archivo :\n   %s
+#NO_REGION_SELECTED_PRESENTLY
+No hay ninguna región seleccionada en este momento
+#NO_SUCH_FILE_OR_DIRECTORY
+Ninguno de estos archivos o directorios:\n   %s
+#UNABLE_TO_OPEN_INPUT_FILE
+Imposible abrir a modo de lectura el archivo "%s"\n   %s
+#IMAGE_FORMATS
+Auto_Detect Auto-Detección
+PNG_Format Formato PNG
+PNG_Interlaced PNG (entrelazadas)
+GIF_Format Formato GIF
+JPEG_Format Formato JPEG
+TIFF_Format Formato TIFF
+BMP_Format Formato BMP
+ICO_Format Formato ICO
+PPM_Format Formato PPM
+SGI_Format Formato SGI
+XBM_Format Formato XBM
+XPM_Format Formato XPM
+XWD_Format Formato XWD
+LXP_Format Formato LXP
+PS_Format Formato PS
+PDF_Format Formato PDF
+TEX_Format Formato TEX
+CSC_Format Script C
+#END_IMAGE_FORMATS
+#POSITION
+Posición
+#VALUE
+Luminosidad
+#RED_COLOR
+Rojo
+#GREEN_COLOR
+Verde
+#BLUE_COLOR
+Azul
+#RED_VARIANCE
+Tonalidades de Rojo
+#GREEN_VARIANCE
+Tonalidades de Verde
+#BLUE_VARIANCE
+Tonalidades de Azul
+#SNAP_SPACING_X
+Espacio en x :
+#SNAP_SPACING_Y
+Espacio en y:
+#ENTER_DESIRED_SNAP_SPACING
+Ponga el espacio cuantificado deseada
+#LEVELS
+Número (0-20) :
+#NUMBER_OF_UNDO_LEVELS
+Número de nivel de memorización (Deshacer/Rehacer)
+#IMAGE_NUMBER
+Número de la imagen
+#RECALL_AN_IMAGE
+Volver a llamar una imagen
+#REMOVE_AN_IMAGE
+Suprimir una imagen
+#REMOVE_FILE
+Suprimir el archivo
+#ZOOM
+Zoom :
+#CHANGE_ZOOM_FACTOR_FOR_IMAGE
+Cambiar el zoom para el lienzo
+#ANGLE_IN_DEGREES
+Ángulo (en Grados) :
+#ENTER_DESIRED_ROTATION
+Ponga el ángulo de rotación deseado
+#ENTER_TWOBYTWO_MATRIX_ENTRIES
+Coeficientes de la matriz 2x2  [ a11, a12 ; a21 , a22 ]
+#ENTER_POINTS
+Ponga el número de puntos
+#MUST_BE_ODD
+(debe ser impar) :
+#ENTER_MASK_SIZE_FOR_OIL_PAINT_EFFECT
+Ponga el tamaño de la máscara 'pintura al óleo'
+#ENTER_MASK_SIZE_FOR_SMOOTHING_EFFECT
+Ponga el tamaño de la máscara de degradación borrosa
+#ENTER_DESIRED_NOISE_VARIANCE
+Ponga la variable de dispersión
+#DISTANCE_PIXELS
+Distancia (pixeles) :
+#ENTER_THE_DESIRED_SPREAD_DISTANCE
+Ponga la distancia de exposición deseada
+#WIDTH_X_HEIGHT_OR_SINGLE_NUMBER
+(ancho x alto, o un único número) :
+#ENTER_DESIRED_MEGAPIXEL_SIZE
+Ponga el número de megapixeles deseado
+#ENTER_MASK_SIZE_FOR_DESPECKLE_FILTER
+Ponga el tamano de la máscara del filtro de granulosidad
+#BLACK_LEVEL
+Nivel negro (%) :
+#WHITE_LEVEL
+Nivel blanco (%) :
+#ENTER_LEVELS_FOR_CONTRAST_ADJUSTMENT
+Ponga el nivel de ajuste del contraste
+#ENTER_THRESHOLD_FOR_SOLARIZE_FILTER
+Ponga el umbral del filtro de luminosidad
+#ENTER_DESIRED_SHIFT_FOR_RGB_COMPONENTS
+Variación deseada de los componentes RVB
+#RED_SHIFT
+Rojo (-100% -> +100%)
+#GREEN_SHIFT
+Verde    (-100% -> +100%)
+#BLUE_SHIFT
+Azul    (-100% -> +100%)
+#ENTER_DESIRED_NUMBER_OF_COLORS
+Ponga el número de colores deseados
+#ENTER_DESIRED_ALPHA_CHANNEL_PARAMETERS
+Ponga los parámetros del canal alfa
+#ALPHA_CHANNEL_SHOULD_BE_CREATED
+Canal alfa primero se debe crear,\nentonces guardar y cargar desde la memoria
+#ALPHA_MODE
+Modo alfa
+#ALPHA_BACKGROUND_VALUE
+Valor alfa de fondo
+#ALPHA_FOREGROUND_VALUE
+Valor alfa primer plano
+#ALPHA_THRESHOLD_VALUE
+Umbral del canal alfa
+#EXPANSION_PARAMETERS
+Parámetros de ampliación
+#EXPANSION_FACTOR
+Divisor de ampliación
+#DO_INTERPOLATION
+Interpolar
+#DOWNSCALING_PARAMETERS
+Parámetros de reducción
+#DOWNSCALING_FACTOR
+Divisor de reducción
+#SIZE_WIDTH
+Anchura :
+#SIZE_HEIGHT
+Altura :
+#SIZE_ZOOM
+Zoom :
+#ENTER_DESIRED_IMAGE_SIZE
+Ponga el tamaño del lienzo deseado
+#WIDTH_AND_DESIRED_LINE_STYLE
+Grosor y tipo de líneas (ejemplo ======---, = relleno, - espacio)
+#LINE_WIDTH
+Grosor :
+#DASH_STYLE
+Tipo de Puntos :
+#CAP_STYLE
+Tipo de Terminación :
+#CAP_HINT
+0 Defecto, 1 Nada, 2 Cuadrada, 3 Ronda, 4 Salediza
+#JOIN_STYLE
+Tipo de Juntura:
+#JOIN_HINT
+0 Defecto, 1 Mitra, 2 Ronda, 3 Bisel
+#GRID_DRAWING_MODE
+Modo de trazado cuadrícula 
+#GRID_LINES_OR_OTHER
+Líneas, puntos, cruz, cuadrados (0/1/2/3)
+#GRID_USES_SNAP
+Utilizar cuadrícula cuantificada (0/1)
+#GRID_COLOR
+Color de la cuadrícula
+#OPACITY
+Opacidad (%):
+#ENTER_THE_DESIRED_BRUSH_PARAMETERS
+Ponga los parámetros de la brocha deseados
+#DENSITY
+Densidad (%):
+#ENTER_THE_DESIRED_FRACTAL_DENSITY
+Ponga la densidad fractal deseada
+#DYNAMIC_WIDTH
+Grosor :
+#DYNAMIC_MASS
+Masa :
+#DYNAMIC_DRAG
+Tracción :
+#ENTER_THE_DESIRED_DYNAMIC_PENCIL_PARAMETERS
+Ponga los parámetros deseados para el pincel dinámico
+#SPRAY_RADIUS
+Radio :
+#SPRAY_DENSITY
+Densidad :
+#SPRAY_RATE
+Frecuencia :
+#ENTER_THE_DESIRED_SPRAY_PARAMETERS
+Ponga los parámetros deseados para el Pulverizador
+#ARROWHEAD_TYPE
+Tipo de la punta de flecha
+#ARROWHEAD_SIZE
+Tamaño de la punta de flecha :
+#ARROWHEAD_ANGLE
+Ángulo de la punta de flecha :
+#ENTER_THE_DESIRED_ARROWHEAD_PARAMETERS
+Ponga los parámetros deseados para la Punta de flecha
+#BOX_ROUND_CORNER_ABSOLUTE_SIZE
+Tamaño absoluto de esquinas rondas
+#BOX_ROUND_CORNER_RELATIVE_SIZE
+Tamaño relativo de esquinas rondas
+#ENTER_THE_DESIRED_ROUND_CORNER_SIZE
+Ponga el tamaño de esquinas rondas
+#NUMBER_OF_SIDES_OF_POLYGON
+Número de lados del polígono
+#STARLIKE_POLYGON_INNER_RATIO
+Indice interior del polígono estrallado
+#ENTER_THE_DESIRED_SPECIAL_POLYGON_PARAMETERS
+Ponga los parámetros deseados para el Polígono especial
+#GRADIENT_ANGLE
+Ángulo (grados) :
+#GRADIENT_PAD
+Rellenado (%) :
+#GRADIENT_HORIZONTAL_OFFSET
+Inclinación horizontal (%) :
+#GRADIENT_VERTICAL_OFFSET
+Inclinación vertical (%) :
+#GRADIENT_STEPS
+Número de transiciones :
+#ENTER_THE_DESIRED_GRADIENT_FILL_PARAMETERS
+Ponga los parámetros del relleno degradado
+#PATTERN_WIDTH
+Anchura :
+#PATTERN_HEIGHT
+Altura :
+#ENTER_THE_DESIRED_PATTERN_SIZE
+Ponga el tamaño deseado del Motivo
+#YOU_MUST_HAVE_AT_LEAST_ONE_ENTRY
+Deberá especificar al menos una entrada
+#NO_INFORMATION_TO_SAVE
+Ninguna información para guardar
+#UNABLE_TO_OPEN_FILE
+Imposible abrir el archivo '%s'
+#UNABLE_TO_OPEN_FILE_FOR_WRITING
+Imposible abrir el archivo '%s' en escritura
+#OVERWRITE_FILE
+Sobrescribir el archivo '%s' ?
+#UNSAVED_CHANGES_WISH_TO_QUIT
+Hay algunas modificaciones no guardadas,\n¿Quiere realmente salir?
+#UNSAVED_CHANGES_WISH_TO_CLOSE
+¡Modificaciones no guardadas!\n¿Quiere realmente cerrar la ventana?
+#UNSAVED_CHANGES_WISH_TO_REVERT
+¡Modificaciones no guardadas!\n¿Quiere realmente recargar la imagen?
+#RESIZING_WARNING_CANNOT_BE_UNDONE
+Cambio de Tamaño\n\nAtención : operación irreversible\n¿Quiere Continuar?
+#AUTOCROP_WARNING_CANNOT_BE_UNDONE
+Auto-Disminución\n\nAtención : operación irreversible\n¿Quiere Continuar ?
+#ARE_YOU_SURE_YOU_WANT_TO_CROP_THE_IMAGE_TO_THE_SIZE_OF_THE_REGION
+¿Está seguro de querer disminuir\nla imagen al tamaño de la región?
+#BAD_SNAP_SPACING
+Erróneo espacio cuantificado.\nEscoger entre 2 y 100
+#BAD_NUMBER_OF_UNDO_LEVELS
+Erróneo nivel de memorización.\nEscoger entre 0 y 20
+#INVALID_ZOOM
+Valor del zoom no válido
+#INVALID_MASK_SIZE
+Tamaño de la máscara no válido
+#INVALID_NOISE_VARIANCE
+Variable de dispersión no válida
+#INVALID_SPREAD_DISTANCE
+Distancia de difusión no válida
+#INVALID_PIXEL_SIZE
+Tamaño de pixel no válido
+#INVALID_WHITE_LEVEL
+Nivel de blanco no válido
+#INVALID_BLACK_LEVEL
+Nivel de negro no válido
+#INVALID_SOLARIZATION_THRESHOLD
+Umbral de luminosidad no válido
+#INVALID_RGB_PERCENTAGES
+Porcentajes de variación RVB no válidas
+#INVALID_NUMBER_OF_COLORS
+Número de colores no válido
+#INVALID_SCALING_FACTOR
+Divisor de proporción no válido
+#INVALID_ALPHA_CHANNEL_PARAMETERS
+Parámetros de alfa canal no válidos
+#UNABLE_TO_CREATE_PAINT_WINDOW_WITH_IMAGE
+Imposible crear un lienzo de dibujo a partir de la imagen
+#FILE_WRITTEN
+Archivo %s creado...
+#FILE_SENT_TO_PRINTER
+Datos enviados para imprimir...
+#INVALID_WIDTH_MUST_BE_GREATER_THAN_ZERO
+Anchura no válida, escoger valor > 0 y < 1000
+#DASH_IS_GIVEN_BY_ALTERNATING_THAT_MANY_CHARACTERS
+Puntos : alternar a lo más %d caracteres = o -
+#OPACITY_SHOULD_BE_BETWEEN_ZERO_AND_HUNDRED_PERCENT
+La opacidad se escoge entre 0 y 100 %
+#WIDTH_SHOULD_BE_BETWEEN_ONE_AND_ONE_HUNDRED
+La anchura se escoge entre 1 y 100
+#MASS_SHOULD_BE_BETWEEN_TEN_AND_TWO_THOUSAND
+La masa se escoge entre 10 y 2000
+#DRAG_SHOULD_BE_BETWEEN_ZERO_AND_FIFTY
+La tracción se escoge entre 0 y 50
+#RADIUS_SHOULD_BE_BETWEEN_ONE_AND_ONE_HUNDRED
+Le radio se escoge entre 1 y 100
+#DENSITY_SHOULD_BE_BETWEEN_ONE_AND_FIVE_HUNDRED
+La densidad se escoge entre 1 y 100
+#RATE_SHOULD_BE_BETWEEN_ONE_AND_FIVE_HUNDRED
+La frecuencia se escoge entre 1 y 500
+#TYPE_SHOULD_BE_BETWEEN_ONE_AND_MAXTYPE
+El tipo se escoge entre 1 y 3
+#SIZE_SHOULD_BE_BETWEEN_ONE_AND_ONE_THOUSAND
+El tamaño se escoge entre 1 y 1000
+#ANGLE_SHOULD_BE_BETWEEN_ZERO_AND_SIXTY
+El ángulo se escoge entre 0 y 60 grados
+#NUMBER_OF_SIDES_SHOULD_BE_BETWEEN_THREE_AND_ONE_HUNDRED
+El número de lados se escoge entre 3 y 100
+#BOX_ROUND_CORNER_ABSOLUTE_SIZE_SHOULD_BE_BETWEEN_ZERO_AND_ONE_THOUSAND
+El tamaño absoluto se escoge entre 0 y 1000
+#BOX_ROUND_CORNER_RELATIVE_SIZE_SHOULD_BE_BETWEEN_ZERO_AND_ONE
+El tamaño relativo se escoge entre 0.0 y 1.0
+#BOX_ROUND_CORNER_ABSOLUTE_AND_RELATIVE_SIZE_CANNOT_BE_BOTH_POSITIVE
+Los tamaños absoluto y relativo no poder ser ambos positivos
+#INNER_RATIO_SHOULD_BE_BETWEEN_ZERO_AND_ONE
+El indice interior se escoge entre 0.0 y 1.0
+#HORIZONTAL_OFFSET_SHOULD_BE_BETWEEN_PLUS_MINUS_HUNDRED_PERCENT
+La inclinación horizontal se escoge entre -100 y 100 %
+#VERTICAL_OFFSET_SHOULD_BE_BETWEEN_PLUS_MINUS_HUNDRED_PERCENT
+Le inclinación vertical se escoge entre -100 y 100 %
+#PAD_SHOULD_BE_BETWEEN_PLUS_MINUS_FOURTY_NINE_PERCENT
+El porcentaje de relleno se escoge entre -49 y 49 %
+#ANGLE_SHOULD_BE_BETWEEN_PLUS_MINUS_THREE_HUNDRED_SIXTY_DEGREES
+El ángulo se escoge entre -360 y 360 grados
+#NUMBER_OF_STEPS_SHOULD_BE_BETWEEN_ONE_AND_THREE_HUNDRED
+El número de transiciones se escoge entre 1 y 300
+#LOST_ERROR_TERM
+Suma de error indisponibla
+#FONT_SELECT_DESIRED_PROPERTIES
+Fuente : seleccionar las propiedades deseadas (cancelar por un clic en región blanca)
+#UNABLE_TO_LOAD_REQUESTED_FONT
+Imposible de cargar la Fuente solicitada
+#YOU_MUST_FIRST_COMPILE_A_C_SCRIPT
+Debe primeramente compilar un script C (menú "Selectores")
+#C_SCRIPT_SUCCESSFULLY_COMPILED_AND_LINKED
+El script C ha sido compilado con sucesos y cargado dinámicamente
+#C_SCRIPT_COULD_NOT_BE_COMPILED_OR_LINKED
+El script C no ha podido ser compilado y/o cargado dinámicamente :
+#INVALID_WIDTH
+Anchura no válida
+#INVALID_HEIGHT
+Altura no válida
+#INVALID_WIDTH_OR_HEIGHT_MUST_BE_GREATER_THAN_ZERO
+Anchura o Altura no válida,\nescoger valor > 0
+#INVALID_WIDTH_OR_HEIGHT_MUST_BE_LESS_THAN_HUNDRED_TWENTY_NINE
+Anchura o Altura no válida,\nescoger valor < 129
+#INVALID_WIDTH_OR_HEIGHT_MUST_BE_BETWEEN_ZERO_AND_TWO_HUNDRED_FIFTY_SIX
+Anchura o Altura no válida,\nescoger valor entre 0 y 256
+#DIRECTORIES
+Directorios
+#FILES
+Archivos
+#LIST_LOADED_FILES
+* Lista de los archivos cargados *
+#FILE_DOES_NOT_EXIST
+Archivo %s inexistente
+#FILE_NOT_IN_THE_LIST
+Archivo %s inexistente en la lista
+#OPEN_FILE_NAMED
+Abrir el Archivo cuyo Nombre es :
+#SAVE_IN_FILE
+Guardar en el Archivo :
+#LOAD_FROM_FILE
+Cargar a partir del Archivo :
+#IMAGE_NUMBER_OUT_OF_RANGE
+Número de imagen no válido
+#OUT_OF_MEMORY
+Memoria activa agotada\n
+#UNABLE_TO_ALLOCATE_SUFFICIENT_COLOR_ENTRIES
+Imposible asignar un número suficiente de colores.\n
+#TRY_EXITING_OTHER_COLOR_INTENSIVE_APPLICATIONS
+Probar a quitar los programas que requieren muchos colores.\n
+#SHOULDNT_HAPPEN
+¡No debería producirse!\n
+#ERROR_IN_XINTERNATOM
+Error en XInternAtom\n
+#CANNOT_GRAB_POINTER
+Imposible capturar el puntero.\n
+#INSUFFICIENT_RESOURCES_FOR_OPERATION
+Recursos insuficientes para esta operación.\n
+#PROBABLY_NOT_ENOUGH_MEMORY_TO_ALLOCATE_PIXMAP
+Memoria probablemente insuficiente para asignar el cuadro de pixeles.\n
+#ERROR_CODE
+Error de Código:
+#UNKNOWN_IMAGE_FORMAT
+Formato de imagen desconocido
+#OUT_OF_MEMORY_ALLOCATING_A_ROW
+%s : memoria agotada para la asignación de una línea\n
+#OUT_OF_MEMORY_ALLOCATING_AN_ARRAY
+%s : memoria agotada para la asignación de un cuadro\n
+#READ_ERROR
+%s : EOF / error de lectura\n
+#WRITE_ERROR
+%s : error de escritura\n
+#A_FILE_READ_ERROR_OCCURRED_AT_SOME_POINT
+%s : un error se ha producido con la lectura del archivo\n
+#A_FILE_WRITE_ERROR_OCCURRED_AT_SOME_POINT
+%s : un error se ha producido con la escritura del archivo\n
+#JUNK_IN_FILE_WHERE_BITS_SHOULD_BE
+%s : error en el archivo, donde los bits están en espera\n
+#READ_ERROR_READING_MAGIC_NUMBER
+%s : EOF / error pues, de lectura del código mágico\n
+#JUNK_IN_FILE_WHERE_AN_INTEGER_SHOULD_BE
+%s : complicación en el archivo, el cual será por completo revisado\n
+#CANT_HAPPEN
+%s : no se puede producir\n
+#MAXVAL_IS_TOO_LARGE
+%s : el valor máximo es muy grande\n
+#BAD_MAGIC_NUMBER_NOT_A_PPM_PGM_OR_PBM_FILE
+%s : erróneo código mágico - no es un archivo  ppm, pgm, o pbm\n
+#OUT_OF_MEMORY_COMPUTING_HASH_TABLE
+%s : memoria agotada para la elaboración de la tabla de plumillas\n
+#OUT_OF_MEMORY_ALLOCATING_HASH_TABLE
+%s : memoria agotada para asignación de la tabla de plumillas\n
+#OUT_OF_MEMORY_GENERATING_HISTOGRAM
+%s : memoria agotada para generar un histograma\n
+#SAME_COLOR_FOUND_TWICE
+ : un mismo color se ha encontrado repetido dos veces
+#COLORHIST_OUT_OF_MEMORY
+%s : memoria agotada\n
+#FATAL_LIBPNG_ERROR_LONGJMP_CALLED_WHILE_READING
+Error fatal de libpng (longjmp() llamada pendiente de lectura)
+#FATAL_LIBPNG_ERROR_LONGJMP_CALLED_WHILE_WRITING
+Error fatal de libpng (longjmp() llamada pendiente de escritura)
+#ERROR_PLTE_CHUNK_NOT_FOUND_IN_PALETTE_IMAGE
+Error :  datosPLTE no encontrados en la imagen en pseudo-colores
+#STRIPPING_48_BIT_RGB_IMAGE_TO_24_BITS
+Reducción de la imagen RGB 48-bits en 24 bits
+#STRIPPING_16_BIT_GRAYSCALE_IMAGE_TO_8_BITS
+Reducción de la imagen en escala de grises 16-bits en 8 bits
+#STRIPPING_64_BIT_RGBA_IMAGE_TO_32_BITS
+Reducción de la imagen RGBA 64-bits en 32 bits
+#STRIPPING_32_BIT_GRAY_ALPHA_IMAGE_TO_16_BITS
+Reducción de la imagen en 32-bits gris + canal_alfa en 16 bits
+#UNKNOWN_PNG_IMAGE_TYPE
+Tipo de imagen PNG desconocido
+#READPNG_CANT_ALLOCATE_MEMORY_FOR_ROW_POINTERS_1
+ReadPNG :  imposible asignar memoria para las líneas de puntos (1)
+#READPNG_CANT_ALLOCATE_MEMORY_FOR_ROW_POINTERS_2
+ReadPNG :  imposible asignar memoria para las líneas de puntos (2)
+#UNABLE_TO_ALLOCATE_TEMPORARY_STORAGE_FOR_ALPHA_IMAGE
+Imposible asignar memoria para almacenar la image alfa
+#READPNG_UNABLE_TO_MALLOC_PNG_DATA
+ReadPNG :  imposible asignar memoria para  png_data\n
+#WRITEPNG_CANT_USE_ALPHA_MASK_WITH_COLORMAPPED_IMAGE
+WritePNG :  imposible utilizar una máscara alfa en pseudo-colores\n
+#WRITEPNG_SORRY_CANT_WRITE_ALPHA_IMAGES_YET
+WritePNG :  Lo siento, no sabe aún guardar las imágenes alfa\n
+#WRITEPNG_CANT_ALLOCATE_MEMORY_FOR_ROW_POINTERS
+WritePNG :  imposible asignar memoria para los punteados de línea
+#XPAINT_FATAL_LIBPNG_ERROR
+XPaint :  error importante de libpng : %s\n
+#XPAINT_EXTREMELY_FATAL_LIBPNG_ERROR
+XPaint :  error fatal de libpng : jmpbuf irrecuperable ; ¡sálvese quien pueda!\n
+#END_MESSAGES

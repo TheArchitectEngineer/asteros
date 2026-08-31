@@ -636,3 +636,74 @@ void XftTextExtentsUtf8(Display *dpy, XftFont *pub, const XftChar8 *string, int 
 	extents->xOff = (short)advance;
 	extents->yOff = 0;
 }
+
+/* Real Xft has separate 8-bit-Latin1 and UTF-8 entry points; this
+ * stub's own glyph table only ever covers U+0000-U+007F either way
+ * (see XftDrawStringUtf8), so the metrics are identical.
+ */
+void XftTextExtents8(Display *dpy, XftFont *pub, const XftChar8 *string, int len, XGlyphInfo *extents)
+{
+	XftTextExtentsUtf8(dpy, pub, string, len, extents);
+}
+
+/* Real Xft's FreeType-library init. There is no FreeType here (see
+ * file-level comment), so this just reports success -- the same
+ * "always succeeds" contract XftFontOpenName already keeps.
+ */
+Bool XftInitFtLibrary(void)
+{
+	return True;
+}
+
+/* Real XAllocColor/XFreeColors round-trip -- genuinely real pixel
+ * allocation on the target's own colormap, not faked.
+ */
+FcBool XftColorAllocValue(Display *dpy, Visual *visual, Colormap cmap,
+			   const XRenderColor *color, XftColor *result)
+{
+	XColor xc;
+
+	(void)visual;
+	xc.red = color->red;
+	xc.green = color->green;
+	xc.blue = color->blue;
+	xc.flags = DoRed | DoGreen | DoBlue;
+	if (!XAllocColor(dpy, cmap, &xc))
+		return FcFalse;
+	result->color = *color;
+	result->pixel = xc.pixel;
+	return FcTrue;
+}
+
+void XftColorFree(Display *dpy, Visual *visual, Colormap cmap, XftColor *color)
+{
+	(void)visual;
+	XFreeColors(dpy, cmap, &color->pixel, 1, 0);
+}
+
+/* See the XftListFonts declaration in Xft.h for why this reports one
+ * real font rather than FcFontList's honestly-empty answer: it is the
+ * one font this stub can actually render, and the only list XPaint's
+ * font-selector dialog ever gets to show. The variadic object/value
+ * list real Xft would filter/build the pattern from is intentionally
+ * unread -- every request gets the same single, real answer, same as
+ * XftFontOpenName.
+ */
+XftFontSet *XftListFonts(Display *dpy, int screen, ...)
+{
+	FcFontSet *s = calloc(1, sizeof(*s));
+	FcPattern *p = FcPatternCreate();
+
+	(void)dpy;
+	(void)screen;
+
+	FcPatternAddString(p, FC_FAMILY, (const FcChar8 *)"Liberation");
+	FcPatternAddString(p, FC_FOUNDRY, (const FcChar8 *)"misc");
+	FcPatternAddString(p, FC_STYLE, (const FcChar8 *)"Regular");
+
+	s->fonts = calloc(1, sizeof(FcPattern *));
+	s->fonts[0] = p;
+	s->nfont = 1;
+	s->sfont = 1;
+	return s;
+}

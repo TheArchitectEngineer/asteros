@@ -1,0 +1,498 @@
+# XPaint Messages version 2.9.0
+#DEFAULT_TITLE
+Sans titre
+#CANT_FIND_PRINTCAP_FILE
+Fichier printcap non trouvé dans %s
+#USAGE_FOR
+Usage pour
+#CANNOT_INSTALL_XPM_ICON
+Impossible d'installer icône XPM
+#NO_MATCH_FOUND_FOR_VISUAL
+Aucun type de visuel compatible\n
+#BAD_VISUAL_TYPE_SPECIFICATION
+%s : mauvaise spécification du type de visuel '%s'\n
+#YOUR_CANVAS_DEPTH_IS_THAT_MANY_BITS
+\nL'affichage utilisé stocke les images en couleurs %d-bits.\n\n
+#SEPARATOR_STRIP_ONE
+     ======================================================================\n
+#WARNING_ONE
+     ATTENTION!  La plupart des images en vraies couleurs seront dégradées!\n
+#SEPARATOR_STRIP_TWO
+     =====================================================================\n
+#WARNING_TWO_A
+     ATTENTION!  La plupart des images à palette de couleurs ainsi que les\n
+#WARNING_TWO_B
+     images en vraies couleurs subiront une dégradation irréversible!\n
+#WARNING_THREE_A
+     Les images habituelles (à palette, grises 8-bits, couleurs 24-bits)\n
+#WARNING_THREE_B
+     ne seront pas dégradées, mais les images autres qu'en vraies couleurs\n
+#WARNING_THREE_C
+     pourront être promues en mode 24-bits.\n\n
+#GO_UP_ONE_DIRECTORY_LEVEL
+../ (Remonter répertoire 1 niveau)
+#NO_FILE_NAME_SUPPLIED
+Aucun nom de fichier spécifié
+#UNABLE_TO_GET_REGION
+Impossible d'obtenir la région
+#UNABLE_TO_CREATE_IMAGE
+Impossible de créer l'image
+#UNABLE_TO_CREATE_IMAGE_FOR_SAVING
+Impossible de créer l'image pour la sauvegarde
+#UNABLE_TO_LOAD_FILTER
+Impossible de charger le filtre
+#UNABLE_TO_LOAD_PROCEDURE
+Impossible de charger la procédure
+#ERROR_SAVING_FILE
+Erreur lors de la sauvegarde du fichier :\n   %s
+#NO_REGION_SELECTED_PRESENTLY
+Aucune région sélectionnée en ce moment
+#NO_SUCH_FILE_OR_DIRECTORY
+Aucun tel fichier ou répertoire :\n   %s
+#UNABLE_TO_OPEN_INPUT_FILE
+Impossible d'ouvrir en lecture le fichier "%s"\n   %s
+#IMAGE_FORMATS
+Auto_Detect Auto-Détecté
+PNG_Format Format PNG
+PNG_Interlaced PNG (interlacé)
+GIF_Format Format GIF
+JPEG_Format Format JPEG
+TIFF_Format Format TIFF
+BMP_Format Format BMP
+ICO_Format Format ICO
+PPM_Format Format PPM
+SGI_Format Format SGI
+XBM_Format Format XBM
+XPM_Format Format XPM
+XWD_Format Format XWD
+LXP_Format Format LXP
+PS_Format Format PS
+PDF_Format Format PDF
+TEX_Format Format TEX
+CSC_Format Script C
+#END_IMAGE_FORMATS
+#POSITION
+Position
+#VALUE
+Lumière
+#RED_COLOR
+Rouge
+#GREEN_COLOR
+Vert
+#BLUE_COLOR
+Bleu
+#RED_VARIANCE
+Variance Rouge
+#GREEN_VARIANCE
+Variance Vert
+#BLUE_VARIANCE
+Variance Bleu
+#SNAP_SPACING_X
+Espacement en x :
+#SNAP_SPACING_Y
+Espacement en y :
+#ENTER_DESIRED_SNAP_SPACING
+Entrer l'espacement de maillage souhaité
+#LEVELS
+Nombre (0-20) :
+#NUMBER_OF_UNDO_LEVELS
+Nombre de niveaux de mémorisation (Défaire/Refaire)
+#IMAGE_NUMBER
+Numéro de l'image
+#RECALL_AN_IMAGE
+Rappeler une image
+#REMOVE_AN_IMAGE
+Supprimer une image
+#REMOVE_FILE
+Supprimer le fichier
+#ZOOM
+Zoom :
+#CHANGE_ZOOM_FACTOR_FOR_IMAGE
+Changer le facteur de zoom pour le canevas
+#ANGLE_IN_DEGREES
+Angle (en Degrés) :
+#ENTER_DESIRED_ROTATION
+Entrer l'angle de rotation désiré
+#ENTER_TWOBYTWO_MATRIX_ENTRIES
+Coefficients de la matrice 2x2  [ a11, a12 ; a21 , a22 ]
+#ENTER_POINTS
+Entrer le nombre de points
+#MUST_BE_ODD
+(doit être impair) :
+#ENTER_MASK_SIZE_FOR_OIL_PAINT_EFFECT
+Entrer la taille du masque 'peinture à l'huile'
+#ENTER_MASK_SIZE_FOR_SMOOTHING_EFFECT
+Entrer la taille du masque de dégradé flou
+#ENTER_DESIRED_NOISE_VARIANCE
+Entrer la variance de dispersion
+#DISTANCE_PIXELS
+Distance (pixels) :
+#ENTER_THE_DESIRED_SPREAD_DISTANCE
+Entrer la distance d'étalement souhaité
+#WIDTH_X_HEIGHT_OR_SINGLE_NUMBER
+(largeur x hauteur, ou un seul nombre) :
+#ENTER_DESIRED_MEGAPIXEL_SIZE
+Entrer le nombre de megapixels désiré
+#ENTER_MASK_SIZE_FOR_DESPECKLE_FILTER
+Entrer la taille de masque du filtre de dégranulation
+#BLACK_LEVEL
+Niveau noir (%) :
+#WHITE_LEVEL
+Niveau blanc (%) :
+#ENTER_LEVELS_FOR_CONTRAST_ADJUSTMENT
+Entrer le niveau d'ajustement du contraste
+#ENTER_THRESHOLD_FOR_SOLARIZE_FILTER
+Entrer le seuil du filtre de solarisation
+#ENTER_DESIRED_SHIFT_FOR_RGB_COMPONENTS
+Variation souhaitée des composantes RVB
+#RED_SHIFT
+Rouge (-100% -> +100%)
+#GREEN_SHIFT
+Vert    (-100% -> +100%)
+#BLUE_SHIFT
+Bleu    (-100% -> +100%)
+#ENTER_DESIRED_NUMBER_OF_COLORS
+Entrer le nombre de couleurs désiré
+#ENTER_DESIRED_ALPHA_CHANNEL_PARAMETERS
+Choisir les paramètres du canal alpha
+#ALPHA_CHANNEL_SHOULD_BE_CREATED
+Le canal alpha doit être préalablement créé\npuis sauvegardé en mémoire et rappelé
+#ALPHA_MODE
+Mode alpha
+#ALPHA_BACKGROUND_VALUE
+Valeur alpha arrière-plan
+#ALPHA_FOREGROUND_VALUE
+Valeur alpha avant-plan
+#ALPHA_THRESHOLD_VALUE
+Seuil du canal alpha
+#EXPANSION_PARAMETERS
+Paramètres d'agrandissement
+#EXPANSION_FACTOR
+Facteur d'agrandissement
+#DO_INTERPOLATION
+Interpoler
+#DOWNSCALING_PARAMETERS
+Paramètres de réduction
+#DOWNSCALING_FACTOR
+Facteur de réduction
+#SIZE_WIDTH
+Largeur :
+#SIZE_HEIGHT
+Hauteur :
+#SIZE_ZOOM
+Zoom :
+#ENTER_DESIRED_IMAGE_SIZE
+Entrer la taille de canevas desirée
+#WIDTH_AND_DESIRED_LINE_STYLE
+Epaisseur et style de ligne (exemple ======---, = plein, - espace)
+#LINE_WIDTH
+Epaisseur :
+#DASH_STYLE
+Style pointillés :
+#CAP_STYLE
+Style terminaison :
+#CAP_HINT
+0 Défaut, 1 Aucune, 2 Droite, 3 Ronde, 4 Saillante
+#JOIN_STYLE
+Style jonction :
+#JOIN_HINT
+0 Défaut, 1 Mitre, 2 Ronde, 3 Biseau
+#GRID_DRAWING_MODE
+Mode de tracé de la grille
+#GRID_LINES_OR_OTHER
+Lignes, points, croix, carrés (0/1/2/3)
+#GRID_USES_SNAP
+Grille tenant compte du maillage (0/1)
+#GRID_COLOR
+Couleur de la grille
+#OPACITY
+Opacité (%):
+#ENTER_THE_DESIRED_BRUSH_PARAMETERS
+Entrer les paramètres de brosse désirés
+#DENSITY
+Densité (%):
+#ENTER_THE_DESIRED_FRACTAL_DENSITY
+Entrer la densité fractale désirée
+#DYNAMIC_WIDTH
+Epaisseur :
+#DYNAMIC_MASS
+Masse :
+#DYNAMIC_DRAG
+Traction :
+#ENTER_THE_DESIRED_DYNAMIC_PENCIL_PARAMETERS
+Entrer les paramètres désirés pour le pinceau dynamique
+#SPRAY_RADIUS
+Rayon :
+#SPRAY_DENSITY
+Densité :
+#SPRAY_RATE
+Fréquence :
+#ENTER_THE_DESIRED_SPRAY_PARAMETERS
+Entrer les paramètres désirés pour le Diffuseur
+#ARROWHEAD_TYPE
+Type de tête de flèche :
+#ARROWHEAD_SIZE
+Taille de la tête de flèche :
+#ARROWHEAD_ANGLE
+Angle de la tête de flèche :
+#ENTER_THE_DESIRED_ARROWHEAD_PARAMETERS
+Entrer les paramètres désirés pour la Tête de flèche
+#BOX_ROUND_CORNER_ABSOLUTE_SIZE
+Taille absolue des coins arrondis
+#BOX_ROUND_CORNER_RELATIVE_SIZE
+Taille relative des coins arrondis
+#ENTER_THE_DESIRED_ROUND_CORNER_SIZE
+Entrer la taille des coins arrondis
+#NUMBER_OF_SIDES_OF_POLYGON
+Nombre de côtés du polygone
+#STARLIKE_POLYGON_INNER_RATIO
+Rapport intérieur du polygône étoilé
+#ENTER_THE_DESIRED_SPECIAL_POLYGON_PARAMETERS
+Entrer les paramètres désirés pour le polygone spécial
+#GRADIENT_ANGLE
+Angle (degrés) :
+#GRADIENT_PAD
+Remplissage (%) :
+#GRADIENT_HORIZONTAL_OFFSET
+Décalage horizontal (%) :
+#GRADIENT_VERTICAL_OFFSET
+Décalage vertical (%) :
+#GRADIENT_STEPS
+Nombre de transitions :
+#ENTER_THE_DESIRED_GRADIENT_FILL_PARAMETERS
+Entrer les paramètres du remplissage dégradé
+#PATTERN_WIDTH
+Largeur :
+#PATTERN_HEIGHT
+Hauteur :
+#ENTER_THE_DESIRED_PATTERN_SIZE
+Entrer la taille souhaitée du Motif
+#YOU_MUST_HAVE_AT_LEAST_ONE_ENTRY
+Vous devez spécifier au moins une entrée
+#NO_INFORMATION_TO_SAVE
+Aucune information à sauvegarder
+#UNABLE_TO_OPEN_FILE
+Impossible d'ouvrir le fichier '%s'
+#UNABLE_TO_OPEN_FILE_FOR_WRITING
+Impossible d'ouvrir le fichier '%s' en écriture
+#OVERWRITE_FILE
+Ecrire sur le fichier déjà existant '%s' ?
+#UNSAVED_CHANGES_WISH_TO_QUIT
+Il y a des modifications non sauvegardées,\nVoulez-vous vraiment quitter ?
+#UNSAVED_CHANGES_WISH_TO_CLOSE
+Modifications non sauvegardées!\nVoulez-vous vraiment fermer la fenêtre ?
+#UNSAVED_CHANGES_WISH_TO_REVERT
+Modifications non sauvegardées!\nVoulez-vous vraiment recharger l'image ?
+#RESIZING_WARNING_CANNOT_BE_UNDONE
+Changement de Taille\n\nAttention : opération irréversible\nContinuer ?
+#AUTOCROP_WARNING_CANNOT_BE_UNDONE
+Auto-rétrécissement\n\nAttention : opération irréversible\nContinuer ?
+#ARE_YOU_SURE_YOU_WANT_TO_CROP_THE_IMAGE_TO_THE_SIZE_OF_THE_REGION
+Etes-vous sûr de vouloir rétrécir\nl'image à la taille de la région?
+#BAD_SNAP_SPACING
+Mauvais espacement de maillage.\nChoisir entre 2 et 100
+#BAD_NUMBER_OF_UNDO_LEVELS
+Mauvais niveau de mémorisation.\nChoisir entre 0 et 20
+#INVALID_ZOOM
+Valeur de zoom non valide
+#INVALID_MASK_SIZE
+Taille de masque non valide
+#INVALID_NOISE_VARIANCE
+Variance de dispersion non valide
+#INVALID_SPREAD_DISTANCE
+Distance de diffusion non valide
+#INVALID_PIXEL_SIZE
+Taille de pixel non valide
+#INVALID_WHITE_LEVEL
+Niveau de blanc non valide
+#INVALID_BLACK_LEVEL
+Niveau de noir non valide
+#INVALID_SOLARIZATION_THRESHOLD
+Seuil de solarisation non valide
+#INVALID_RGB_PERCENTAGES
+Poucentages de variation RVB non valides
+#INVALID_NUMBER_OF_COLORS
+Nombre de couleurs non valide
+#INVALID_SCALING_FACTOR
+Rapport d'homothétie non valide
+#INVALID_ALPHA_CHANNEL_PARAMETERS
+Paramètres du canal alpha invalides
+#UNABLE_TO_CREATE_PAINT_WINDOW_WITH_IMAGE
+Impossible de créer un canevas de dessin à partir de l'image
+#FILE_WRITTEN
+Fichier %s créé...
+#FILE_SENT_TO_PRINTER
+Données envoyées vers l'imprimante...
+#INVALID_WIDTH_MUST_BE_GREATER_THAN_ZERO
+Largeur non valide, choisir valeur > 0 et < 1000
+#DASH_IS_GIVEN_BY_ALTERNATING_THAT_MANY_CHARACTERS
+Pointillés : alterner au plus %d caractères - ou =
+#OPACITY_SHOULD_BE_BETWEEN_ZERO_AND_HUNDRED_PERCENT
+L'opacité est à choisir entre 0 et 100 %
+#WIDTH_SHOULD_BE_BETWEEN_ONE_AND_ONE_HUNDRED
+La largeur est à choisir entre 1 et 100
+#MASS_SHOULD_BE_BETWEEN_TEN_AND_TWO_THOUSAND
+La masse est à choisir entre 10 et 2000
+#DRAG_SHOULD_BE_BETWEEN_ZERO_AND_FIFTY
+La traction est à choisir entre 0 et 50
+#RADIUS_SHOULD_BE_BETWEEN_ONE_AND_ONE_HUNDRED
+Le rayon est à choisir entre 1 et 100
+#DENSITY_SHOULD_BE_BETWEEN_ONE_AND_FIVE_HUNDRED
+La densité est à choisir entre 1 et 100
+#RATE_SHOULD_BE_BETWEEN_ONE_AND_FIVE_HUNDRED
+La fréquence est à choisir entre 1 et 500
+#TYPE_SHOULD_BE_BETWEEN_ONE_AND_MAXTYPE
+Le type est à choisir entre 1 et 3
+#SIZE_SHOULD_BE_BETWEEN_ONE_AND_ONE_THOUSAND
+La taille est à choisir entre 1 et 1000
+#ANGLE_SHOULD_BE_BETWEEN_ZERO_AND_SIXTY
+L'angle est à choisir entre 0 et 60 degrés
+#NUMBER_OF_SIDES_SHOULD_BE_BETWEEN_THREE_AND_ONE_HUNDRED
+Le nombre de côtés est à choisir entre 3 et 100
+#BOX_ROUND_CORNER_ABSOLUTE_SIZE_SHOULD_BE_BETWEEN_ZERO_AND_ONE_THOUSAND
+La taille absolue des coins est à choisir entre 0 et 1000
+#BOX_ROUND_CORNER_RELATIVE_SIZE_SHOULD_BE_BETWEEN_ZERO_AND_ONE
+La taille relative des coins est à choisir entre 0.0 et 1.0
+#BOX_ROUND_CORNER_ABSOLUTE_AND_RELATIVE_SIZE_CANNOT_BE_BOTH_POSITIVE
+Les tailles absolue et relative des coins ne peuvent être toutes deux > 0
+#INNER_RATIO_SHOULD_BE_BETWEEN_ZERO_AND_ONE
+Le rapport intérieur est à choisir entre 0.0 et 1.0
+#HORIZONTAL_OFFSET_SHOULD_BE_BETWEEN_PLUS_MINUS_HUNDRED_PERCENT
+Le décalage horizontal est à choisir entre -100 et 100 %
+#VERTICAL_OFFSET_SHOULD_BE_BETWEEN_PLUS_MINUS_HUNDRED_PERCENT
+Le décalage vertical est à choisir entre -100 et 100 %
+#PAD_SHOULD_BE_BETWEEN_PLUS_MINUS_FOURTY_NINE_PERCENT
+Le taux de remplissage est à choisir entre -49 et 49 %
+#ANGLE_SHOULD_BE_BETWEEN_PLUS_MINUS_THREE_HUNDRED_SIXTY_DEGREES
+L'angle est à choisir entre -360 et 360 degrés
+#NUMBER_OF_STEPS_SHOULD_BE_BETWEEN_ONE_AND_THREE_HUNDRED
+Le nombre de transitions est à choisir entre 1 et 300
+#LOST_ERROR_TERM
+Terme d'erreur non disponible
+#FONT_SELECT_DESIRED_PROPERTIES
+Police : sélectionner les propriétés désirées (cliquer dans le vide pour désélectionner)
+#UNABLE_TO_LOAD_REQUESTED_FONT
+Impossible de charger la Police demandée
+#YOU_MUST_FIRST_COMPILE_A_C_SCRIPT
+Vous devez d'abord compiler un script C (menu "Sélecteurs")
+#C_SCRIPT_SUCCESSFULLY_COMPILED_AND_LINKED
+Le script C a été compilé avec succès et chargé dynamiquement
+#C_SCRIPT_COULD_NOT_BE_COMPILED_OR_LINKED
+Le script C n'a pu être compilé et/ou chargé dynamiquement :
+#INVALID_WIDTH
+Largeur non valide
+#INVALID_HEIGHT
+Hauteur non valide
+#INVALID_WIDTH_OR_HEIGHT_MUST_BE_GREATER_THAN_ZERO
+Largeur ou Hauteur non valide,\ndoit être supérieure à 0
+#INVALID_WIDTH_OR_HEIGHT_MUST_BE_LESS_THAN_HUNDRED_TWENTY_NINE
+Largeur ou Hauteur non valide,\ndoit être inférieure à 129
+#INVALID_WIDTH_OR_HEIGHT_MUST_BE_BETWEEN_ZERO_AND_TWO_HUNDRED_FIFTY_SIX
+Spécification Largeur/Hauteur non valide,\ndoit être dans l'intervalle 0..256
+#DIRECTORIES
+Répertoires
+#FILES
+Fichiers
+#LIST_LOADED_FILES
+* Liste des fichiers chargés *
+#FILE_DOES_NOT_EXIST
+Fichier %s inexistant
+#FILE_NOT_IN_THE_LIST
+Fichier %s non inclus dans la liste
+#OPEN_FILE_NAMED
+Ouvrir le Fichier dont le Nom est :
+#SAVE_IN_FILE
+Sauvegarder dans le Fichier :
+#LOAD_FROM_FILE
+Charger à partir du Fichier :
+#IMAGE_NUMBER_OUT_OF_RANGE
+Numéro d'image non valide
+#OUT_OF_MEMORY
+Mémoire vive épuisée\n
+#UNABLE_TO_ALLOCATE_SUFFICIENT_COLOR_ENTRIES
+Impossible d'allouer un nombre suffisant de couleurs.\n
+#TRY_EXITING_OTHER_COLOR_INTENSIVE_APPLICATIONS
+Essayer de quitter les programmes requérant trop de couleurs.\n
+#SHOULDNT_HAPPEN
+Ne devrait pas se produire !\n
+#ERROR_IN_XINTERNATOM
+Erreur dans XInternAtom\n
+#CANNOT_GRAB_POINTER
+Impossible de capturer le pointeur.\n
+#INSUFFICIENT_RESOURCES_FOR_OPERATION
+Ressources insuffisantes pour cette opération.\n
+#PROBABLY_NOT_ENOUGH_MEMORY_TO_ALLOCATE_PIXMAP
+Mémoire probablement insuffisante pour allouer le tableau de pixels.\n
+#ERROR_CODE
+Code d'erreur :
+#UNKNOWN_IMAGE_FORMAT
+Format d'image inconnu
+#OUT_OF_MEMORY_ALLOCATING_A_ROW
+%s : mémoire épuisée lors de l'allocation d'une ligne\n
+#OUT_OF_MEMORY_ALLOCATING_AN_ARRAY
+%s : mémoire épuisée lors de l'allocation d'un tableau\n
+#READ_ERROR
+%s : EOF / ereur de lecture\n
+#WRITE_ERROR
+%s : erreur d'écriture\n
+#A_FILE_READ_ERROR_OCCURRED_AT_SOME_POINT
+%s : une erreur s'est produite lors de la lecture du fichier\n
+#A_FILE_WRITE_ERROR_OCCURRED_AT_SOME_POINT
+%s : une erreur s'est produite lors de l'écriture du fichier\n
+#JUNK_IN_FILE_WHERE_BITS_SHOULD_BE
+%s : salade dans le fichier, là où les bits seraient attendus\n
+#READ_ERROR_READING_MAGIC_NUMBER
+%s : EOF / erreur lors de la lecture du code magique\n
+#JUNK_IN_FILE_WHERE_AN_INTEGER_SHOULD_BE
+%s : salade dans le fichier, là où un entier serait attendu\n
+#CANT_HAPPEN
+%s : ne peut pas se produire\n
+#MAXVAL_IS_TOO_LARGE
+%s : la valeur maximale est trop grande\n
+#BAD_MAGIC_NUMBER_NOT_A_PPM_PGM_OR_PBM_FILE
+%s : mauvais code magique - pas un fichier  ppm, pgm, ou pbm\n
+#OUT_OF_MEMORY_COMPUTING_HASH_TABLE
+%s : mémoire épuisée lors de l'élaboration de la table de hachage\n
+#OUT_OF_MEMORY_ALLOCATING_HASH_TABLE
+%s : mémoire épuisée lors de l'allocation de la table de hachage\n
+#OUT_OF_MEMORY_GENERATING_HISTOGRAM
+%s : mémoire épuisée lors de la génération de l'histogramme\n
+#SAME_COLOR_FOUND_TWICE
+ : une même couleur a été trouvée deux fois
+#COLORHIST_OUT_OF_MEMORY
+%s : mémoire épuisée\n
+#FATAL_LIBPNG_ERROR_LONGJMP_CALLED_WHILE_READING
+Erreur fatale de la libpng (longjmp() appelé pendant la lecture)
+#FATAL_LIBPNG_ERROR_LONGJMP_CALLED_WHILE_WRITING
+Erreur fatale de la libpng (longjmp() appelé pendant l'écriture)
+#ERROR_PLTE_CHUNK_NOT_FOUND_IN_PALETTE_IMAGE
+Erreur :  données PLTE non trouvées dans l'image en pseudo-couleurs
+#STRIPPING_48_BIT_RGB_IMAGE_TO_24_BITS
+Réduction de l'image RGB 48-bits en 24 bits
+#STRIPPING_16_BIT_GRAYSCALE_IMAGE_TO_8_BITS
+Réduction de l'image en échelle de gris 16-bits en 8 bits
+#STRIPPING_64_BIT_RGBA_IMAGE_TO_32_BITS
+Réduction de l'image RGBA 64-bits en 32 bits
+#STRIPPING_32_BIT_GRAY_ALPHA_IMAGE_TO_16_BITS
+Réduction de l'image en 32-bits gris + canal_alpha en 16 bits
+#UNKNOWN_PNG_IMAGE_TYPE
+Type d'image PNG inconnu
+#READPNG_CANT_ALLOCATE_MEMORY_FOR_ROW_POINTERS_1
+ReadPNG :  impossible d'allouer de la mémoire pour les pointeurs de ligne (1)
+#READPNG_CANT_ALLOCATE_MEMORY_FOR_ROW_POINTERS_2
+ReadPNG :  impossible d'allouer de la mémoire pour les pointeurs de ligne (2)
+#UNABLE_TO_ALLOCATE_TEMPORARY_STORAGE_FOR_ALPHA_IMAGE
+Impossible d'allouer de la mémoire pour le stockage de l'image alpha
+#READPNG_UNABLE_TO_MALLOC_PNG_DATA
+ReadPNG :  impossible d'allouer de la mémoire pour  png_data\n
+#WRITEPNG_CANT_USE_ALPHA_MASK_WITH_COLORMAPPED_IMAGE
+WritePNG :  impossible d'utiliser un masque alpha en pseudo-couleurs\n
+#WRITEPNG_SORRY_CANT_WRITE_ALPHA_IMAGES_YET
+WritePNG :  désolé, ne sais pas encore sauver les images alpha\n
+#WRITEPNG_CANT_ALLOCATE_MEMORY_FOR_ROW_POINTERS
+WritePNG :  impossible d'allouer de la mémoire pour les pointeurs de ligne
+#XPAINT_FATAL_LIBPNG_ERROR
+XPaint :  erreur sévère de la libpng : %s\n
+#XPAINT_EXTREMELY_FATAL_LIBPNG_ERROR
+XPaint :  erreur fatale de la libpng : jmpbuf irrécupérable ; sauve qui peut!\n
+#END_MESSAGES

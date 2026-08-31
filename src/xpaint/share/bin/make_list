@@ -1,0 +1,20 @@
+#!/bin/sh
+
+/bin/ls share/help/Help* \
+        share/messages/Messages* \
+        share/include/*.h \
+        share/c_scripts/3d_curves/*.c \
+        share/c_scripts/3d_surfaces/*.c \
+        share/c_scripts/batch/*.c \
+        share/c_scripts/filters/*.c \
+        share/c_scripts/images/*.c \
+        share/c_scripts/layers/*.c \
+        share/c_scripts/procedures/*.c \
+        share/c_scripts/templates/*.c \
+	share/bin/* \
+	app-defaults/XPaint* >> Filelist \
+	xaw3d-xft/*.h >> Filelist \
+	xaw3d-xft/*.c >> Filelist \
+	xaw3d-xft/app-defaults/* >> Filelist
+
+	

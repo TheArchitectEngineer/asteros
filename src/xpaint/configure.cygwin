@@ -1,0 +1,112 @@
+#!/bin/sh
+
+rm -f xaw_incdir
+
+if test "$1" = "" ; then
+   echo "Checking which type of Xaw widgets are available :"
+   echo "(looking for Xaw, Xaw3d, Xaw95, neXtaw)"
+   echo ""
+else
+   WIDGETS=`echo $1 | tr [A-Z] [a-z]`
+fi
+
+if test "$WIDGETS" = "" ; then
+   if [ -r /usr/lib/libXaw3d.dll.a ] || [ -r /usr/X11R6/lib/libXaw3d.dll.a ] ; then
+      echo "libXaw3d.dll.a   is installed"
+      if [ -d /usr/include/X11/Xaw3d ] ; then
+         if [ -r /usr/include/X11/Xaw3d/Xaw3dP.h ] ; then
+	    echo "Found Xaw3dg library (extended version of Xaw3d)"
+            echo ""
+            WIDGETS=xaw3dg
+	 else
+	    echo "Found Xaw3d library"
+            echo ""	    
+            WIDGETS=xaw3d
+	 fi
+      else
+         echo "However /usr/include/X11/Xaw3d/*.h headers not present !"
+	 echo "Install xaw3d-dev"
+      fi
+   fi
+   if test "$WIDGETS" = "" &&
+      ( [ -r /usr/lib/libneXtaw.dll.a ] || [ -r /usr/X11R6/lib/libneXtaw.dll.a ] ) ; then
+      echo "libneXtaw.dll.a   is installed"      
+      if [ -d /usr/include/X11/neXtaw ] ; then
+         echo "Found neXtaw library"
+         echo ""
+         WIDGETS=nextaw
+      else
+         echo "However /usr/include/X11/neXtaw/*.h headers not present !"
+	 echo "Install nextaw-dev"
+      fi
+   fi   
+   if test "$WIDGETS" = "" &&
+      ( [ -r /usr/lib/libXaw95.dll.a ] || [ -r /usr/X11R6/lib/libXaw95.dll.a ] ) ; then
+      echo "libXaw95.dll.a   is installed"      
+      if [ -d /usr/include/X11/Xaw95 ] ; then
+         echo "Found Xaw95 library"
+         echo ""
+         WIDGETS=xaw95
+      else
+         echo "However /usr/include/X11/Xaw95/*.h headers not present !"
+	 echo "Install xaw95-dev"
+      fi
+   fi
+fi
+
+if test "$WIDGETS" = "xaw3dg" ; then
+   ln -sf /usr/include/X11/Xaw3d xaw_incdir
+   echo "XAWLIB_DEFINES = -DXAW3D -DXAW3DG"   
+   echo "XAWLIB_DEFINES = -DXAW3D -DXAW3DG" > Local.xawdefs
+   echo "SYS_LIBRARIES = -lXaw3d -L."
+   echo "SYS_LIBRARIES = -lXaw3d -L." >> Local.xawdefs
+   echo ""
+   xmkmf -a
+   exit
+fi
+
+if test "$WIDGETS" = "xaw3d" ; then
+   ln -sf /usr/include/X11/Xaw3d xaw_incdir
+   echo "XAWLIB_DEFINES = -DXAW3D"   
+   echo "XAWLIB_DEFINES = -DXAW3D" > Local.xawdefs
+   echo "SYS_LIBRARIES = -lXaw3d -L."   
+   echo "SYS_LIBRARIES = -lXaw3d -L." >> Local.xawdefs
+   echo ""
+   xmkmf -a
+   exit
+fi
+
+if test "$WIDGETS" = "xaw95" ; then
+   ln -sf /usr/include/X11/Xaw95 xaw_incdir
+   echo "XAWLIB_DEFINES = -DXAW95"   
+   echo "XAWLIB_DEFINES = -DXAW95" > Local.xawdefs
+   echo "SYS_LIBRARIES = -lXaw95 -L."
+   echo "SYS_LIBRARIES = -lXaw95 -L." >> Local.xawdefs
+   echo ""   
+   xmkmf -a
+   exit
+fi
+	
+if test "$WIDGETS" = "nextaw" ; then
+   ln -sf /usr/include/X11/neXtaw xaw_incdir
+   echo "XAWLIB_DEFINES = -DXAW3D -DNEXTAW"   
+   echo "XAWLIB_DEFINES = -DXAW3D -DNEXTAW" > Local.xawdefs
+   echo "SYS_LIBRARIES = -lneXtaw -L."
+   echo "SYS_LIBRARIES = -lneXtaw -L." >> Local.xawdefs
+   echo ""   
+   xmkmf -a
+   exit
+fi
+	
+	
+echo "None of Xaw3d, Xaw95 or neXtaw are completely installed"
+echo "with their development environments"
+echo "Defaulting to (plain & ugly) Xaw instead"
+ln -sf /usr/include/X11/Xaw xaw_incdir
+echo "XAWLIB_DEFINES = -DXAWPLAIN"
+echo "XAWLIB_DEFINES = -DXAWPLAIN" > Local.xawdefs
+echo "SYS_LIBRARIES = XawClientLibs -lm"
+echo "SYS_LIBRARIES = XawClientLibs -lm" >> Local.xawdefs
+echo ""
+xmkmf -a
+

@@ -1,0 +1,2006 @@
+#BEGIN introduction "0. Introducción" "$Id: Help_es,v 1.4 2005/03/20 20:15:35 demailly Exp $"
+Bienvenido a la última versión de XPaint.
+
+XPaint es un programa prácticamente completo de creación y edición de imágenes. Contiene y trabaja de manera coherente un número importante de herramientas, figurando dentro de los programas de diseño gráfico actuales.
+XPaint trabaja muy bien en la edición simultánea de varias imágenes y soporta numerosos formatos, en particular GIF, PNG, JPEG, TIFF, PPM, XBM, XPM, etc.
+
+XPaint no pretende compararse con programas más sofisticados, como "Gimp" /(http://www.gimp.org), sino que intenta poner el acento en la facilidad de uso.
+
+Las distintas funcionalidades de XPaint son accesibles desde la caja de Herramientas, o desde los botones, permitiendo escoger la acción concreta de diseño, también abre lienzos para la creación o modificación de imágenes. Cada ventana de lienzos da acceso a su propia paleta de colores y de motivos, aunque la acción de dibujo seleccionada se aplica globalmente a todas las ventanas.
+
+Xpaint puede funcionar en distintos modos de cuadros desplegados. Las imágenes se guardan en función de cada cuadro desplegado (por ejemplo, una imagen de color cargada en un cuadro desplegado en escala de grises, se guardará como imagen en escala de grises). Esto puede tener como consecuencia una pérdida de información o calidad de los colores; si tiene pues, interés en utilizar un modo de desplegar cuadros que puedan soportar la mayor cantidad posible de colores, lo ideal es 16777216 colores (24 bits). Consulte la sección 'Pérdida de información' para más detalle.
+
+Se dispone de más información debajo de cada una de las secciones específicas.¡ Siéntase a gusto utilizando XPaint!
+
+#BEGIN data_loss "1. Pérdida posible de información" 
+XPaint memoriza las imágenes que se están editando, en función del modo cromático y de la profundidad de la imagen del servidor X (y del número de colores utilizados); la información cromática almacenada en una imagen de la más alta definición puede pues, encontrarse degradada. Esto significa que, en general, los datos de los colores están irremediablemente degradados o perdidos si al desplegar el cuadro al inicio, tiene menos de 24 bits.
+
+Más concretamente, para las profundidades cromáticas de menos de 8 bits, las imágenes de 24 bits ("verdaderos colores") y las imágenes basadas en una paleta cromática de 8 bits ("pseudo-colores"), se reducirán en la definición del despliegue del cuadro; para los de 8 bits, las imágenes en pseudo-colores se preservarán, pero en pseudo-colores de 12 bits y las imágenes con colores verdaderos de 24 bits, experimentarán una degradación de la definición de los colores; para los cuadros desplegados a 15 y 16 bits de profundidad (típicamente RVB 555 y 565, respectivamente), las imágenes de colores verdaderos de 24 bits, y seguramente imágenes pseudo-colores de 8 bits sufrirán una degradación de sus definiciones; en fin, para un despliegue en 24 y 32 bits, sólo las imágenes, tal que en la escala de grises de 16 bits o en colores verdaderos de alta resolución (48 bits) sufrirán una degradación.
+
+Obsérvese, igualmente, que otras informaciones auxiliares, incluso en la imagen original (comentarios, fecha de creación, copyright, etc...) se ignorarán e incluso se han perdido en el momento de guardar.
+
+
+#BEGIN command "2. Opciones de la línea de comandos"
+xpaint [-canvas] [-screenshot] [-magnifier] [-nowarn]
+#NL
+       [-menubar] [-nomenubar] [-fullmenu] [-simplemenu]
+#NL
+       [-language IDIOMA] [-zoom VALOR] [-sharedir DIRECT]
+#NL
+       [-menufont TIPO] [-encoding 0/8/16]
+#NL
+       [-twistcolor VALOR] [-hilitcolor VALOR]
+#NL
+       [-rcfile ARCHIVO] [-msgfile ARCHIVO] [-helpfile ARCHIVO]
+#NL
+       [-size ANCHOxALTO] [-winsize LARGOxALTO] [-dpi DPI]
+#NL
+       [-undosize VALOR] [-operation VALOR]
+#NL
+       [-filter ARCHIVO] [-proc ARCHIVO]
+#NL
+       [-8 | -12 | -24 | -visual VISUAL]
+#NL
+       IMAGEN1 IMAGEN2 ... /o IMAGEN3 ... /c IMAGEN4 ... /l IMAGEN5 ...
+#NL
+	-language	adaptar IDIOMA para los diálogos y menús
+#NL
+	-encoding	Use 0 (UTF8), 8 (8 bit) or 16 (16 bit)
+#NL
+	-menufont	Set freetype font in menus
+#NL
+	-twistcolor	Twisting color to brown-ish for insensitive items
+#NL
+	-hilitcolor	Set highlighting color as hexadecimal #PQRSTU
+#NL
+	-zoom	VALOR de zoom por defecto en los lienzos de dibujo
+#NL
+	-size	ANCHOxALTO dimensiones por defecto del lienzo
+#NL
+	-winsize	ANCHOxALTO dimensiones por defecto de las ventanas
+#NL
+	-dpi		utilizar DPI como resolución por imágenes vectoriales
+#NL
+	-undosize	VALOR de memoria de deshacer/rehacer por defecto
+#NL
+	-operation	conmutar operación número VALOR en las herramientas
+#NL
+	-filter		compilar ARCHIVO como script C para definir un filtro
+#NL
+	-proc		compilar ARCHIVO como script C para definir un procedimiento
+#NL
+	-8		utilizar visual 8-bit (PseudoColor)
+#NL
+	-12		utilizar visual 12-bit (PseudoColor)
+#NL
+	-24		utilizar visual 24-bit (TrueColor)
+#NL
+	-canvas		abrir un lienzo blanco al inicio
+#NL
+	-screenshot 	abrir xpaint sin interfaz, en modo captura de pantalla
+#NL
+	-magnifier 	abrir xpaint sin interfaz, en modo lupa
+#NL
+	-nowarn	 	no desplegar la advertencia de perdida de datos
+#NL
+	-menubar 	mostrar la barra de menús en la parte superior del lienzo
+#NL
+	-nomenubar 	no mostrar la barra de menús en la parte superior del lienzo
+#NL
+	-fullmenu 	utilizar un menú flotante completo en los Lienzos
+#NL
+	-simplemenu 	utilizar un menú flotante sólo con el menú edición
+#NL
+	-sharedir 	utilizar DIRECT en lugar del implícito share
+#NL
+	-rcfile		utilizar ARCHIVO en lugar de ~/.XPaintrc
+#NL
+	-msgfile 	utilizar ARCHIVO en lugar de los implícitos mensajes
+#NL
+	-helpfile 	utilizar ARCHIVO en lugar de la implícita ayuda
+#NL
+	-visual		utilizar VISUAL en lugar del por defecto.
+#NL                  
+		Las selecciones disponibles son : TrueColor, 
+#NL
+        	PseudoColor, DirectColor, StaticColor,
+#NL
+		StaticGray, GrayScale, o el valor decimal
+#NL
+		del visual (dimensiones dadas por xdpyinfo).
+#NL
+These options are normally followed by the names IMAGE1, IMAGE2 (...) 
+#NL
+of the images to be loaded. By default all these images are listed in the
+#NL
+browser of preselected files, but only the first one will be displayed.
+#NL
+The /o switch (resp. /c, /l) indicates that the next images will be opened
+#NL
+in a graphical canvas (resp. in the clipboard, resp. again listed in the
+#NL
+file browser).
+#NL
+
+#BEGIN toolbox "3. Caja de Herramientas" 
+La caja de herramientas de una forma atractiva, muestra el conjunto de útiles de dibujo disponibles. La selección de un útil en la caja de herramientas se activa simultáneamente, para todos los lienzos abiertos por XPaint
+
+#PUSH
+#BEGIN tool_file "3.1. Menú Lienzo"
+El menú Lienzo se utiliza para abrir un lienzo nuevo en blanco o para cargar una imagen contenida en un archivo, o incluso para efectuar una captura de pantalla.
+
+
+Lienzo Nuevo
+#NL
+	Crea un nuevo lienzo (dimensiones por defecto: 
+#NL 
+	640x480). Ver "Opciones en línea de comandos" para
+#NL
+	cambiar la dimensión por defecto al inicio. 
+
+Lienzo con dimensiones específicas...
+#NL
+	Crea un nuevo lienzo cuyas dimensiones son
+#NL
+	las especificadas.
+
+Abrir Imagen...
+#NL
+	Cargar la imagen contenida en el archivo seleccionado,
+#NL	
+	y abre un nuevo lienzo desplegando esta imagen,
+#NL
+	Pudiendo ser editada y modificada.
+#NL
+	Diversos formatos de imagen pueden ser leídos y lanzados.
+#NL
+	Si algún formato concreto no está especificado, XPaint
+#NL
+	intenta encontrar automáticamente el formato más idóneo
+#NL
+	para la imagen (es aconsejable escoger lo que XPaint recomienda).
+#NL
+	Si el formato de imagen no es reconocido, aparecerá un mensaje
+#NL
+	de error.
+
+Captura de Pantalla...
+#NL
+	Captura con la ayuda del ratón o del puntero, un
+#NL
+	rectángulo arbitrario de la pantalla y lo carga
+#NL
+	en un nuevo lienzo. El botón izquierdo se
+#NL
+	utiliza para seleccionar los vértices del rectángulo,
+#NL
+	el botón del medio para capturar una ventana
+#NL
+	completa, y el tercer botón para anular 
+#NL
+	la operación de captura.
+
+Salir
+#NL
+	Termina el programa XPaint, tras haber cerrado
+#NL
+	todas las ventanas todavía abiertas. Una confirmación 
+#NL
+	se pedirá si las imágenes han sido creadas/modificadas
+#NL
+	sin haber sido guardadas.
+
+#BEGIN tools "3.2. Herramientas de Dibujo" 
+Los iconos de la Caja de Herramientas permiten seleccionar la herramienta de dibujo para empezar a trabajar. A partir de ahora será común a todos los lienzos abiertos.
+
+Las herramientas se seleccionan haciendo un clic con el botón del ratón (botón
+de izquierdo). Un clic con el botón tercero (botón derecho) del ratón 
+sobre cualquier icono, abre un menú presentando las opciones 
+disponibles para esa herramienta. Para esas herramientas que tienen
+parámetros que se pueden modificar, un doble-clic permite abrir más rápido 
+el submenú de selección de los parámetros.
+
+Da las noticias de cada una de las operaciones específicas del
+dibujo y así tener más información. 
+
+#PUSH
+#BEGIN pencil "Lápiz" 
+El Lápiz traza una línea curva cualquiera en el lienzo, siguiendo 
+las diferentes posiciones por donde se mueve el cursor, mientras se mantiene presionado el botón del ratón. El grosor del trazo preseleccionado
+será el utilizado para efectuarlo.
+
+El botón 1º (izquierdo) permite trazar el dibujo o el color primario,
+mientras que el botón 2º (el del medio) activa el dibujo o el color secundario.
+
+Ver el "Menú Trazo" del lienzo de pintura para tener más información
+sobre la selección del grosor del trazo y del tipo de puntos. 
+
+#BEGIN dynpencil "Lápiz Dinámico"
+El lápiz dinámico pinta las líneas curvas de un grosor variable,
+con un estilo que puede asemejarse a la caligrafía con la pluma.  El trazo
+se efectúa mientras se mantiene apretado el botón del ratón. 
+El grosor del trazado varía siguiendo el movimiento del cursor. Fino cuando el movimiento es rápido, ancho cuando el
+movimiento se relentiza, como si el movimiento simulara una goma elástica. El lápiz dinámico puede ajustarse a través de tres parámetros "Grosor", "Masa" y "Tracción".
+
+El lápiz dinámico sigue los movimientos del cursor con una inercia
+proporcional al valor de la masa, de suerte que una gran masa
+puede dar lugar a un retardo importante de los movimientos en relación al cursor. El parámetro "Grosor" controla la anchura máxima
+del trazo (esto se produce cuando la vitalidad del desplazamiento es escasa). El parámetro "Tracción" controla la fuerza de unión entre el
+cursor y la posición del lápiz.
+
+Los parámetros son modificables a través de un menú, accesible por un clic
+con el botón 3º (derecho) sobre el icono del lápiz dinámico.
+
+El botón 1º (izquierdo), realiza el trazo en el color o el dibujo primario,
+mientras que el botón 2º (del medio) activa el color o el dibujo secundario.
+
+#BEGIN dotPencil "Lápiz difuso" 
+El "Lápiz difuso" traza unas líneas constituidas al arrastrar puntos,
+según el movimiento del cursor en el lienzo, mientras se mantiene presionado el botón del ratón.
+
+El botón 1º (izquierdo), pinta en el color o el dibujo primario, el
+botón 2º (del medio), en el color o el dibujo secundario.
+
+Ver el menú "Lápiz" si desea primero trazar líneas continuas.
+
+#BEGIN brush "Pinceles/Brochas" 
+El pincel utiliza la brocha por defecto para pintar en el (o los) lienzos. 
+El trazo se efectúa manteniendo el botón del ratón y desplazándolo en el lienzo. El botón 1º (izquierdo), permite utilizar el color
+o el dibujo primario, mientras que el botón 2º (del medio), activa el color
+o el dibujo secundario.
+
+Si la opción "Transparente" se activa (menú accesible con un clic con
+el botón 3º -derecho- en el icono), el color depositado es mezclado con 
+el color ya presente en el lienzo. Es posible cambiar
+la opacidad de la brocha del pincel a través de la opción "Parámetros..." del
+menú. Un valor 0 % tendrá por efecto no modificar el
+color presente en el lienzo, mientras que 100 % da el 
+mismo resultado que utilizando el pincel sin la opción de transparencia. 
+
+Si la opción "Sobreimpresión" se activa (menú accesible con un clic con el
+botón 3º -derecho- sobre el icono),el color depositado se aplica como un
+tinte sobre el lienzo, por ejemplo los píxeles negros ya presentes en el
+lienzo quedan negros, pero los píxeles más claros pueden ser parcialmente
+coloreados.
+
+El tipo -por defecto- de la brocha del pincel se puede cambiar, gracias al selector de pincel, que es también accesible desde el menú, o a través del icono de brocha, desde el lienzo gráfico.
+
+#BEGIN spray "Pulverizador" 
+El Pulverizador simula el efecto de un spray lanzando un chorro de pintura sobre el lienzo. Produce un conjunto aleatorio de puntos contenidos dentro de una zona circular de radio dado.
+
+Es posible cambiar las características del pulverizador para
+conseguir el efecto deseado. Hay tres parámetros que entran en juego 
+para la configuración de esta herramienta :
+#NL
+	Radio		 Radio de la zona al que se dirige el chorro de pintura
+#NL 
+	Densidad	 Número de pixeles trazados en esta zona
+#NL
+	Frecuencia	 Frecuencia de relleno (en 1/10 segundos)
+
+Además, es posible cambiar la distribución aleatoria de los puntos en la zona del chorro; esta distribución puede escogerse, ya sea uniforme,
+ya sea Gaussiana (la diferencia es, en general, aparente sólo para 
+grandes valores de radio). La selección de estas opciones se efectúan a 
+partir del menú, accesible al clicar con el botón 3º (derecho) sobre 
+el icono del pulverizador.
+
+Como la mayor parte de las otras operaciones, el pulverizador emplea el 
+color o el motivo primario si el botón 1º se mantiene presionado,
+el color o el motivo secundario si es el botón 2º el que es 
+utilizado.
+
+#BEGIN smear "Presentación de los Colores"
+La operación de presentar los colores atribuye a cada pixel situado bajo
+la brocha el color medio de todos los pixeles recubiertos por la superficie
+de la brocha. El efecto es, pues, mucho más preciso cuando la brocha es más fina o pequeña. El modelo por defecto de brocha se puede cambiar con la ayuda del
+selector, accesible con un clic sobre el icono con el botón 3º (derecho). 
+
+La presentación de colores se activa cuando el botón del ratón es
+presionado y se desplaza por el lienzo.
+
+#BEGIN line "Segmento recto" 
+La operación "Segmento recto" traza los segmentos rectos con el motivo
+o el color primario, con el grosor del trazo y el tipo de
+punteado preseleccionados. El primer extremo es el pixel, logrado 
+por el clic, cuando el botón 1º es presionado, el segundo es la posición que se consigue al soltar el botón del ratón.
+
+Ver el "Menú Trazo" del lienzo de pintura para más información
+en la selección del grosor del trazo y del tipo de punteado.
+Las líneas rectas pueden, igualmente, ser forzadas a incrementos
+de 45 grados (es decir, en las direcciones horizontales,
+verticales, o diagonales) manteniendo la tecla MAY mientras se va moviendo el ratón.
+
+Las opciones de la operación segmento derecho  son "Radios" y
+"Flechas".  
+
+La opción "Radios" permite trazar una  serie de segmentos que
+parten del mismo vértice, a saber, el primer punto se escoge con la ayuda del ratón. El trazo viene definido pues,  de cada clic del ratón
+con el botón 1º (izquierdo). El trazo se termina cuando el usuario
+hace un clic con el botón 2º (el del medio); este último clic no da lugar, sin embargo, a un nuevo segmento, incluso si la posición del ratón ha variado durante ese tiempo. Todos los segmentos son pintados con el
+color o el motivo primario. Los ángulos de los segmentos pueden ser
+forzados a tener incrementos de 45 grados (es decir, a tener
+direcciones horizontales, verticales o diagonales), manteniendo 
+la tecla MAY apretada mientras dura el desplazamiento del ratón, y presionando el botón 1º.
+
+Cuando la opción "Flechas" se activa, todos los segmentos o radios
+son adornados con una punta de flecha, trazada según la prolongación
+del segmento, desde el origen hacia el extremo.
+
+#BEGIN brokenline "Línea Poligonal" 
+La línea poligonal traza una línea quebrada constituye segmentos rectos puestos uno al lado del otro. La línea inicial con el primer punto
+seleccionado por medio del ratón. Cada  nuevo extremo se
+escoge con la ayuda del botón 1º (izquierdo) del ratón. El botón 2º
+(del medio) del ratón, termine la operación sin formar un nuevo
+segmento, incluso si la posición del ratón  a cambiado mientras tanto.
+
+Todos los trazos se efectúan con el color o el motivo primario,
+en función del grosor del trazo seleccionado y del tipo de 
+punteado por defecto.
+
+Ver el "Menú Trazo" del lienzo de pintura para más información
+sobre la selección del grosor del trazo y del tipo de puntos.
+
+#BEGIN arc "Arco"
+La operación "arco" traza un arco enlazando dos puntos con el color
+o el motivo de la selección primaria, en función del grosor del trazo 
+por defecto y del tipo de punteado, también por defecto. Siguiendo el modo de la operación
+escogida, se tratará de un arco de círculo o de un arco de elipse.
+
+Varios formas de trazos están disponibles. La primera, propuesta por defecto,
+consiste en trazar un arco de círculo enlazando 3 puntos (se trata de un arco
+de círculo circunscrito a un triángulo). Aunque el trazo no esté definido, es posible
+volver al punto del extremo del arco pulsando la tecla MAY.
+
+Un segundo modo del trazo consiste en realizar los cuadrantes de elipse juntando 
+el punto origen a un punto extremo. En este caso, presionando la tecla MAY cambia la concavidad del arco (hacia arriba primero, o hacia abajo).
+
+El tercero y cuarto modo de trazo producen los arcos de elipse
+cualquiera (teniendo sus ejes horizontales y verticales). Es necesario primeramente
+seleccionar la elipse misma, después los extremos del arco. Con el
+modo 3º, el punto inicial fijado el centro de la elipse. Con el modo 4º,
+los dos primeros puntos son los vértices diagonales del rectángulo en el cual
+la elipse está inscrita. En cada uno de estos caso, presionando la 
+tecla MAY se fuerza el trazado de un arco circular.
+
+Ver el "Menú Trazo" del lienzo de pintura para ampliar la información 
+sobre la selección del grosor del trazo y del tipo de puntos.
+
+#BEGIN arrow "Punta de Flecha"
+This operation draws arrow heads and only arrow heads. The first clic with
+left button mouse selects the extremity of the arrow head, while the second
+clic allows to choose the orientation. If the second clic occurs at the
+same point as the first one, the arrow head is not drawn (so, this is a
+way to cancel the operation).
+
+The arrow head can be changed with the "Parameters..." menu. The available
+parameters are head type (1, 2 or 3), head size and an angle equal to
+one half of the aperture of the arrow head.
+
+#BEGIN text "Insertar Textos" 
+La operación de insertar textos permite introducir cadenas
+de caracteres sobre el lienzo gráfico, con una fuente de caracteres
+pueden ser modificadas con tranquilidad por el usuario.
+
+Presionando sobre el segundo botón del ratón se efectúa un "Pegar"
+el texto contenido en el portapapeles primario Copiar/Pegar del servidor X.
+La inserción se efectúa a partir de la posición del clic inicial
+del ratón sobre el lienzo gráfico.
+
+Consultar el "Menú Fuentes" para más información sobre el modo de selección del tipo de letras.
+
+Nota: si el tipo de letras se modifica durante une inserción 
+de textos, la operación de inserción se considera como interrumpida. 
+No será entonces posible utilizar la tecla de borrado para 
+quitar las partes del texto que habrían sido cogido con 
+otro tipo de fuente.
+
+#BEGIN erase "Goma" 
+La goma permite borrar una porción del área del lienzo. La zona
+borrada es coloreada de manera uniforme por el color de fondo, blanco por defecto.
+
+La geometría de la goma es la misma que la de la brocha seleccionada
+utilizada para los trazos de ayuda del pincel. La ventana de selección
+de la brocha es accesible por medio del menú "ad hoc", que se activa
+al hacer un clic con el botón del ratón 3º (derecho) sobre el icono de la
+goma.
+
+Ver también los temas sobre "Pincel" y "Cambio de color del fondo..." 
+en el menú "Imagen" de la ventana del lienzo para más información. 
+
+#BEGIN box "Rectángulo [Relleno] [Región]" 
+La operación "Rectángulo" pinta los bordes de rectángulos o cuadrados a través de un trazo que posee el grosor seleccionado. Si se presiona la tecla 
+MAY después de escoger el primer punto y durante el desplazamiento del ratón,
+se fuerza el trazo de un cuadrado primero, antes que un rectángulo.
+
+La opción "Centro" se puede activar situando el cursor sobre el icono, y haciendo un clic con el botón tercero (derecho). En este caso, el primer punto seleccionado será el centro del rectángulo o del cuadrado, y el segundo será un
+punto sobre el perímetro. 
+
+La operación "Rectángulo relleno", pinta el borde con el color o el
+motivo primario, y rellena el interior con el color o el motivo
+secundario.
+
+Ver el "Menú Trazo" del lienzo de pintura, para más información, en escoger grosor de trazo y del tipo de punteado.
+
+#BEGIN oval "Óvalo [Relleno] [Región]" 
+La operación "Óvalo" produce círculos o elipses trazadas con
+el grosor preseleccionado. De modo normal, los óvalos
+son inscritos en un cuadro pues los vértices diagonales determinan
+para la posición inicial del clic, y la posición donde el botón se
+suelta. Además, presionando la tecla MAY durante el
+desplazamiento del ratón fuerza al óvalo a ser un círculo.
+
+El modo de trazado es diferente si se escoge la opción "Centro",
+a partir del menú accesible, con la ayuda de un clic con el botón 3º (derecho) 
+sobre el icono de los óvalos. En este caso, la posición del clic inicial, será el 
+centro del círculo o del óvalo (antes que los vértices del marco), 
+mientras que la posición, cuando el botón se suelta, dará un punto del 
+perímetro del marco circunscrito.
+
+Los bordes de los óvalos se pintarán con el motivo o el color primario,
+y relleno con el motivo o el color secundario. 
+
+Ver el "Menú Trazo" de los lienzos de pintura, para obtener más información
+sobre la selección del grosor del trazo y del tipo de puntos.
+
+#BEGIN freehand "Forma Libre [Relleno] [Región]"
+La operación "Forma Libre" permite al usuario diseñar las curvas
+cerradas al igual que el lápiz. Cuando el botón del ratón dejar de ser presionado, el último punto dibujado se enlaza al punto de partida, y el
+dibujo se termina.
+
+El trazo puede ser efectuado con el color o el motivo primario a través del botón 1º (botón izquierdo) o con el color o motivo secundario a través del botón 2º (botón del medio). Las formas libres rellenas son entonces 
+completadas con otro color (o otro motivo). El grosor del trazo
+de la frontera se determina por el valor preseleccionado.
+
+Ver el "Menú Trazo" del lienzo de pintura para más información 
+sobre la selección del grosor del trazo y del tipo de puntos.
+
+#BEGIN polygon "Polígono [Relleno] [Región]" 
+Un "polígono" consiste en una línea quebrada y cerrada, constituida de una serie de segmentos rectos, unidos extremo con extremo. Cada vértice se fija con la ayuda del botón 1º (izquierdo) del ratón. Se concluye la operación presionando el botón 2º (el del medio); esta última etapa cierra el polígono,pero no crea un nuevo segmento intermedio, incluso si la posición del ratón ha variado en el tiempo.
+
+El trazo se efectúa en el color o el motivo primario, utilizando el grosor del trazo preseleccionado y el tipo de punteado por defecto.  Los "polígonos rellenos" se rellenan con el color o el motivo secundario. En este caso, si la línea poligonal no ha sido trazada cerrándola, un nuevo segmento se interpone entre el primero y el último vértice unidos.
+
+Ver el "Menú Trazo" del lienzo de pintura para más información
+sobre la selección del grosor del trazo y del tipo de puntos.
+
+#BEGIN spline "Curva spline [Rellena] [Región]" 
+La operación "Curva spline" permite crear  curvas conexas
+constituyendo arcos cúbicos de Bezier, o más generalmente de una
+combinación arbitrario de cúbicos de Bézier y de segmentos rectos. Los diferentes trozos cúbicos de Bezier son cálculos de
+tal manera que interpolan también posiblemente los puntos
+intermediarios, respetando las tangentes en estos puntos. Cada
+nuevo punto es escogido con la ayuda del botón 1º (izquierdo) del ratón.
+El botón 2º (del medio) sirve para indicar el fin de la operación, sin crear
+un nuevo arco, - incluso si el ratón ha sido desplazado durante ese tiempo.  Para obtener los segmentos rectos antes que los arcos cúbicos, es suficiente con mantener la tecla MAY presionada; también, es posible obtener una curva puramente poligonal.
+
+Las curvas splines pueden ser abiertas o cerradas; escoger el tipo
+"abierta" o "cerrada" es posible gracias a las opciones del menú,
+accesible a través de un clic con el botón 3º (derecho) en el icono de
+curva spline.  Si la tecla "Ctrl" se mantiene apretada mientras se
+desplaza el ratón, las curvas splines han sido trazadas cerradas,
+serán trazadas cerradas en todo momento, de esta manera se puede
+anticipar la forma final antes que la curva cerrada sea realmente
+acabada y la selección del último punto confirmado. Escoger la opción
+"Acabado" tiene el mismo efecto, sin que sea necesario apretar la
+tecla Ctrl.
+
+Todos los trazos son efectuados en función del grosor del trazo 
+preseleccionado y del tipo de punteado, en el color o el motivo primario.
+
+Ver el "Menú Trazo" del lienzo de pintura para más información sobre
+la selección del grosor del trazo y del tipo de punteados.
+
+#BEGIN select "Selección de Regiones"
+Hay cinco maneras posibles de regiones: 
+
+1) Regiones en forma de Rectángulo
+#NL
+2) Regiones en forma de Elipse
+#NL
+3) Regiones de Forme Libre
+#NL
+4) Regiones poligonales
+#NL 
+5) Regiones de Forme Spline
+
+En caso de Regiones en forma de Rectángulo o Elipse, presionar la 
+tecla MAY mientras se desplaza el ratón, obligará a la región a ser un 
+cuadrado o un círculo, respectivamente.
+
+La selección "Regiones de Forme Libre" permite definir una región
+arbitraria, mientras que la elección  "Región Poligonal" determina una
+región delimitada por los segmentos rectos.
+
+La selección "Regiones de Forme Poligonal" permite definir una región
+delimitada por los segmentos rectos, mientras que la elección permite 
+definir una región arbitraria.
+
+Si el botón del ratón 1º se mantiene presionada, la región seleccionada
+pasa a ser semi-transparente. Esto puede producir su posicionamiento
+más fácil, en particular si se debe ajustar la región en relación al
+lienzo subyacente.
+
+Además, tres opciones están disponibles para cada una de estas
+operaciones. Pueden ser activadas clicando con el botón 3º (derecho)
+sobre cada uno de los iconos "regiones" de la caja de
+herramientas. Estas opciones son :
+
+Todos los colores		Selecciona la región entera.
+#NL
+Omitir intervalo	Captura aquellos pixeles de la región
+#NL
+			que no se sitúan en el intervalo 
+#NL
+			de colores especificados.
+#NL
+Capturar intervalo	Captura únicamente aquellos pixeles de 
+#NL
+			la región que se sitúan en 
+#NL
+			el intervalo de color específico.
+#NL
+Ver "Variante Cromática" para más información concerniente 
+a la selección de los intervalos de colores.
+
+Las operaciones que se efectúan sobre las regiones seleccionadas, incluyen la posibilidad de desplazar y cambiar el tamaño u orientación.
+Presionando la tecla MAY durante una operación que hace variar la tamaño de la región, obligará esto a guardar el mismo aspecto (la transformación
+permitida es pues, únicamente, una similitud). Al presionar la tecla MAY
+durante una operación de translación, la obligará a no efectuarse en una dirección horizontal o vertical.
+
+Observe que el hecho de desplazar una región tiene como consecuencia dejar un
+agujero en el lugar donde se sitúa inicialmente la región, y este agujero será
+pintado con el color de fondo seleccionado en ese momento. 
+
+Ver "Color de fondo..." en le menú "Imagen" de las ventanas del lienzo
+para más información.
+
+Observe que es igualmente posible desplazar la región, pixel por pixel,
+pulsando las flechas del teclado. Presionando simultáneamente en la tecla "Ctrl", permite acelerar el desplazamiento - con una translación
+básica de varios pixeles.
+
+#BEGIN fill "Rellenar" 
+La operación de relleno cubre una zona situada alrededor del punto seleccionado, determinado al comparar el color del pixel seleccionado con aquellos píxeles adyacentes, poco a poco, hasta que se encuentre una variación; de los píxeles contiguos diagonalmente no son considerados como adyacentes. 
+La zona, también determinada, es rellenada con el color o el motivo primario si el clic se efectúa con el Botón 1º (izquierdo), con el color o el 
+motivo secundario si el clic se efectúa con el Botón 2º (del medio).
+
+Varias opciones están disponibles a partir del menú, que aparecerá al clicar sobre el icono con el Botón 3º (derecho). La opción "Rellenado de la zona" se efectúa como describe más arriba, poco a poco, siguiendo los
+pixeles adyacentes. La opción "Rellenado no contiguo" cambia el color
+de todos los pixeles teniendo el mismo color que el pixel afectado por el clic inicial, incluso así no son adyacentes. El nuevo color
+o el nuevo motivo atribuido, correspondiente a la selección primaria o 
+secundaria en función del botón utilizado.
+
+La elección de la opción "Variante cromática" permite tratar
+los pixeles, no únicamente del color precisado del pixel
+inicial, pero también estos diferenciados por una variante
+escogida por el usuario (delta). Los valores de la variante para
+los componentes rojo, verde, azul son seleccionadas a través
+del Selector de variante.
+escoge... '. 
+
+#BEGIN gradientFill "Relleno Degradado"
+La operación de relleno degradado cubre una zona situada alrededor de un Pixel escogido en una gama de colores obtenidos al mezclar los
+colores primarios y secundarios. La zona se determina comparando los colores de los pixeles adyacentes hasta que se encuentra uno diferente. De los Pixeles contiguos diagonalmente n son considerados como adyacentes.
+
+Las opciones de "Relleno de zona", de "Relleno no contiguo" y de
+"Variante cromática" del menú, se comportan de la misma manera que
+para relleno con motivo único. Varias variantes de relleno,
+a saber: lineal, radial, cónica o cuadrada, son accesibles
+al clicar con el botón del ratón 3º (derecho) el icono de relleno 
+degradado. Además, varios parámetros específicos pueden ser ajustados.
+Estos parámetros son: 
+
+Ángulo
+#NL
+	Define el ángulo de inclinación característico, este valor
+#NL
+	no será significativo para el modo radial. El intervalo
+#NL
+	válido es  -360 a 360 grados.
+
+Valor de Transición
+#NL
+	Si el valor atribuido es positivo, la zona en 
+#NL
+	la que se efectúa una transición de colores es menos
+#NL
+	ancha, lo que conduce a una variación más contrastada.
+#NL
+	Al contrario, un valor negativo conducirá a una
+#NL
+	transición más suave. El intervalo de valores admitido
+#NL
+	es -49% à 49%.
+
+Inclinación Horizontal/Vertical
+#NL
+	Define el centro del modo de relleno. La gama válida es
+#NL
+	-100 % a 100 %. 
+#NL
+	Este parámetro no tiene ningún efecto para el modo lineal. 
+
+Subdivisiones
+#NL
+	Define el número máximo de colores que serán empleados
+#NL
+	para las diferentes transiciones de color.
+#NL 
+	Al desplegar algunas imágenes en verdaderos colores, puede 
+#NL 
+	ser útil limitar el número de colores empleados para
+#NL
+	evitar saturar la paleta de colores (Colormap), que
+#NL
+	dispone en general de más de 256 entradas . Los pequeños números
+#NL
+	crean un efecto "de apilamiento de los cuadros" que puede eventualmente
+#NL
+	ser deseado. El intervalo válido para el número de colores es
+#NL
+	de 1 a 300. 
+
+#BEGIN fractalFill "Rellenado Fractal"
+La operación de rellenado fractal rellena la zona situada alrededor de un pixel, escoge motivos de colores fractales. La zona se determina
+comparando los colores de los pixeles adyacentes hasta encontrar alguna diferencia. Los pixeles contiguos diagonalmente no son 
+considerados como adyacentes.
+
+Las opciones de "Rellenado de zona", de "Rellenado no contiguo" y de
+"Variación cromática" del menú, se comportan de la misma manera que
+para el rellenado con motivo único. 
+
+Varios  modos de rellenado fractal pueden ser escogidos en presionando
+el botón 3º (derecho) del ratón, sobre el icono de rellenado fractal. 
+Los modos "Plasma", "Nubes", "Tierra/Mar" están disponibles.
+
+#POP
+#POP
+#BEGIN canvas "4. Lienzo gráfico" 
+Las ventanas del lienzo gráfico ofrecen un espacio de dibujo, permitiendo
+a la vez visualizar y modificar las imágenes. 
+
+Para pintar en el lienzo, es necesario -en general-,  escoger una herramienta apropiada. Gracias a los iconos de la caja de herramientas, se dispone de un juego de dos colores o motivos, y que reciben el nombre de motivos primarios y secundarios. Otros parámetros pueden igualmente ser ajustados, como
+la anchura de la línea o el tipo de letra a usar. Una vez realizado esto, el usuario puede aplicar la herramienta seleccionada en el lienzo. 
+
+La banda superior de las ventanas del lienzo, comprende una barra de
+menús, que permite acceder a todas las funciones: archivar, editar,
+parámetros o tratamiento de las imágenes. 
+
+Debajo de la barra de menús se encuentra una copia, a escala reducida, de la paleta de colores y motivos. A la izquierda, el icono "ojo" permite
+seleccionar un color cualquiera presente en la pantalla.  El disco
+situado a la derecha del ojo, es un conmutador de 3 posiciones. 
+La posición de salida (disco lleno, con borde), permite una selección
+simultánea de los colores (o motivos) primarios y secundarios, el
+siguiente (círculo) permite seleccionar el color o el motivo
+primario. El último (disco lleno sin borde) permite seleccionar
+el color o el motivo secundario.
+
+A la derecha de la barra de menús y de la paleta, aparecen cuatro botones que permiten activar, respectivamente el seleccionador de
+colores y motivos, la caja de herramientas, el seleccionador de las brochas y el de tipos de letras. El conjunto de estas funciones es
+igualmente accesible, al clicar con el botón 3º (derecho) en la
+ventana gráfica.
+
+Se observará que cada lienzo puede tener su propio juego de colores o de motivos primarios y secundarios; al contrario que ocurre cuando se selecciona una herramienta que se aplica al conjunto de lienzos abiertos. Ver lo explicado sobre el tema de cada herramienta específica de dibujo para más detalles. 
+
+#PUSH 
+#BEGIN fileMenu "4.1. Menú Archivo"
+El menú "Archivo" de la ventana del lienzo, está destinado para guardar o
+imprimir la imagen diseñada en el lienzo.
+
+XPaint funciona bajo un cierto número de modos despliegues. Las imágenes guardadas conservan la definición del tipo de despliegue (es decir, por ejemplo que una imagen de color cargada en una pantalla con fondo gris se degradará en una imagen gris tras guardarla).
+
+Ver "Formatos de imágenes" para una descripción de los diferentes formatos
+de imagen utilizados por XPaint. 
+
+Guardar
+#NL
+	Guardar la imagen activa con el nombre y el formato 
+#NL
+	original del archivo. Si se trata de una nueva imagen,
+#NL
+	efectúe antes la operación "Guardar como".
+
+Guardar como
+#NL 
+	Guarda la imagen activa con el nombre y el formato
+#NL 
+	indicado (por defecto es TIFF). 
+
+
+Guardar Región...
+#NL
+	Guarda la región seleccionada, con la geometría
+#NL
+	original o la que ha sido seleccionada (anchura, tamaño
+#NL
+	y rotación). Las regiones de forma irregular serán
+#NL
+	guardadas como regiones rectangulares, en
+#NL
+	las que las partes situadas fuera de máscara se
+#NL
+	rellenarán con el color de fondo activo.
+#NL
+	Si el formato a guardar soporta las máscaras
+#NL
+	de imagen (por ejemplo, TIFF, PNG, XPM), entonces esta 
+#NL
+	información se preservará. 
+#NL
+	Ver también "Cargar el Portapapeles..." en el menú "Lienzo"
+#NL
+	de la caja de herramientas para más información
+#NL
+	sobre las imágenes de forma irregular.
+
+Cargar el Portapapeles...
+#NL
+	Abre un archivo que contenga una imagen, y carga
+#NL
+	ésta en la memoria del Portapapeles (Copiar/Pegar).
+#NL
+	Las imágenes guardadas en un formato que soporta
+#NL
+	 máscaras de forma arbitraria, aparecerán con
+#NL
+	su contorno propio, pero el portapapeles aparecerá
+#NL
+	con la forma de una región rectangular.
+#NL
+	Ver "Pegar" y "Guardar la región..." en 
+#NL
+	los menús "Archivo" y "Editar" de las ventanas del
+#NL
+	lienzo para más información. 
+
+Versión anterior...
+#NL
+	Recarga la última imagen guardada. La operación es
+#NL
+	equivalente a un cierre sin guardar el lienzo
+#NL 
+	abierto, que después se abre nuevamente cargando el 
+#NL
+	archivo original. Para esta operación, se pedirá una confirmación.
+#NL
+	Si la imagen no ha sufrido modificación 
+#NL
+	desde la última vez que se guardó, la operación no tendrá
+#NL
+	ningún efecto.
+
+Imprimir...
+#NL
+	Abre "Administración de impresión". Ver la sección
+#NL
+	correspondiente para más detalles. 
+
+Visualización externa...
+#NL
+	Carga la versión activa de la imagen en un programa de
+#NL
+	visualización externa. El visualizador por defecto es "xv".
+#NL
+	Esta selección puede ser modificada volviendo a definir el parámetro
+#NL
+	"Canvas.extern*form*viewercmd*string"
+#NL
+	en  el archivo  app-defaults.
+#NL
+
+Cerrar
+#NL
+	Cierra la ventana del lienzo - advirtiendo previamente
+#NL
+	al usuario si la imagen ha sido modificada y necesita
+#NL
+	guardarse.
+
+#BEGIN editMenu "4.2. Menú Editar"
+El menú "Edición" ofrecer un conjunto de opciones susceptibles
+de producir una interacción entre el lienzo de trabajo y el portapapeles
+utilizado para  "Copiar/Pegar". Todas las opciones de este menú son 
+igualmente accesibles, mediante un clic con el botón 3º (derecho) en 
+la zona del lienzo de pintura. El Portapapeles es una imagen no visible 
+en la pantalla, que contiene una región previamente seleccionada sobre
+uno de los lienzos abiertos - o cargada directamente a partir de un archivo.
+
+Ver "Cargar  Portapapeles..." en el menú "Lienzo" de la caja de
+herramientas para más información sobre cómo cargarlo a partir de un archivo
+y "Cambiar el color de fondo..." en el "Menú Imagen" para más
+información sobre el color de fondo.
+
+Deshacer
+#NL
+	Anula la última operación efectuada.
+#NL
+	La repetición de varias órdenes sucesivas sobre "Deshacer" 
+#NL
+	está permitido, con el único límite del nivel de memoria alojado.
+#NL
+	Ver "Memorización Deshacer/Rehacer" en el menú "Imagen"
+#NL
+	para aumentar eventualmente el nivel alojado.
+#NL
+	Cuando una región es seleccionada y algún desplazamiento
+#NL
+	o alguna modificación de esta región no son intervenidos,
+#NL
+	la última operación de la región se deshace.
+
+Rehacer
+#NL
+	Anula el efecto del último 'Deshacer'.
+#NL 
+	"Rehacer" debe ser efectuado justo después de un 'Deshacer' o
+#NL 
+	un 'Rehacer' precedente (antes de designar esto pongasé
+#NL
+	de nuevo sobre el lienzo). 
+
+Memorización Deshacer/Rehacer...
+#NL
+	Cambia el número de operaciones Deshacer/Rehacer que
+#NL
+	pueden ser efectuados consecutivamente.
+#NL
+	Observe que cada nivel guardado consume tanta memoria
+#NL
+	como la imagen misma, de suerte que
+#NL
+	los niveles elevados de memorización pueden conducir a
+#NL
+	un agotamiento de la memoria.
+
+Restaurar
+#NL
+	Restaura la ventana de diseño. Esto es útil en el
+#NL
+	caso que el servidor X se bloquee durante el despliegue ; 
+#NL
+	esto puede producirse especialmente cuando hay algún bug
+#NL
+	en las X.
+
+Cortar
+#NL
+	Corta la región seleccionada y la carga a la vez 
+#NL
+	en el Portapapeles gráfico de XPaint y del servidor X. 
+#NL
+	El trozo creado es rellenado con el color de fondo
+#NL
+	activo.
+
+Copiar
+#NL
+	Carga la región seleccionada en el portapapeles gráfico
+#NL
+	de XPaint (y del servidor X, llegado el caso).
+
+Pegar
+#NL
+	Pega la imagen contenida en el portapapeles gráfico de
+#NL
+	XPaint, sobre el lienzo, en el lugar de la última 
+#NL
+	posición donde los botones 1º o 2º (izquierdo y medio) han
+#NL
+	sido presionados. Las imágenes son -en primer lugar- cargadas desde
+#NL
+	el portapapeles del servidor X, después en el portapapeles 
+#NL
+	interno de XPaint. 
+
+Borrar
+#NL
+	Corta y borra la región seleccionada del
+#NL
+	lienzo.
+
+Captura Pantalla
+#NL
+	Captura un rectángulo, extracto de una posición cualquiera
+#NL
+	de la pantalla y copia este rectángulo en el Portapapeles de Xpaint. 
+#NL
+	Simultáneamente, una copie del portapapeles aparece posicionada
+#NL
+	en el lienzo. El botón 1º (izquierdo) del ratón se
+#NL
+	emplea para seleccionar un rectángulo por dos vértices
+#NL
+	diagonalmente opuestos, mientras que el botón 2º (medio)
+#NL
+	sirve para capturar una ventana entera. El botón 3º (derecha)
+#NL
+	permite anular la operación activa.
+
+Duplicar
+#NL
+	Esta operación realiza simultáneamente copiar y 
+#NL
+	pegar, de suerte que otra copia de la región
+#NL
+	seleccionada aparece en el lienzo.
+
+Seleccionar Todo
+#NL
+	Selecciona la región constituida por la totalidad del lienzo.
+#NL
+	(Nota: esta operación no pone en juego las eventuales
+#NL
+	selecciones de intervalos de colores, pudiéndose efectuar 
+#NL
+	a partir del menú de los iconos de selección de las regiones de la
+#NL
+	caja de herramientas.)
+
+Borrar Todo
+#NL
+	Borra la totalidad de la imagen desplegada en el lienzo.
+
+#BEGIN tool_line "4.3. Menú Trazo" 
+El menú "Trazo" permite seleccionar el grosor del trazo activo. 
+Este valor es empleado para todas las operaciones de trazado
+de los segmentos, arcos o líneas cualquiera, y es aplicado también a las 
+fronteras de los objetos rellenos, tales como rectángulos, óvalos y polígonos.
+El menú "Trazo" ofrece igualmente la posibilidad de escoger el tipo
+de punteado, éste es especificado por medio de una cadena de más de
+48 caracteres = y -. Los caracteres = indican los pixeles que deben 
+ser trazados, mientras que las - indican los espacios intermedios.
+Una línea continua es también determinada por la cadena formada por un solo
+caracter = (una serie de varios caracteres = es también reconocido
+como especificando un línea continua).
+
+#BEGIN tool_font "4.4. Menú Fuentes" 
+Este menú selecciona la fuente corriente empleada para los textos. 
+Hay algunas selecciones especificas de fuentes predefinidas, pero
+todas las fuentes instaladas en el sistema están disponibles con
+la ayuda del navegador.
+
+Note: Si se cambia la fuente durante la inserción en curso, 
+no será posible corregir el texto precedente, para entrar otra
+fuente, previamente mediante el teclado se irá "borrando hacia atrás".
+
+Ver el "Navegador de Fuentes de Caracteres" para más información sobre 
+su modo de utilización. 
+
+#BEGIN regionMenu "4.5. Menú Región" 
+El menú "Región" reagrupa las operaciones que pueden ser aplicadas en 
+la región seleccionada. Ver las noticias de las operaciones "Selección de 
+las regiones" figuran en la caja de herramientas para más
+información sobre los procedimientos de selección de regiones. 
+
+Atención: la opción 'Deshacer' del menú de edición no permite
+cargar las operaciones sobre las regiones ! Utilizar según el caso
+la opción 'Restaurar' del menú Región, o la opción 'Deshacer'
+del menú Filtros.
+
+Simetría Axial en X 
+#NL
+	Efectúa una simetría axial de la región seleccionada
+#NL
+	en una dirección horizontal (es decir,  en relación al
+#NL
+	eje vertical).
+
+Simetría Axial en Y
+#NL
+	Efectúa una simetría axial de la región seleccionada
+#NL
+	en una dirección vertical (es decir, en relación al
+#NL
+	eje horizontal).
+
+Rotación del ángulo
+#NL
+Rotación...
+#NL
+	Estas dos operaciones aplican a la región seleccionada
+#NL
+	una rotación de un ángulo específico (en grados).
+#NL 
+	La rotación puede ser obtenida también, manipulando la
+#NL
+	zona seleccionada con la ayuda del botón 2º (medio) del
+#NL
+	ratón. Presionando la tecla MAY durante el
+#NL
+	desplazamiento del ratón (botón 2º presionado)
+#NL
+	obligando al ángulo de rotación a ser un múltiplo de	
+#NL
+	15 grados.
+
+Transformación Lineal...
+#NL
+	Esta operación aplica a la región seleccionada
+#NL
+	una cierta transformación lineal, definida con
+#NL
+	la ayuda de una matriz [ a, b ; c, d] especificada por
+#NL
+	el usuario.
+
+Restablecer Geometría
+#NL 
+	Restablece la región seleccionada con su geometría inicial.
+#NL
+	(tamaño y orientación). Hay que anotar, sin embargo, que algunas
+#NL
+	 de las transformaciones de la imagen no podrá ser anulada.
+
+Clonar Región
+#NL
+	Abre un nuevo lienzo que contiene una copia de la
+#NL 
+	región seleccionada, con su geometría original
+#NL
+	(anchura, tamaño y rotación).
+#NL
+	Las regiones de forma irregular serán copiadas como
+#NL
+	las regiones rectangulares rellenas por el color de
+#NL
+	fondo hacia fuera de la zona de máscara. 
+#NL
+	Consultar "Cargar el  Portapapeles..." en el menú
+#NL
+	"Archivo" para más información sobre las
+#NL
+	imágenes de forma irregular.
+
+Estrechar la región... 
+#NL
+	Suprime todas las partes de la imagen situadas hacia fuera
+#NL
+	de la región. Esta operación no puede ser inversa.
+#NL
+	Al usuario se le pedirá que confirme antes de que
+#NL
+	la operación sea realizada.
+
+Auto-Disminución...
+#NL
+	Cambia el tamaño del lienzo, recortando todas las 
+#NL
+	partes situadas cerca del borde, del mismo color que el
+#NL
+	borde. El color del borde es definido como el color
+#NL
+	común al menos a dos vértices. Si los vértices son
+#NL
+	de colores diferentes, la operación no tiene ningún
+#NL
+	efecto. 
+#NL
+	La operación de auto-estrechamiento no es reversible
+#NL
+	y afecta al tamaño de la imagen.
+
+Delimitar una Región...
+#NL
+	Todavía no está implementado. La idea sería delimitar
+#NL
+	une región monocolor con el cursor.
+
+Complementar una Región
+#NL
+	Todavía no está implementado. La idea sería remplazar
+#NL
+	la región activa por su complementaria en el 
+#NL
+	lienzo.
+
+Deshacer Selección
+#NL
+	Quita la selección de la región anteriormente seleccionada
+#NL
+	(y libera la memoria de las estructuras de datos
+#NL
+	utilizados por ésta).
+
+
+#BEGIN filterMenu "4.6 Menú Filtros" 
+El menú "Filtros" propone un cierto número de transformaciones de las imágenes 
+que pueden ser aplicadas a la región seleccionada. Consultar la reseña
+"Selección de Regiones" en el menú de la caja de herramientas para más
+información sobre los procedimientos para seleccionar las regiones. Si alguna
+región no es seleccionada, el lienzo gráfico entero, se escoge como 
+si fuese la región sobre la cual se aplica el filtro. 
+
+Cualquier operación con filtro es reversible gracias a la opción 
+"Deshacer Último Filtro", pero esto puede aplicarse sólo una vez 
+para la totalidad del último filtro.
+
+Invertir los Colores
+#NL
+	Invierte los colores de la región seleccionada
+#NL
+	(por ejemplo, el negro pasa a ser blanco, el azul a amarillo). 
+
+Endurecer Contraste
+#NL
+	Aplica un algoritmo de tratamiento de imagen, a fin
+#NL
+	de intentar aumentar el contraste y la finura de los
+#NL
+	detalles de la región seleccionada.
+
+Efecto de Degradación borrosa
+#NL
+	Efectúa una mezcla de los colores presentes en la
+#NL
+	región, calculando la media del color de cada
+#NL
+	pixel con el de sus vecinos.
+
+Degradación borrosa direccional
+#NL
+	Esta operación es análoga a la Degradación borrosa normal,
+#NL
+	pero aplica un algoritmo más sofisticado cerca del
+#NL
+	borde, para intentar evitar que se bloquee. El efecto es 
+#NL
+	menos pronunciado que para la degradación borrosa normal.
+
+
+
+Suprimir Granulosidad...
+#NL
+	El algoritmo intenta hacer desaparecer los producidos por dispositivos
+#NL
+	(un escaner, por ejemplo), u otros defectos de
+#NL
+	granulación, reemplazando cada pixel por la media
+#NL
+	de los pixeles situados en el interior de un máscara n x n
+#NL
+	centrada en este pixel. El usuario debe precisar el tamaño
+#NL
+	de la máscara; ésta debe ser impar y más grande 
+#NL
+	que 1.
+
+Detección de borde 
+#NL
+	Ejecuta un procesamiento de la imagen, teniendo como objetivo determinar
+#NL
+	los bordes.
+
+Relieve
+#NL 
+	Convierte la región seleccionada en una escala de grises,
+#NL
+	de tal manera que los detalles den la sensación de aparecer en
+#NL
+	relieve sobre la imagen. 
+
+
+Pintura al óleo...
+#NL
+	Intenta simular un efecto comparable a une pintura 
+#NL
+	al óleo. El usuario debe precisar el tamaño de  la máscara,
+#NL
+	que debe ser un número impar positivo. El intervalo de
+#NL
+	valores recomendado son 3...15. Los valores más elevados 
+#NL
+	crean un efecto más pronunciado.
+
+Dispersión aleatoria...
+#NL
+	La dispersión aleatoria produce una variación caótica
+#NL
+	del color, dando a la imagen un aspecto granuloso.
+#NL
+	El usuario debe precisar el valor máximo de
+#NL
+	dispersión. Los valores recomendados están desde el
+#NL
+	5 al 50. Los valores más elevados crean un efecto
+#NL
+	más pronunciado.
+
+Extender...
+#NL
+	Esta operación permuta cada pixel de la región con
+#NL
+	un pixel aleatorio situado lo más próximo, lo que conduce a
+#NL
+	un aspecto de cristal esmerilado. El usuario debe precisar
+#NL
+	la distancia máxima de acción. Los valores adecuados
+#NL
+	se extienden desde 1 al 10. Es igualmente posible
+#NL
+	especificar el número de repeticiones a ejecutar. Esto es
+#NL
+	equivalente a ejecutar manualmente la operación un
+#NL
+	número equivalente de veces. 
+
+Pixelar... 
+#NL 
+	Da a la imagen el aspecto de una imagen de baja 
+#NL
+	resolución, teniendo muchos pixeles ("megapixeles").
+#NL
+	El procedimiento consiste en remplazar cada 'megapixel'
+#NL
+	por el color medio de la región correspondiente.
+#NL
+	El usuario debe precisar la tamaño de los megapixeles.
+#NL
+	La especificación puede ser dado por un valor único
+#NL
+	(por ejemplo, '5', lo que dará un cuadrado de 5 x 5) o
+#NL
+	por una especificación de rectángulo (por ejemplo, '2 x 4'). 
+
+Fondo Radial
+#NL
+	Esta operación colorea cada pixel de la región
+#NL
+	con la media ponderada del color del centro y
+#NL
+	de los colores de los pixeles presentados en el borde, de manera 
+#NL
+	que al realizar un degradado radial, el color del centro y
+#NL
+	de los bordes están igualados.
+#NL
+	El resultado culmina -en general- en un cambio de aspecto
+#NL
+	total de la región, excepto si elle tenía ya una estructura
+#NL
+	radial.
+
+Distorsión...
+#NL
+	Esta operación efectúa en la región seleccionada una
+#NL
+	cierta distorsión homográfica, pudiendo, por ejemplo,
+#NL
+	dar la sensación que el objeto inicial representado en
+#NL
+	la región mantiene una visualización con perspectiva en varias dimensiones.
+
+Iluminación...
+#NL
+	Invierte el valor de los pixeles que contienen una luminosidad
+#NL
+	más grande que el umbral indica. Es similar al efecto
+#NL
+	realizado con un carrete fotográfico que se le expone a 
+#NL
+	la luz durante el revelado. Esto funciona a
+#NL
+	priori mucho mejor para las imágenes en escala de grises.
+#NL
+	El usuario debe especificar el umbral (1-99 %). 
+
+Convertir en escala de grises. 
+#NL
+	Convierte todos los colores de la imagen en escala de grises. 
+
+Normalizar Contraste
+#NL
+	Normaliza el contraste forzando los pixeles más claros
+#NL
+	al blanco, los pixeles más oscuros al negro, y efectúa
+#NL
+	una interpolación lineal para los pixeles situados en el 
+#NL
+	campo colores restantes. El usuario debe especificar 
+#NL
+	los niveles negros y blancos en %, para los cuales los pixeles 
+#NL
+	más oscuros pasarán a negro, y los pixeles más luminosos a 
+#NL
+	blanco. Un valor de '100 % ' se refiere al pixel más
+#NL
+	luminoso de la imagen. 
+
+Modificar Componentes RVB...
+#NL
+	Modifica los componentes Rojo, Verde, Azul de cada Pixel
+#NL
+	con la ayuda de una transformación homográfica. Esto aumenta 
+#NL
+	o disminuye la intensidad del color correspondiente, según 
+#NL
+	que el porcentaje de variación escogido sea positivo o 
+#NL
+	negativo. Este porcentaje debe estar comprendido entre -100% y 
+#NL
+	+100%. Un valor de -100% hace desaparecer el
+#NL
+	color correspondiente, por lo que un valor de +100% 
+#NL
+	atribuye el valor máximo posible, 255, a este color, 
+#NL
+	en cuanto que el pixel tiene un componente no nulo según
+#NL
+	aquél.
+
+Cuantificar Colores...
+#NL
+	Esta operación efectúa una reducción del número de
+#NL
+	colores en la imagen. El algoritmo intenta de determinar
+#NL
+	el conjunto de los colores que pueden dar el mejor
+#NL
+	resultado, luego remplaza cada pixel por el color 
+#NL
+	más próximo en el conjunto de los colores seleccionados.
+#NL
+	El usuario debe especificar el número de colores a
+#NL
+	emplear, entre 2 y 256. 
+
+Filtro programable...
+#NL
+	¡¡Aún no está implementado !!
+
+Repetir Último Filtro
+#NL
+	Éste repite la aplicación del último filtro invocado, sin
+#NL
+	que sea necesario volver a precisar todos los parámetros. 
+
+Deshacer Último Filtro
+#NL
+	Esto anula el efecto el último filtro invocado, y 
+#NL
+l	restablece la región a su estado inmediatamente anterior. 
+#NL
+	Si varios filtros han sido aplicados consecutivamente,
+#NL
+	sólo el último puede ser anulado.
+
+#BEGIN selectorMenu "4.7. Menú Selectores"
+El menú "Selectores" da acceso al conjunto de los Selectores y
+Escoger Opciones, que pueden ser destinadas a las operaciones de dibujo
+o al lienzo de pintura a la vez.
+
+Editor de Detalles...
+#NL
+	El Editor de Detalles permite visualizar y editar
+#NL
+	una ampliación de una zona de la imagen, sin que sea
+#NL
+	necesario ampliar la imagen entera. Las modificaciones
+#NL
+	traídas a la ventana del editor de detalles son
+#NL
+	llevadas instantáneamente sobre el lienzo principal.
+
+Editar Colores y Motivos...
+#NL
+	Abre el selector de Colores y de Motivos, y lo pone nuevamente 
+#NL
+	en primer plano si estaba abierto. Este selector es
+#NL
+	igualmente accesible por el botón adecuado del panel 
+#NL
+	superior.
+
+Variante Cromática...
+#NL
+	Abre el selector de "Variante Cromática" permitiendo
+#NL
+	seleccionar los dominios de colores para las
+#NL
+	operaciones rellenado de regiones. Si éste está
+#NL
+	ya abierto, se pondrá nuevamente en primer plano.
+#NL
+	Ver el título "Selector de Variante Cromática" 
+#NL
+	para más detalles.
+
+Color de Fondo... 
+#NL
+	Abre el selector de color de fondo, y lo pone
+#NL
+	en en primer plano si ya estaba abierto. Este selector 
+
+	permite cambiar el color de fondo de la imagen
+#NL
+	activa (el color por defecto es el blanco).
+#NL
+	El color de fondo no se pone hasta que
+#NL
+	una región es borrada o cortada en el
+#NL
+	lienzo, y cuando las regiones de forme irregular
+#NL
+	son guardadas. Consultar "Selector de Motivos
+#NL
+	y de Colores" para más información
+#NL
+	sobre la selección de los colores y de los motivos. 
+
+Caja de herramientas
+#NL
+	Pone en primer plano la caja de herramientas, en particular 
+#NL
+	si ha sido minimizada.
+
+Selector de Pinceles...
+#NL
+	Abre el selector de pinceles, y lo pone en primer plano
+#NL
+	si ya estaba abierto. Este selector está igualmente 
+#NL
+	accesible en el botón adecuado del panel superior.
+
+Selector de Fuentes...
+#NL
+	Abre el selector de tipo de letras, y lo pone 
+#NL
+	en primer plano si ya estaba abierto. Este selector está
+#NL
+	igualmente accesible con el botón adecuado del panel 
+#NL
+	superior.
+
+Editor de scripts C...
+#NL
+	Abre la ventana del Editor de Scripts. Este widget
+#NL
+	puede ser utilizado para escribir los scripts en 
+#NL
+	lenguaje C, por ejemplo para definir un filtro
+#NL
+	programable. Esto será apreciado por los programadores
+#NL
+	que quieran implementar sus propias rutinas de 
+#NL
+	filtros.
+
+Cambio Dimensiones Lienzos...
+#NL
+	Cambia la dimensión del lienzo. Si la nuevo tamaño
+#NL
+	es inferior al tamaño inicial, el lienzo es recortado
+#NL
+	a la derecha y en la base. Si el nuevo tamaño
+#NL
+	es más grande, las zonas se rellenarán por el color
+#NL
+	de fondo activo, se añade a la derecha y a bajo.
+#NL
+	Esta operación no es reversible (salvo para
+#NL
+	recargar la imagen guardada con la ayuda de
+#NL
+	la opción "Versión Anterior..."). No afecta
+#NL
+	al tamaño de los objetos dibujados sobre el lienzo.
+
+Cambiar Zoom...
+#NL
+	Amplia el lienzo de trabajo con el tamaño zoom
+#NL
+	especificado. Esto no afecta al tamaño de la imagen 
+#NL
+	misma, ni a la naturaleza de los datos que serán 
+#NL
+	guardados.
+
+Espacio Cuantificado...
+#NL
+	Esta opción cambia las dimensiones de las cuadrículas invisibles
+#NL
+	sobre la cual se desplaza el cursor cuando los
+#NL
+	movimientos se cuantifican (ver más abajo).
+
+Movimientos cuantificados
+#NL
+	Esta opción utiliza la "cuantificación" de los 
+#NL
+	movimientos del cursor. Cuando la opción está activada, 
+#NL
+	el cursor está obligado a desplazarse sobre una 
+#NL
+	cuadrícula invisible, es decir, que sus coordenadas
+#NL
+	x, y no pueden tener como valores que 
+#NL
+	múltiplos de un número entero.
+
+Cuadrícula Visible
+#NL
+	Hace aparecer o desaparecer de la ventana del 
+#NL
+	Editor de Detalles, una cuadrícula negra que pone en
+#NL
+	evidencia  los diferentes pixeles presentes en la imagen,
+#NL
+	cuando el zoom es más grande que 1. Esta 
+#NL
+	cuadrícula aparece únicamente para la comodidad del 
+#NL
+	usuario. No afecta en nada a la imagen
+#NL
+	subyacente.
+
+#PUSH
+#BEGIN patternSelector "4.7.1. Selector de Colores y Motivos"
+El "Selector de Colores y Motivos" permite seleccionar y activar 
+los colores y motivos primarios y secundarios poniéndolos en uso, también 
+modifica la paleta de colores y motivos. 
+
+Los motivos primarios y secundarios son utilizados por un buen número
+de las herramientas de dibujo, y son en general, activadas para la utilización con
+el botón 1º o con el botón 2º del ratón, respectivamente. Consultar 
+las secciones específicas de cada herramienta para más información. 
+Todos los objetos a rellenar (es decir, los rectángulos, las elipses 
+y los polígonos) son siempre dibujados utilizando el color o el 
+motivo primario para el borde, y el color o el motivo secundario para
+el relleno del interior del contorno.
+
+#PUSH
+#BEGIN openPatSel "Apertura del Selector de Motivos"
+Un botón de apertura del selector, se encuentra en la barra superior
+de cada lienzo gráfico, en la segunda posición a la derecha de los menús
+desarrollados. Este botón desplegado permanecerá como un icono en forma
+hexagonal mostrando los colores o motivos primarios y
+secundarios escogidos. Estos colores y motivos están, entonces, listos para
+usarse en el lienzo gráfico.
+
+#BEGIN topPatSel "Barra superior del Selector"
+El Selector desplegado en la barra superior de los menús, los motivos
+primarios y secundarios activos del lienzo gráfico asociado 
+(si varios lienzos se han abierto, se trata del último,
+a partir del cual, el botón de apertura del Selector ha sido activado o
+reactivado).
+
+A la derecha de los dos motivos primarios se encuentra un icono representando
+une región hexagonal teniendo como borde el motivo primario y como
+relleno el motivo secundario. La anchura de la línea del bordo coincide
+con la anchura de la línea activa, y el color de fondo es igualmente,
+el color de fondo activo del lienzo gráfico. Observe que un clic en
+el icono hexagonal permite volver al lienzo gráfico activo,
+pero no tiene ningún efecto en las selecciones efectuadas.
+
+Por otra parte, un clic sobre el motivo primario o secundario seleccionado,
+es decir, cualquiera de los dos motivos,podrá ser modificado, posicionando la flecha
+indicativa según sea.
+
+#BEGIN leftPatSel "Selección de los Colores"
+En el panel central izquierdo se encuentra la rueda y los botones de 
+selección de los colores. El botón "Seleccionar" permite capturar un pixel
+a partir de una ventan cualquiera de la pantalla, mientras que el botón 
+"Guardar" añade el color seleccionado a la paleta de los colores
+presentes en el panel inferior. Ver "Rueda de Selección de los colores"
+para  más detalles.
+
+Nota: Cualquier manipulación de la Paleta de Colores afecta instantáneamente
+a los colores del lienzo, y no puede ser inverso por "Defecto".
+
+#BEGIN rightPatSel "Selección de los Motivos"
+El panel central derecho despliega un pequeño lienzo gráfico permitiendo
+editar nuevos motivos. El tamaño de los motivos por defecto es
+24x24, pero es posible escoger un tamaño arbitrario con la ayuda
+del menú "Dimensiones". Los otros menús disponibles en la ventana del
+Editor de Motivos comportan funcionalidades parecidas en las
+ventanas de los lienzos, y todas las operaciones de dibujo pueden
+ser utilizadas para editar el motivo. 
+
+Los motivos pueden ser guardados individualmente, gracias a la opción
+"Guardar como..."  en el menú "Lienzo" del Selector, o ser
+guardadas globalmente en el conjunto de paletas, con la ayuda de
+la opción "Guardar la Paleta" del menú "Paleta". Las paletas
+previamente guardadas, pueden igualmente ser cargadas con la ayuda de
+la opción "Cargar Paleta".  Consultar la sección "Archivos de
+Configuración de Paletas", para más detalles.
+
+#BEGIN bottomPatSel "Paleta de Colores y Motivos"
+El panel inferior del Selector despliega la lista de los colores o 
+motivos inicializados por los archivos de configuración o anteriormente
+editados por el usuario. 
+
+Un simple clic sobre uno de los iconos, activa el color y el motivo como
+motivo primario o secundario, en función de la posición de la flecha
+en el panel superior.
+
+Un doble clic pone el icono en "modo de edición", de manera que
+el usuario -finalmente- con el botón "Guardar" reemplace el color
+o el motivo por aquellos que habrán sido seleccionados en los paneles
+centrales. 
+
+En fin, un doble "doble-clic" en un icono de motivo, carga este motivo
+en el lienzo gráfico de edición. 
+
+El botón 3º (de derecho) activa un menú flotante, ofreciendo diversas
+opciones (activar modo edición, desactivar modo edición,
+cargarlo en el lienzo, suprimir).
+
+#BEGIN grabpattern "Captura de Colores y de Motivos"
+Un método rápido para añadir un nuevo color o un nuevo
+motivo consiste en utilizar los botones "Selección" y "Captura".  Estos
+botones permiten al usuario, escoger cualquier color
+o cualquier zona coloreada apareciendo en la pantalla.
+
+Un clic con el botón "Guardar" permite memorizar la selección
+y la devuelve activa. Hay que observar que si el color está ya
+presente en la paleta, presionando el botón "Guardar" tendrá
+simplemente por efecto activar este color.
+
+Nota: La paleta de motivos y colores puede ser guardada para
+usarla posteriormente,  con la ayuda de la opción "Guardar Paleta..."
+en el menú "Paleta" de la ventana del Lienzo.
+
+#BEGIN colorwheel "Rueda de Selección de los colores"
+La Rueda de Selección de los colores permite el acceso a los modelos de colores
+TSV (Tono, Saturación, Valor) o RVB (Rojo, Verde, Azul). La rueda
+de los colores representa el modelo TSV, mientras que los botones deslizantes
+rojos, verdes, y azules sirven para manipular el color en el espacio RVB. 
+Las modificaciones de uno u otro de estos modelos de colores son
+entendidos como coordenadas entre ellos.
+
+Los colores pueden ser seleccionados en la rueda de colores haciendo un clic en el punto específico con el ratón. Otra posibilidad es
+escogiendo un punto del perímetro de la rueda (un clic en el marco del
+exterior de la rueda, consigue el mismo objetivo), después de fijar el valor de
+la intensidad luminosa. Los colores pueden igualmente ser modificados 
+directamente componente por componente por medio de los botones deslizantes rojos, 
+verdes, y azules o escribiendo los valores numéricos apropiados 
+en las entradas de texto.
+
+El botón "Selección" permite al usuario seleccionar cualquier color 
+presente en la pantalla. En modo de despliegue en pseudo-colores, 
+el color exacto estará en función de la paleta gráfica X de la ventana escogida.
+
+#BEGIN configfile "Archivos de Configuración de la Paleta"
+Los colores y motivos presentes en el panel de las paletas del
+"Selector de Colores y Motivos" son cargados cada vez que el
+selector se abre, siguiendo un cierto orden de precedencia
+de los archivos de configuración : 
+#NL 
+	.XPaintrc en el directorio local del usuario 
+#NL
+	.XPaintrc en el directorio activo 
+
+
+#POP
+#BEGIN range_select "4.7.2. Selector de Variante Cromática" 
+El "Selector de Variante Cromática" se abre haciendo un clic en el 
+botón adecuado del menú "Selectores". Entonces es posible 
+seleccionar un intervalo (o mejor un dominio) de colores fijando un color de referencia y determinando la variante
+autorizada para cada uno de los componentes Rojo, Verde, y Azul del
+color. Un color está en el intervalo correspondiente si sus 
+componentes R,V,B difieren del color de referencia, con una 
+cantidad inferior o igual a la variante. El color de referencia 
+por defecto es el blanco.
+
+El botón "Pixel Delta" permite al usuario escoger un color diferente 
+que el color de referencia, de manera que la variante sea con respecto a este.
+
+Para más información sobre los colores y la utilización del Selector 
+de Colores pueden ser encontrados en el título "Editor de Motivos" 
+de la sección "Ventana del Lienzo".
+
+#BEGIN brush_selector "4.7.3. Selector de Brochas"
+El Selector de Brochas es una pequeña ventana, que gracias a ella la brocha
+activa puede ser modificada. Esta selección afecta únicamente a las 
+herramientas "Pinceles/Brochas" y "Goma". 
+
+Las brochas inicialmente disponibles están definidas durante la
+compilación,  a partir de los archivos incluidos 'bitmaps/paint*.xpm'. 
+El usuario puede introducir nuevas brochas, gracias a los
+archivos de configuración del tipo .XPaintrc.
+
+La sintaxis para utilizar se presenta bajo la forma
+#NL
+	brush BeginData
+#NL
+	...
+#NL
+	EndData
+#NL
+y es similar a la utilizada para los motivos en blanco y negro.
+(Un motivo de color será también aceptado, pero en este caso sólo los
+pixeles negros sirven para definir la forma de la brocha; los otros tienen el
+mismo efecto que los pixeles blancos -es decir, ninguno).
+
+Lo más simple es crear un motivo en blanco y negro, memorizar este motivo
+con la ayuda de guardar globalmente la paleta, después de cargar 
+el identificador 'pattern' en 'brush' con la ayuda de un editor de textos.
+
+#BEGIN font_browser "4.7.4. Navegador de Tipos de Letras"
+El navegador de Tipos de Letras permite utilizar
+cualquier tipo de letra disponible en el sistema, con el fin de que pueda ser empleada durante de la inserción del textos en el lienzo gráfico. 
+Una Fuente es escogida seleccionando cada una de sus características
+que aparecen en las listas verticales (espacio, Familia, Tipo,
+Número de puntos), hasta que la Fuente sea determinada de manera
+única y puede también aparecer en la ventana de selección. Hay que anotar que las listas se ajustan de manera interactiva para
+reflejar las fuentes compatibles con las selecciones ya hechas. Para
+quitar la selección de una de las características, es suficiente con clicar en
+la parte vacía del final de la lista.
+
+Si el servidor X soporta el despliegue de fuentes de tamaño variable, la lista
+en los números de puntos tendrá el campo "0". Se puede entonces seleccionar
+este campo y escribir en la línea de entrada el texto específico de "Puntos," el valor
+escogido.
+
+#BEGIN script_editor "4.7.5. Editor de scripts C"
+El Editor de Scripts C pueden ser utilizados para escribir los scripts en
+lenguaje C, por ejemplo para definir un filtro programable. 
+
+Esta posibilidad será apreciada por los programadores que quieran
+implementar sus propias rutinas de filtros. 
+
+El botón "Compilar" compila el script C, script como una librería
+dinámica ???.so, y, en caso de sucesos de la compilación, enlaza
+dinámicamente esta librería a Xpaint.  
+
+Varios ejemplos aparecen en el directorio share/filters. Observe que 
+que ha de tener forzosamente gcc instalado en su sistema para
+poder usar esta funcionalidad.
+
+#POP
+#POP
+#BEGIN printMenu "5. Administración de Impresión" 
+El Administrador de impresión ofrece la posibilidad de ajustar arbitrariamente
+el tamaño,la posición del dibujo en el interior de la página a imprimir.
+El formato de la página (Letter, A4, etc) es incluso ajustable. Un botón
+de conmutación permite forzar o no la conservación del aspecto
+(en relación al zoom vertical y horizontal).
+
+Hay también conmutadores para los modos Retrato y Paisaje,
+también para el envío de datos hacia una impresora o hacia un
+archivo. La resolución PostScript por defecto es 72 dpi (dot per inch).
+Puede ser aumentado utilizando una subdivisión de los pixeles y 
+una interpolación de los colores. Una subdivisión de 5 x 3, significa que 
+cada pixel de la imagen está troceado en 15 subpixels al nivel de
+los datos de impresión ; esto se efectúa interpolando los colores 
+de los pixeles contiguos, con 5 subdivisiones en la dirección horizontal 
+y 3 subdivisiones en la dirección vertical (el número máximo de
+subdivisiones permitidas es de 255 en cada dirección). 
+
+El botón "Previsualización" crea un archivo PostScript temporal
+y lo transmite como lectura a un visualizador PostScript, "gv"
+por defecto. El visualizador PostScript puede ser redefinido
+interactivamente e inicializado a través del parámetro
+   "Canvas.print*form*psviewer*string: ..."
+en el archivo app-defaults.
+
+#BEGIN fileformat "6. Formatos de Imagen" 
+XPaint soporta una gran variedad de formatos de imágenes, en función
+de las librerías gráficas disponibles en el momento de la compilación. Realmente 
+los formatos soportados por el código abierto pueden pues, eventualmente, no
+ser accesibles en la versión compilada que se tiene.
+
+La tabla presentada más abajo recoge  un pequeño resumen de las características
+de formatos de imagen suportados por XPaint. Observe que todos los formatos
+de imágenes no son equivalentes, y que la conversión de un formato en
+un otro puede acarrear una degradación de la imagen.
+
+La profundidad de color es precisada en términos del número de bits
+empleados para almacenar los colores en la imagen. Esto significa
+que una profundidad de 1-bit puede únicamente almacenar las imágenes en blanco y negro, mientras que los formatos de colores 24-bit pueden almacenar 
+las imágenes conteniendo hasta 2**24 (aproximadamente 16 millones) 
+de colores. Independientemente del formato de imagen, las imágenes guardadas 
+reflejarán mejor las capacidades según el tipo de lanzador utilizado 
+(es decir, por ejemplo que una imagen de color cargada en una pantalla a escala de grises será guardada como una imagen en escala de grises). 
+Vea la sección "Pérdida posible de datos" para más detalles. 
+
+El dispositivo de máscara de imagen ofrece la posibilidad de tener las imágenes
+con diferentes formas, y no únicamente rectangulares. Estas imágenes pueden
+tener trozos o zonas no coloreadas. Ver "Guardar Región..." y 
+"Cargar el Portapapeles..." para más información. 
+
+Las informaciones más detalladas sobre cada formato de imagen están 
+explicadas al final de esta sección.
+#NL
+               Lectura    Escritura    Profundidad      Máscara
+#NL
+GIF  	           si        si            8-bit           no
+#NL
+ICO              si        si           16-bit           si
+#NL
+JPEG	           si        si           24-bit           no
+#NL
+PNG              si        si        8, 24-bit           si
+#NL
+PPM              si        si           24-bit           no
+#NL
+PDF              si        si*          24-bit           no
+#NL
+PS               si        si*          24-bit           no
+#NL
+SGI			si        si           24-bit           no
+#NL
+TIFF             	si        si        8, 24-bit           si
+#NL
+XBM               si        si            1-bit           no
+#NL
+XPM               si        si            8-bit           si
+#NL
+XWD			si        si           24-bit           no
+
+* ATENCIÓN : si un archivo PS o PDF se lee, después de guardarlo con el mismo nombre, todos los datos internos del formato (componentes textuales,
+procedimientos PostScript, tipos de letras, etc) serán irremediablemente
+perdidos. La acción de guardar que se hace es únicamente en forma de datos
+bitmap, en los formatos respectivos PS o PDF.
+
+GIF - Graphics Interchange Format
+#NL
+	Formato muy corriente en las imágenes, utilizado 
+#NL
+	por un gran número de plataformas.
+#NL
+	El inconveniente desgraciadamente, es un problema de Licencia
+#NL
+	(patente UNISYS) para el algoritmo de compresión. 
+#NL
+	Boicotee el formato GIF, porque el PNG es mejor !
+
+ICO - Icon Format (Microsoft)
+#NL
+	Formato utilizado por Microsoft para los iconos,
+#NL
+	el tamaño es limitado en 256x256 lo máximo.
+#NL
+	Este formato está presente aquí únicamente por
+#NL
+	razones de compatibilidad. Hay que evitarlo tanto como sea
+#NL
+	posible!
+
+JPEG - Joint Photographic Experts Group Format
+#NL
+	Un formato estandarizado para almacenar las
+#NL
+	imágenes en colores o en escala de grises,
+#NL
+	particularmente adaptado a las fotografías
+#NL
+	y a las escenas naturales. Autoriza un porcentaje
+#NL
+	de compresión muy elevado, pero a costa 
+#NL
+	de una ligera degradación de la calidad.
+
+PNG - Portable Network Graphics Format
+#NL
+	Un nuevo formato para reemplazar el GIF y,
+#NL
+	en cierta medida, el TIFF. El formato
+#NL
+	PNG dispone de un mejor motor de compresión
+#NL
+	que GIF o TIFF, y no está afectado por la
+#NL
+	degradación de los datos (a diferencia de
+#NL
+	JPEG). ¡La utilización de PNG es recomendable!
+
+PPM - Portable PixMap Format
+#NL
+	Es el formato de imagen compuesto por el paquete
+#NL
+	de utilidades gráficas PBMPlus/NetPBM. De esta manera permite
+#NL
+	convertir las imágenes en un gran número de otros
+#NL
+	formatos.
+
+PDF - Portable Document Format
+#NL
+	PDF es un formato de documento especifico por la
+#NL
+	compañía Adobe Inc. Está muy extendido su uso
+#NL
+	para todo tipos de documentos, pudiéndose abrir
+#NL
+	simultáneamente el texto y las imágenes.
+
+PS - Format PostScript
+#NL
+	El formato PostScript es el estándar empleado por la
+#NL
+	mayor parte de los editores y de los sistemas
+#NL
+	de procesadores de textos (bajo Unix...)
+
+SGI - Format Silicon Graphics, Inc., 
+#NL
+	Un formato de imagen propio de SGI, suportado por
+#NL
+	las librerías de las máquinas SGI. Este formato
+#NL
+	no está disponible en las otras plataformas.
+
+TIFF - Tagged Image File Format
+#NL
+	Formato de imagen bastante complejo, empleado por XPaint
+#NL
+	como formato por defecto. 
+
+XBM - X Window BitMap
+#NL
+	Formato blanco de imagen en blanco y negro, empleado muy
+#NL
+	frecuentemente por el sistema de gráfico X.
+
+XPM - X Window PixMap
+#NL
+	El formato XPM almacena las imágenes bajo la forma de 
+#NL
+	código C (texto ASCII), que puede ser incluso en 
+#NL
+	los programas en C o C++ utilizando iconos.
+
+XWD - X Window Dump
+#NL
+	Formato utilizado para las copias de pantalla con el sistema
+#NL
+	gráfico X.
+
+#BEGIN about "7. Con respecto a XPaint"
+NOTA: Esta versión de XPaint es libre (Open Source). Se mantiene por
+Jean-Pierre Demailly (demailly@ujf-grenoble.fr) por lo que respecta al
+código PNG, escrito y mantenido por Greg Roelofs
+(newt@uchicago.edu). Traducido al español por Mª Dolores Almansa
+Tejada (dolores.almansa@corazondemaria.org)
+
+Las versiones 2.2.1 - 2.5.7 ha sido escrita por Torsten Martinsen 
+(torsten@image.dk), y están basadas sobre XPaint 2.1.1, que ha sido
+escrita por David Koblas. Por esta razón no envíe relaciones de 
+bugs, etc., a David Koblas o Torsten Martinsen.
+
+El mensaje de más abajo es la traducción de "Con respecto a..." original en
+el archivo de descripción de la version 2.1.1. 
+
+
+               ----------------------------
+
+Esperamos que encuentre este programa útil. Si encuentra algún error o
+quiere hacer algún comentario al autor, puede enviarle un mensaje.
+
+Este programa ha sido creado con el objetivo de ser libremente
+compartido. Si está contento usando Xpaint su uso, el autor agradecerá
+que le envíe un donativo bajo la forma de dinero, empleo, o de
+cualquier otra forma...
+
+Si usted o su empresa busca un consultor experimentado, contacte con
+el autor para más detalles.
+
+David Koblas (koblas@netcom.com)
+#NL
+Extra Mile Consulting
+#NL
+PO Box 1352
+#NL
+Mountain View, CA 94042-1352 USA
+
+#BEGIN copyright  "8. Licencia de uso" 
+Copyright (C) 1993 - 1995, David Koblas 
+#NL
+Copyright (C) 1995 - 2000, Torsten Martinsen 
+#NL
+Copyright (C) 2000 - 2005, Jean-Pierre Demailly
+#NL
+Copyright (C) 1996 - 2003, Greg Roelofs 
+#NL
+Copyright (C) 1997, Scott D. Nelson
+
+Cualquier usuario tiene -sin ninguna obligación en contrapartida, el
+permiso para trabajar con el programa, de copiarlo, de modificarlo y
+de distribuirlo, así como su documentación, y no importa sobre qué
+medio, con la única excepción que la presente licencia de uso aparezca
+en todas las copias, y con la condición que la notificación de
+copyright y la licencia, aparezcan en el documento realizado. No hay
+ninguna garantía que este programa esté conforme a las
+especificaciones predefinidas o cualquier otro uso presupuesto. El
+programa es suministrado "tal cual" sin garantía específica o
+implícita.
+
+

@@ -1,0 +1,348 @@
+#
+# Imakefile for xpaint 2.7.4
+#
+# $Id: Imakefile,v 1.21 2005/03/20 20:15:32 demailly Exp $
+
+#include "./.version"
+
+#include "./Local.config"
+#include "./Local.xawdefs"
+
+DEFINES = $(ARCH_DEFINES) $(EXTRA_DEFINES) \
+          $(XAWLIB_DEFINES) $(XPM_INCLUDE) $(XFT_INCLUDE) \
+          "-DEDITOR=\"$(EDITOR)\"" \
+          "-DSHAREDIR=\"$(SHAREDIR)\"" \
+          "-DXAPPLOADDIR=\"$(XAPPLOADDIR)\"" \
+	  "-DXPAINT_VERSION=\"$(VERSION)\"" \
+
+#ifdef LPCCMD
+DEFINES += "-DLPCCMD=\"$(LPCCMD)\""
+#endif
+
+#ifdef PRINTCAP
+DEFINES += "-DPRINTCAP=\"$(PRINTCAP)\""
+#endif
+
+#########################
+# Nothing to change below here
+
+XPSRC = chroma.c color.c colorEdit.c dialog.c fatBitsEdit.c \
+	fileBrowser.c fontSelect.c grab.c graphic.c hash.c help.c \
+	image.c imageComp.c iprocess.c magnifier.c main.c menu.c misc.c \
+	operation.c palette.c pattern.c print.c protocol.c readRC.c \
+	screenshot.c text.c texture.c typeConvert.c 
+
+XPOBJ = chroma.o color.o colorEdit.o dialog.o fatBitsEdit.o \
+	fileBrowser.o fontSelect.o grab.o graphic.o hash.o help.o \
+	image.o imageComp.o iprocess.o magnifier.o main.o menu.o misc.o \
+	operation.o palette.o pattern.o print.o protocol.o readRC.o \
+	screenshot.o text.o texture.o typeConvert.o
+
+OPSRC = arcOp.c freehandOp.c boxOp.c brushOp.c circleOp.c fillOp.c \
+	fontOp.c lineOp.c pencilOp.c polygonOp.c splineOp.c selectOp.c \
+	sprayOp.c dynPenOp.c
+
+OPOBJ = arcOp.o freehandOp.o boxOp.o brushOp.o circleOp.o fillOp.o \
+	fontOp.o lineOp.o pencilOp.o polygonOp.o splineOp.o selectOp.o \
+	sprayOp.o dynPenOp.o
+
+XPWIDSRC = Colormap.c Paint.c PaintEvent.c PaintRegion.c PaintUndo.c
+XPWIDOBJ = Colormap.o Paint.o PaintEvent.o PaintRegion.o PaintUndo.o
+
+RWSRC =	rw/libpnmrw.c rw/readGIF.c rw/readJPEG.c rw/readTIFF.c \
+	rw/readWritePNM.c rw/readWriteSGI.c rw/readWriteXBM.c \
+	rw/readWriteXPM.c rw/readWriteXWD.c rw/rwTable.c \
+	rw/writeGIF.c rw/writeJPEG.c rw/writePS.c rw/writeTIFF.c \
+	rw/libpnmrw.h rw/rwTable.h 
+RWOBJ =	rw/libpnmrw.o rw/readGIF.o rw/readJPEG.o rw/readTIFF.o \
+	rw/readWritePNM.o rw/readWriteSGI.o rw/readWriteXBM.o \
+	rw/readWriteXPM.o rw/readWriteXWD.o rw/rwTable.o \
+	rw/writeGIF.o rw/writePS.o rw/writeTIFF.o 
+
+SRCS = $(XPSRC) $(OPSRC) $(XPWIDSRC)
+OBJS = $(XPOBJ) $(OPOBJ) $(XPWIDOBJ)
+
+HDRS =	Colormap.h ColormapP.h hash.h Paint.h \
+	PaintP.h palette.h xpaint.h menu.h \
+	text.h region.h image.h patchlevel.h \
+	misc.h rc.h ops.h color.h graphic.h operation.h protocol.h 
+
+OPBDIR = bitmaps/tools
+OPBITMAPS = $(OPBDIR)/brokenlineOp.xpm $(OPBDIR)/rayOp.xpm \
+	$(OPBDIR)/arcOp.xpm $(OPBDIR)/boxOp.xpm $(OPBDIR)/brushOp.xpm \
+	$(OPBDIR)/pencilOp.xpm $(OPBDIR)/dotPenOp.xpm $(OPBDIR)/dynPenOp.xpm \
+	$(OPBDIR)/lineOp.xpm $(OPBDIR)/eraseOp.xpm $(OPBDIR)/ovalOp.xpm \
+	$(OPBDIR)/smearOp.xpm $(OPBDIR)/sprayOp.xpm $(OPBDIR)/textOp.xpm \
+	$(OPBDIR)/polygonOp.xpm $(OPBDIR)/freehandOp.xpm \
+	$(OPBDIR)/filledBoxOp.xpm $(OPBDIR)/filledOvalOp.xpm \
+	$(OPBDIR)/filledFreehandOp.xpm $(OPBDIR)/filledPolygonOp.xpm \
+	$(OPBDIR)/filledSplineOp.xpm $(OPBDIR)/fillOp.xpm \
+	$(OPBDIR)/fractalFillOp.xpm $(OPBDIR)/gradientFillOp.xpm \
+	$(OPBDIR)/selectBoxOp.xpm $(OPBDIR)/selectOvalOp.xpm \
+	$(OPBDIR)/selectPolygonOp.xpm \
+	$(OPBDIR)/selectFreehandOp.xpm $(OPBDIR)/selectSplineOp.xpm
+
+XBMDIR = bitmaps/xbm
+
+XAWDEPENDS = \
+	brushOp.o chroma.o fileBrowser.o fontSelect.o graphic.o help.o \
+	iprocess.o main.o menu.o misc.o operation.o pattern.o print.o size.o
+
+#ifdef SGIArchitecture
+SGI_LIB = -limage
+#endif
+
+DEPLIBS = always xpaint.man XPaint.ad
+
+#if ! defined(__NetBSD__) && !defined(__FreeBSD__)
+LOCAL_LIBRARIES = -Lrw -lrw -ldl -rdynamic \
+  $(XPM_LIB) $(XFT_LIB) $(TIFF_LIB) $(SGI_LIB) $(JPEG_LIB) $(PNG_LIB) 
+#else
+LOCAL_LIBRARIES = -Lrw -lrw \
+  $(XPM_LIB) $(XFT_LIB) $(TIFF_LIB) $(SGI_LIB) $(JPEG_LIB) $(PNG_LIB)
+#endif
+
+SUBDIRS = rw xaw3dxft
+
+ComplexProgramTarget(xpaint)
+# InstallAppDefaults(XPaint)
+
+NamedMakeSubdirs(always, $(SUBDIRS))
+MakefileSubdirs($(SUBDIRS) bitmaps Doc)
+CleanSubdirs($(SUBDIRS))
+
+# Other targets...
+
+start::
+	if test `grep -c XAW3DXF Local.xawdefs` = 1 ; then \
+	cd xaw3dxft ; xmkmf ; make ; cd .. ; fi
+	@if ! [ -d xaw_incdir ] ; then ./configure ; make ; fi
+
+install::
+	mkdir -p $(DESTDIR)$(BINDIR)
+	cp -f share/bin/imgmerge $(DESTDIR)$(BINDIR)
+	mkdir -p $(DESTDIR)$(SHAREDIR)/bin
+	cp -f share/bin/xpaint_ocr $(DESTDIR)$(SHAREDIR)/bin
+	mkdir -p $(DESTDIR)$(SHAREDIR)/bitmaps
+	cp -p -r bitmaps/brushbox.cfg bitmaps/brushes bitmaps/elec \
+		 $(DESTDIR)$(SHAREDIR)/bitmaps
+	mkdir -p $(DESTDIR)$(SHAREDIR)/include
+	cp -f *.h $(DESTDIR)$(SHAREDIR)/include
+	cp -f XPaintIcon.xpm $(DESTDIR)$(SHAREDIR)
+	mkdir -p $(DESTDIR)$(SHAREDIR)/c_scripts
+	cp -r share/c_scripts $(DESTDIR)$(SHAREDIR)
+	./substads -single share/include/Xpaint.h \
+		$(DESTDIR)$(SHAREDIR)/include/Xpaint.h \
+		"XPAINT_SHAREDIR" $(SHAREDIR)
+	cp -f share/include/Xpaint3d.h $(DESTDIR)$(SHAREDIR)/include
+	cd app-defaults/out ; cp -f * $(DESTDIR)$(XAPPLOADDIR)
+	mkdir -p $(DESTDIR)$(SHAREDIR)/help
+	cd share/help ; $(RM) -f *~ ; cp -f Help* $(DESTDIR)$(SHAREDIR)/help
+	mkdir -p $(DESTDIR)$(SHAREDIR)/messages
+	cd share/messages ; $(RM) -f *~ ; cp -f Messages* $(DESTDIR)$(SHAREDIR)/messages
+	chmod -R a+r $(DESTDIR)$(SHAREDIR)/
+	sh pdfconcat.c
+	install -c pdfconcat $(DESTDIR)$(BINDIR)
+
+strip::
+	if [ -x $(DESTDIR)$(BINDIR)/xpaint ] ; \
+		then strip $(DESTDIR)$(BINDIR)/xpaint ; fi
+	if [ -x $(DESTDIR)$(BINDIR)/pdfconcat ] ; \
+		then strip $(DESTDIR)$(BINDIR)/pdfconcat ; fi
+
+xaw::
+	-$(RM) $(XAWDEPENDS)
+	./configure xaw ; make		
+	@echo ""
+	@echo "'xpaint' compiled with Xaw widgets (old and ugly)"
+	@echo "You should rather use Xaw3d, neXtaw or Xaw95 !!"	
+	@echo "Type 'make xaw3d(g)' or 'make nextaw' or 'make xaw95'"
+	@echo ""	
+
+xaw3d::
+	-$(RM) $(XAWDEPENDS)
+	./configure xaw3d ; make
+	@echo ""	
+	@echo "'xpaint' compiled with Xaw3d widgets"
+	@echo "Variants are 'make xaw3dg' and 'make nextaw' and 'make xaw95'"
+	@echo ""	
+
+xaw3dg::
+	-$(RM) $(XAWDEPENDS)
+	./configure xaw3dg ; make	
+	@echo ""	
+	@echo "'xpaint' compiled with Xaw3d(g) widgets"
+	@echo "Variants are 'make xaw3d', 'make nextaw' and 'make xaw95'"
+	@echo ""	
+
+xaw3dxft.a::
+	-$(RM) $(XAWDEPENDS)
+	./configure xaw3dxft.a ; make
+	@echo ""	
+	@echo "'xpaint' compiled with Xaw3dxft widgets"
+	@echo "Variants are 'make xaw3dg' and 'make nextaw' and 'make xaw95'"
+	@echo ""	
+
+xaw3dxft.so::
+	-$(RM) $(XAWDEPENDS)
+	./configure xaw3dxft.so ; make
+	@echo ""	
+	@echo "'xpaint' compiled with Xaw3dxft widgets"
+	@echo "Variants are 'make xaw3dg' and 'make nextaw' and 'make xaw95'"
+	@echo ""	
+
+nextaw::
+	-$(RM) $(XAWDEPENDS)
+	./configure nextaw ; make	
+	@echo ""	
+	@echo "'xpaint' compiled with neXtaw widgets"
+	@echo "Variants are 'make xaw3d' and 'make xaw95'"
+	@echo ""	
+
+xaw95::
+	-$(RM) $(XAWDEPENDS)
+	./configure xaw95 ; make
+	@echo ""	
+	@echo "'xpaint' compiled with Xaw95 widgets"
+	@echo "Another alternative is to use the Xaw3d widgets :"	
+	@echo "Type 'make xaw3d' or 'make xaw3dg'"
+	@echo ""	
+
+clean::
+	-$(RM) preproc substads pdfconcat
+	-$(RM) XPaint.ad XPaint.ad.h DefaultRC.txt.h PGP.*
+	-$(RM) -rf share/out xaw_incdir
+	cd share/help ; $(RM) *~
+	cd share/messages ; $(RM) *~
+	cd app-defaults ; $(RM) core *~ substads
+	cd app-defaults/out ; $(RM) -f XPaint*
+	cd xaw3dxft ; make clean
+
+cleandir::
+	-$(RM) bitmaps/Makefile* Doc/Makefile*
+	-$(RM) -f rw/Makefile
+	-$(RM) -f xaw3dxft/Makefile
+
+includes:: XPaint.ad.h DefaultRC.txt.h messages.h
+	cd bitmaps; $(RM) tools; \
+	if test "$(TOOLFLAGS)" != "" ; \
+	then ln -s big_tools tools ; else ln -s small_tools tools ; fi
+
+XPaint.ad: app-defaults
+	$(CC) substads.c -o substads
+	cd app-defaults ; \
+	../substads -appdefs \
+	            XPAINT_VERSION $(VERSION) \
+		    XPAINT_SHAREDIR $(SHAREDIR) \
+		    XPAINT_PRINT_COMMAND "$(PRINT_COMMAND)" \
+		    XPAINT_POSTSCRIPT_VIEWER "$(POSTSCRIPT_VIEWER)" \
+		    XPAINT_EXTERN_VIEWER "$(EXTERN_VIEWER)"
+	cp -p app-defaults/out/XPaint XPaint.ad
+
+XPaint.ad.h:	XPaint.ad
+	./substads -ad2c $? $@
+messages.h:	preproc.c share/messages/Messages
+	$(CC) preproc.c -o preproc
+	./preproc > messages.h
+DefaultRC.txt.h: DefaultRC
+	./substads -ad2c $? $@
+xpaint.man:	xpaint.man.in .version
+	./substads -single xpaint.man.in xpaint.man XPAINT_VERSION $(VERSION) 
+
+Colormap.o: ColormapP.h Colormap.h
+Paint.o: PaintP.h Paint.h xpaint.h misc.h
+PaintEvent.o: PaintP.h Paint.h xpaint.h
+PaintRegion.o: PaintP.h Paint.h protocol.h
+PaintUndo.o: xpaint.h misc.h PaintP.h Paint.h
+freehandOp.o: xpaint.h misc.h Paint.h ops.h
+boxOp.o: xpaint.h misc.h Paint.h ops.h
+brushOp.o: xpaint.h misc.h Paint.h palette.h \
+	graphic.h protocol.h ops.h
+circleOp.o: xpaint.h misc.h Paint.h ops.h
+chroma.o: start xpaint.h Paint.h palette.h protocol.h color.h messages.h \
+	 misc.h operation.h ops.h
+color.o: messages.h palette.h protocol.h color.h xpaint.h misc.h image.h
+colorEdit.o: misc.h palette.h color.h protocol.h
+dialog.o: misc.h xpaint.h protocol.h
+fatBitsEdit.o: Paint.h xpaint.h messages.h palette.h menu.h misc.h region.h \
+	protocol.h graphic.h
+fileBrowser.o: Paint.h messages.h misc.h image.h rw/rwTable.h graphic.h \
+	protocol.h 
+fontSelect.o: xpaint.h messages.h misc.h operation.h ops.h graphic.h protocol.h
+grab.o: image.h
+graphic.o: xpaint.h palette.h messages.h misc.h menu.h text.h graphic.h \
+	image.h region.h operation.h rc.h protocol.h color.h rw/rwTable.h
+hash.o: misc.h hash.h
+help.o: Paint.h misc.h protocol.h
+image.o: image.h hash.h palette.h misc.h protocol.h
+imageComp.o: image.h hash.h protocol.h misc.h
+iprocess.o: xpaint.h image.h misc.h protocol.h
+lineOp.o: xpaint.h misc.h Paint.h ops.h
+main.o: XPaint.ad.h messages.h misc.h graphic.h protocol.h \
+	rw/rwTable.h XPaintIcon.xpm .version
+menu.o: menu.h $(XBMDIR)/checkmark.xbm $(XBMDIR)/pullright.xbm
+misc.o: $(XBMDIR)/background.xbm xpaint.h misc.h messages.h
+operation.o: $(OPBITMAPS) Local.config operation.c ops.h xpaint.h misc.h \
+	menu.h Paint.h text.h graphic.h image.h operation.h protocol.h \
+	region.h messages.h
+	$(CC) -c -I./$(OPBDIR) $(CFLAGS) $*.c
+palette.o: messages.h palette.h hash.h misc.h image.h xpaint.h
+pattern.o: Colormap.h Paint.h palette.h xpaint.h menu.h misc.h image.h \
+	region.h text.h graphic.h operation.h color.h protocol.h messages.h
+pencilOp.o: xpaint.h Paint.h misc.h ops.h
+print.o: xpaint.h menu.h image.h messages.h misc.h region.h text.h \
+	graphic.h operation.h color.h protocol.h
+protocol.o: xpaint.h messages.h misc.h protocol.h \
+	$(XBMDIR)/wait1.xbm $(XBMDIR)/wait2.xbm \
+	$(XBMDIR)/wait3.xbm $(XBMDIR)/wait4.xbm
+readRC.o: image.h rc.h misc.h DefaultRC.txt.h
+size.o: Paint.h messages.h misc.h text.h
+screenshot.o: Paint.h image.h messages.h
+text.o: misc.h protocol.h text.h
+typeConvert.o: palette.h misc.h
+fontOp.o: xpaint.h Paint.h graphic.h misc.h ops.h
+arcOp.o: xpaint.h Paint.h misc.h ops.h
+polygonOp.o: xpaint.h misc.h Paint.h ops.h
+fillOp.o: Paint.h protocol.h xpaint.h ops.h image.h misc.h palette.h
+selectOp.o: xpaint.h Paint.h protocol.h palette.h color.h misc.h \
+	operation.h ops.h
+sprayOp.o: xpaint.h Paint.h misc.h ops.h 
+
+TEXT =	README README.old README.PNG INSTALL DefaultRC ChangeLog \
+	xpaint.man.in TODO .version Imakefile Local.config 
+MISC = XPaintIcon.xpm Filelist preproc.c substads.c 
+
+makelist:: 
+	-$(RM) Filelist
+	@touch Filelist
+
+makelist:: 
+	sh -c 'for i in '"$(TEXT) $(SRCS) $(MISC) $(LANGFILES) $(HDRS)"' ; \
+	do echo $(CURRENT_DIR)/$$i >> $(TOP)/Filelist ; done '
+	share/bin/make_list 
+
+NamedTargetSubdirs(makelist, $(SUBDIRS) bitmaps Doc, , , makelist)
+
+kit: makelist
+	sh -c 'sum="`cat Filelist`" ; makekit -oMANIFEST MANIFEST $$sum'
+
+targz: makelist
+	make realclean 
+	cd .. ; tar cvfz xpaint-$(VERSION).tar.gz xpaint-$(VERSION)
+
+tarbz2: makelist
+	make realclean ;
+	cd .. ; tar cvfj xpaint-$(VERSION).tar.bz2 xpaint-$(VERSION)
+
+TAGS:	$(SRCS) $(HDRS) $(RWSRC)
+	etags -t -o ./TAGS $(XPSRC) $(OPSRC) $(XPWIDSRC) $(RWSRC) $(HDRS)
+
+realclean: clean
+	-$(RM) messages.h \
+	Makefile* */Makefile* xpaint.man
+
+certification:	makelist
+	-$(RM) $(CERTIFICATION)	
+	certify `cat Filelist`
+
+

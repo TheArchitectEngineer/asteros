@@ -1,0 +1,36 @@
+#!/bin/bash
+# Copyright 2007, J.-P. Demailly <demailly@fourier.ujf-grenoble.fr>
+# Licence : GPLv3
+
+# adapt to whatever OCR engine you prefer
+if test `which cuneiform` != ""
+then
+   cuneiform -l eng $HOME/xpaint_output.ppm -o $HOME/xpaint_ocr_output.txt
+elif test `which ocrad` != ""
+then
+   ocrad $HOME/xpaint_output.ppm >> $HOME/xpaint_ocr_output.txt
+else
+   echo -e "ocrad/cuneiform engines not available !!\n\
+Please adapt the 'xpaint_ocr' script to the preferred OCR engine." \
+        > $HOME/xpaint_ocr_output.txt
+fi
+
+# adapt to whatever X pager or X editor is available
+# we strongly recommend good old 'xless' ...
+#
+if test `which xless` != ""
+then
+  if test `ps aux | grep -e [x]less | grep -c "xpaint_ocr_output.txt"` = "0"
+  then
+    xless -fn 10x20 -f $HOME/xpaint_ocr_output.txt &
+  fi
+elif test `which emacs` != ""
+then
+   emacs -fn 10x20 -f $HOME/xpaint_ocr_output.txt &
+elif test `which xterm` != ""
+then
+   xterm -e less $HOME/xpaint_ocr_output.txt &
+fi
+
+rm -f $HOME/xpaint_output.ppm
+

@@ -1,0 +1,73 @@
+#
+# Imakefile for xpaint read/write directory
+#
+# $Id: Imakefile,v 1.22 2005/03/20 20:15:34 demailly Exp $
+
+#include "../.version"
+
+#include "../Local.config"
+
+INCLUDES = -I.. $(XPM_INCLUDE) $(TIFF_INCLUDE) $(JPEG_INCLUDE) $(PNG_INCLUDE)
+
+#########################
+# Nothing to change below here
+
+TIFF_SRC = writeTIFF.c readTIFF.c
+#ifdef HaveTIFF
+TIFF_OBJ = writeTIFF.o readTIFF.o
+TIFF_DEF = -DHAVE_TIFF
+#endif
+
+JPEG_SRC = readJPEG.c writeJPEG.c
+#ifdef HaveJPEG
+JPEG_OBJ = readJPEG.o writeJPEG.o
+JPEG_DEF = -DHAVE_JPEG
+#endif
+
+PNG_SRC = readWritePNG.c
+#ifdef HavePNG
+PNG_OBJ = readWritePNG.o
+PNG_DEF = -DHAVE_PNG
+#endif
+
+XPM_SRC = readWriteXPM.c
+XPM_OBJ = readWriteXPM.o
+
+SGI_SRC = readWriteSGI.c
+#ifdef SGIArchitecture
+SGI_OBJ = readWriteSGI.o
+SGI_DEF = -DHAVE_SGI
+#endif
+
+DEFINES = $(XPM_DEF) $(TIFF_DEF) $(SGI_DEF) $(JPEG_DEF) $(PNG_DEF) \
+	  $(EXTRA_DEFINES) $(ARCH_DEFINES) "-DXPAINT_VERSION=\"$(VERSION)\"" \
+	  "-DSHAREDIR=\"$(SHAREDIR)\""
+
+SRCS = rwTable.c readWriteBMP.c readWriteICO.c readScriptC.c \
+	readWriteXBM.c readWritePNM.c readWriteXWD.c readWritePS.c \
+	readWriteLXP.c readGIF.c writeGIF.c $(XPM_SRC) $(TIFF_SRC) \
+	$(SGI_SRC) $(JPEG_SRC) $(PNG_SRC) libpnmrw.c 
+OBJS = rwTable.o readWriteBMP.o readWriteICO.o readScriptC.o \
+	readWriteXBM.o readWritePNM.o readWriteXWD.o readWritePS.o \
+	readWriteLXP.o readGIF.o writeGIF.o $(XPM_OBJ) $(TIFF_OBJ) \
+	$(SGI_OBJ) $(JPEG_OBJ) $(PNG_OBJ) libpnmrw.o 
+
+HDRS = libpnmrw.h rwTable.h
+MISC = Imakefile
+
+NormalLibraryTarget(rw, $(OBJS))
+
+makelist:
+	sh -c 'for i in '"$(TEXT) $(SRCS) $(MISC) $(HDRS)"' ; do \
+		echo $(CURRENT_DIR)/$$i >> ../Filelist ; done '
+
+rwTable.o: ../Local.config
+
+realclean:: clean
+
+distclean:: clean
+	rm -f Makefile
+
+cleandir:: clean
+	rm -f Makefile
+

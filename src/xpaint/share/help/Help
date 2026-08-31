@@ -1,0 +1,1794 @@
+#BEGIN introduction "0. Introduction" "$Id: Help,v 1.15 2005/03/20 20:15:35 demailly Exp $"
+Welcome to the latest version of XPaint.
+
+XPaint is a color image-editing tool that features most standard paint
+program options.
+
+It allows for the editing of multiple images simultaneously and supports
+various formats, including PNG, JPEG, GIF, TIFF, PPM, XBM, XPM, etc.
+
+XPaint does not attempt to compete with much more sophisticated programs
+such as "The Gimp" (http://www.gimp.org), but instead focuses on ease of use.
+
+The functionality of XPaint is divided into a toolbox area for selecting
+the current paint operation and paint windows for modifying/creating
+images.  Each paint window has access to its own color palette and set
+of patterns, although the paint operation in use is globally selected
+for all windows.
+
+By default all images given on the command line are listed in the browser
+of preselected files, but only the first one will be displayed. The /o 
+switch (resp. /c, /l) indicates that the next images will be opened in a
+graphical canvas (resp. in the clipboard, resp. again listed in the file
+browser).
+
+XPaint runs on a variety of displays.  Saving images will adapt them
+to the current display type (e.g., a color image loaded on a greyscale
+screen will be saved as a grey image). This can result in the loss of
+data; see the Possible Data Loss section for details.
+
+More information is available under the specific topics.  Enjoy!
+
+#BEGIN data_loss	"1. Possible Data Loss"
+XPaint uses the native display format for storing image info while editing;
+the original image information is thrown away.  This means that, in general,
+color information is irretrievably lost when using any display depth
+less than 24 bits.
+
+More specifically, for depths less than 8 bits, both
+24-bit (true-color) and 8-bit (palette) images will be reduced to the display
+depth; for 8-bit displays, standard color-mapped images are safe but 12-bit
+color-mapped and 24-bit true-color images will lose color information;
+for 15- and 16-bit displays (typically RGB 555 and 565, respectively), in
+general both 8-bit and 24-bit images will suffer data loss; and for 24- or
+32-bit displays, only very deep images such as 16-bit grayscale or 48-bit
+true-color will lose data.
+
+Also note that any ancillary information associated with the original
+image (embedded comments, time stamp, copyright, etc.) will always be lost.
+
+#BEGIN command	"2. Command Line Options"
+xpaint [-canvas] [-screenshot] [-magnifier] [-nowarn]
+#NL
+       [-menubar] [-nomenubar] [-fullmenu] [-simplemenu]
+#NL
+       [-language LANGUAGE] [-zoom VALUE] [-sharedir DIR]
+#NL
+       [-menufont FONT] [-encoding 0/8/16]
+#NL
+       [-twistcolor VALUE] [-hilitcolor VALUE]
+#NL
+       [-rcfile FILE] [-msgfile FILE] [-helpfile FILE]
+#NL
+       [-size WIDTHxHEIGHT] [-winsize WIDTHxHEIGHT] [-dpi DPI]
+#NL
+       [-undosize VALUE] [-operation NUMBER] [-filter FILE] [-proc FILE]
+#NL
+       [-8 | -12 | -24 | -visual VISUAL]
+#NL
+       IMAGE1 IMAGE2 ... /o IMAGE3 ... /c IMAGE4 ... /l IMAGE5 ...
+#NL
+	-language	set LANGUAGE for dialogs and menus
+#NL
+	-encoding	Use 0 (UTF8), 8 (8 bit) or 16 (16 bit)
+#NL
+	-menufont	Set freetype font in menus
+#NL
+	-twistcolor	Twisting color to brown-ish for insensitive items
+#NL
+	-hilitcolor	Set highlighting color as hexadecimal #PQRSTU
+#NL
+	-zoom		default zoom for painting canvas
+#NL
+	-size		default width and height for painting canvas
+#NL
+	-winsize	default size for canvas windows
+#NL
+	-dpi		use DPI resolution when loading vector format images
+#NL
+	-undosize	default undo maximal VALUE
+#NL
+	-operation	switch on operation NUMBER# in the tool panel
+#NL
+	-filter		compile FILE as C-script filter
+#NL
+	-proc		compile FILE as C-script procedure
+#NL
+	-8		use an 8-bit PseudoColor visual
+#NL
+	-12		use a 12-bit PseudoColor visual
+#NL
+	-24		use a 24-bit TrueColor visual
+#NL
+	-canvas		pop up an empty canvas on startup
+#NL
+	-screenshot	open xpaint without any GUI, and take screenshot
+#NL
+	-magnifier	open xpaint in magnifier glass mode
+#NL
+	-nowarn		skip data-loss warnings at startup
+#NL
+	-menubar	show menu bar on top of canvas windows
+#NL
+	-nomenubar	do not show menu bar on top of canvas windows
+#NL
+	-fullmenu       show the complete menu on the floating canvas popup
+#NL
+	-simplemenu     just show the edit menu on the floating canvas popup
+#NL
+	-sharedir	use DIR instead of default share directory
+#NL
+	-rcfile		use FILE instead of default .XPaintrc
+#NL
+	-msgfile	use FILE instead of default localized message file
+#NL
+	-helpfile	use FILE instead of default localized help file
+#NL
+	-visual		use VISUAL instead of default.  Choices are
+#NL                  
+				TrueColor, PseudoColor, DirectColor, StaticColor,
+#NL
+				StaticGray, GrayScale, or the decimal visual 
+#NL
+				number (from xdpyinfo).
+#NL
+These options are normally followed by the names IMAGE1, IMAGE2 (...) 
+#NL
+of the images to be loaded. By default all these images are listed in the
+#NL
+browser of preselected files, but only the first one will be displayed.
+#NL
+The /o switch (resp. /c, /l) indicates that the next images will be opened
+#NL
+in a graphical canvas (resp. in the clipboard, resp. again listed in the
+#NL
+file browser).
+#NL
+
+#BEGIN toolbox "3. Toolbox"
+The toolbox is used to set those options that are applicable to all
+XPaint canvases.
+
+#PUSH
+#BEGIN tool_file "3.1. Canvas Menu"
+The file menu is used to create a new canvas or load an image from a file.
+
+New Canvas
+#NL
+	Create a new blank canvas (default size:
+#NL
+	640x480).  See "Command Line Options" for
+#NL
+	changing the default size.
+
+New with Size...
+#NL
+	Create a new canvas with the specified
+#NL
+	dimensions.
+
+Open...
+#NL
+	Load a specified image file and open a new
+#NL
+        canvas for viewing or modifying it.  Images can
+#NL
+	be opened in a variety of formats.  If none
+#NL
+	of the specific formats is selected, XPaint
+#NL
+	will attempt to perform a "Best Guess" as to
+#NL
+	the image format.  Unknown formats will result
+#NL
+	in an error message.
+
+Take Screenshot...
+#NL
+	Grab a rectangle from the root window and load
+#NL
+	that rectangle in a new canvas. The left button
+#NL
+	is used to select opposite corners of the 
+#NL
+	rectangle, the middle button to grab a complete
+#NL
+	window and the third button to cancel the 
+#NL
+	operation.
+
+Quit
+#NL
+	Exit XPaint, closing all windows.
+
+#BEGIN tools "3.2. Painting Tools"
+The painting tool icons set the current painting operation for all canvases.
+
+Operations are selected with mouse button one.  Pressing mouse button three
+while over any of the icons will bring up a menu of options available for
+that tool.  Some icons also allow double-clicking as a faster method of
+bringing up style options.
+
+See the specific paint operation for more information.
+
+#PUSH
+#BEGIN pencil "Pencil"
+The pencil operation paints a connected line on the canvas, following the
+cursor while the mouse button is pressed.  The global line width is used
+to determine the width of this line.
+
+Button one paints in the primary color/pattern, button two the secondary
+color/pattern.
+
+See "Line Menu" under the canvas menu bar for more information about line 
+width.
+
+#BEGIN dynpencil "Dynamic Pencil" 
+The dynamic pencil operation paints calligraphic stroke-like curves
+on the canvas, following the cursor while the mouse button is pressed.
+It mimics pulling a variable-width pencil with a rubber string. The
+width of the pen gets smaller the faster it moves. The pencil has a
+settable mass. Depending on its mass, it follows the cursor more or
+less tightly as you accelerate and turn the cursor. A heavy pencil has
+large inertia.
+
+The "mass", steady-state width and "drag" can be set with the dialog 
+you get if you press button three on the icon.
+
+Button one paints in the primary color/pattern, button two the secondary
+color/pattern.
+
+#BEGIN dotPencil "Dot Pencil"
+The dot pencil operation paints a series of dots on the canvas, following the
+cursor while the mouse button is pressed.
+
+Button one paints in the primary color/pattern, button two the secondary
+color/pattern.
+
+See "Pencil" for painting connected lines.
+
+#BEGIN brush "Brush"
+The brush operation uses the current brush to paint on the canvas(es).
+Painting is accomplished by holding down the mouse button and
+moving the mouse in the canvas area.  Button one paints in the selected primary
+color/pattern, while button two uses the secondary one.
+
+If the 'Transparent' option is selected from the menu found by pressing button
+three on the icon, the selected color is blended with the color already on the
+canvas. You can change the opacity of the brush using the 'Parameters...'
+option. Zero percent means that the canvas is not changed at all, while 100
+percent gives the same result as using a non-transparent brush.
+
+If the 'Stain' option is selected from the menu found by pressing button
+three on the icon, the selected color is applied as stain, for instance
+all black pixels already present on the canvas are left unmodified, but
+less dark pixels can receive some coloring.
+
+The current brush style may be changed through the brush chooser available
+on the button three menu for either the brush or erase operation icons.
+The brush chooser can also be opened through the brush icon button from
+the canvas windows.
+
+#BEGIN spray "Spray"
+The spray operation is designed to emulate a spray can.  It will paint
+a random set of dots within a given radius.
+
+It is possible to change the attributes of the spray operation to
+achieve the desired effect.   There are three parameters that will
+modify the configuration of the spray tool:
+#NL
+	radius		how large of a circle to fill
+#NL
+	density		number of dots in the given area
+#NL
+	rate		speed to fill the area in tenths of a second
+
+Additionally, it is possible to change the distribution of the dots to
+be either even or gaussian (usually only noticeable at large radii).
+These options are found in the menu brought up by clicking button three
+on the spray icon.
+
+As with many other operations, the spray operation can make use of either
+the primary or secondary color/pattern based on which button (one or two,
+respectively) is held down while painting on the canvas.
+
+#BEGIN smear "Smear"
+The smear operation paints each pixel under the brush the average color
+of all the pixels.
+Smearing is done by holding down the mouse button and
+moving the mouse in the canvas area.
+
+The current brush style may be changed through the brush chooser available
+on the button three menu.
+
+#BEGIN line "Segment"
+The line operation paints a segement of straight line in the primary 
+color/pattern between two selected points on the canvas, using the 
+global line width and the global dash style.
+
+See "Line Menu" under the canvas menu bar for more information about 
+line width and dash style.
+
+Lines may also be restricted to increments of 45 degrees (i.e.,
+horizontal, vertical, or diagonal) by holding down the shift key while
+painting.
+
+Options to the "Segment" tool are "Sheaf" and "Vector". 
+
+The "Sheaf" option paints an array of "segments" from the first selected 
+point to all subsequent points in the primary color/pattern. Button 
+two ends this operation (without selecting a new ray point). Rays may 
+also be restricted to slopes based on a 45 degree increment (i.e.,
+horizontal, vertical, or diagonals) by pressing the shift key while
+painting.
+
+When the "Vector" option is set, all segments are drawn with an arrow head 
+at the end point.
+
+#BEGIN brokenline "Polygonal Line"
+The connected line operation paints a series of straight lines connected at
+selected vertices.  Each new vertex is selected using the first mouse button.
+The second mouse button ends this operation, without forming a new vertex.
+
+All painting is done in the primary color/pattern using the currently defined
+line width and dash style.
+
+See "Line Menu" under the canvas menu bar for more information about line 
+width and dash style.
+
+#BEGIN arc "Arc"
+The arc operation paints an arc between two selected points in the primary
+color/pattern, using the current line width and the current dash style.  
+According to the operating mode which is selected, one can obtain 
+circle arcs ior ellipse arcs.
+
+There are four operating modes available. The first, which is also the 
+default mode, draws a circle arc joining 3 points. As long as the arc is
+not finalized, the second extremity of the arc can be changed by pressing 
+the Shift key.
+
+The second operating mode produces ellipse quadrants. In this case, the
+Shift key changes the arc concavity (turning it upwards rather than
+downwards).
+
+The third and fourth operating modes produce arbitrary ellipse arcs
+(the ellipse have horizontal and vertical axes, however). One first
+selects the ellipse itself, and then the extremities of the arc.
+In mode 3, the initial point is the center of the ellipse.
+In mode 4, the first two points are opposite vertices of a rectangular
+box containing the ellipse. In both cases, the Shift key enforces
+a circle arc rather than an arc of ellipse.
+
+See "Line Menu" under the canvas menu bar for more information about line 
+width and dash style.
+
+#BEGIN arrow "Arrow head"
+This operation draws arrow heads and only arrow heads. The first clic with
+left button mouse selects the extremity of the arrow head, while the second
+clic allows to choose the orientation. If the second clic occurs at the
+same point as the first one, the arrow head is not drawn (so, this is a
+way to cancel the operation).
+
+The arrow head can be changed with the "Parameters..." menu. The available
+parameters are head type (1, 2 or 3), head size and an angle equal to
+one half of the aperture of the arrow head.
+
+#BEGIN text "Text"
+The text operation allows for typing in the currently selected font.
+Pressing mouse button two in the canvas area while inserting text
+will paste text from the X clipboard at the current insertion point.
+
+See the "Font Menu" for information on changing the selected font.
+
+Note:  Changing a font while inserting will not allow backspacing over text
+in a previous font.
+
+#BEGIN erase "Erase"
+The erase operation is designed to either erase a section of the painting to
+the set background color for the canvas or to revert the erased area to
+the originally loaded image.  (Note:  This is not the last saved image!)
+
+The eraser is the style of the current brush, and the brush selection
+window is accessible through the menu found by clicking mouse button
+three on either the erase or brush icons.
+
+See help on the "Brush" or on "Change Background..." under the Image menu of
+the Painting Window for more information.
+
+#BEGIN box "Box [Filled] [Region]"
+The box operations paint either rectangles or squares using the current line
+width. Pressing shift while moving the mouse after selecting the first point
+will constrain the box to a square.
+
+Selecting the 'center' option from the menu found by pressing button three on
+the icon will define the first point as the center of the square with
+the second point being on the perimeter.
+
+Filled boxes are painted in the primary color/pattern and filled
+with the secondary color/pattern for the canvas.
+
+See "Line Menu" under the canvas menu bar for more information about line 
+width and dash style.
+
+#BEGIN oval "Oval [Filled]  [Region]"
+The oval operations paint either circles or ovals using the current line width.
+Ovals/circles are painted by selecting two points that inherently define
+a box around the area for the oval.  Pressing shift while moving the mouse will
+constrain the oval to a circle.
+
+Selecting the 'center' option from the menu found by pressing button three on
+the icon will define the first point as the center of the circle with the
+second point being the radius.
+
+Filled ovals and circles are painted in the primary color/pattern and filled
+with the secondary color/pattern for the canvas.
+
+See "Line Menu" under the canvas menu bar for more information about 
+line width and dash style.
+
+#BEGIN freehand "Freehand Shape [Filled] [Region]"
+Shape operations allow the user to draw closed objects with a 
+pencil-like operation.  When the mouse button is released, the last drawn 
+point is connected to the starting point. 
+
+Painting can either be done in the primary color/pattern with button one or
+in the secondary color/pattern with button two.  Filled shapes are filled in
+the other palette color/pattern.  Border width is determined by the current
+setting for line width.
+
+See "Line Menu" under the canvas menu bar for more information about line 
+width and dash style.
+
+#BEGIN polygon "Polygon [Filled] [Region]"
+Polygon operations paint polygons as defined by a series of straight lines
+between selected vertices.  Each new vertex is selected using the first mouse
+button.  Ending this operation (done through pressing the second mouse
+button) does not create a new vertex and results in the last created
+vertex being joined to the first.
+
+Polygons are drawn in the primary color/pattern, using the currently defined
+line width and dash style, and filled in the secondary color/pattern.
+
+See "Line Menu" under the canvas menu bar for more information about line 
+width and dash style.
+
+#BEGIN spline "Spline Curve [Filled] [Region]"
+The spline curve operation paints a connected curve made up of Bézier
+cubics, or possibly a combination of Bézier cubics and line segments. 
+The Bézier cubics are calculated in such a way that they interpolate as 
+best as possible the selected points. Each new point is selected using 
+the first mouse button. The second mouse button ends this operation, 
+without creating a new point. In order to create a new portion
+of line segment or Bézier curve (and thus to produce an angular point 
+in the curve), it suffices to press the Shift key during the creation
+of the first piece of that curve.
+
+The spline curve can be either open or closed. The Open/Closed property 
+is selected by pressing the third mouse button in the spline curve icon. 
+By pressing the "Control" key during mouse motion, spline curves that
+ought to be closed at the end of the point selection process are 
+shown closed at every step. This enables users to check the shape of 
+the expected curve before confirming the final point. The "Closed up"
+option has a similar effect, except that it is no longer necessary to
+press the Control key.
+
+Spline curves are painted in the primary color/pattern and filled
+with the secondary color/pattern. The boundary is drawn using the 
+currently defined line width and dash style.
+
+See "Line Menu" under the canvas menu bar for more information about line 
+width and dash style.
+
+#BEGIN select "Select Regions"
+There are five operations for selecting regions:  
+
+1) Select Rectangular Region
+#NL
+2) Select Elliptic Region
+#NL
+3) Select Freehand Contour
+#NL
+4) Select Polygonal Region
+#NL
+5) Select Spline Contour
+
+All this selections ar available from the blue buttons located in the
+same row as the corresponding drawing or filling action.
+
+In the case of rectangular or elliptic regions, holding down the Shift key
+while pressing the mouse button with constrain the region to be a
+square or a circle, respectively.
+
+By default, the selected region becomes semi-transparent when mouse 
+button one is pressed. By double-clicking this button or pressing
+the spacebar, it is possible to activate-disactivate transparency.
+(Semi-)transparency is useful when the slected region has to be
+positioned accurately with respect to the underlying canvas. In order
+not to activate/disactivate transparency, use mouse button three.
+Mouse button two can be used to rotate the selected region.
+
+The three possible modes used by these operations are set by opening
+the option menu with button three on the operation icons:
+
+All Colors 	        Select the entire region.
+#NL
+Omit Color Range	Select the region, excluding the
+#NL
+				specified range of colors.
+#NL
+Only Color Range	Select only the specified color range
+#NL
+				in the region.
+#NL
+See "Range Selection" for more information on choosing a range of colors
+for these operations.
+
+Operations that may be performed on selected regions include the ability
+to move and resize them.  Holding shift down during resizing will constrain
+the region to its original aspect ratio.  Holding shift down during moving
+will constrain movement to horizontal or vertical.  
+
+Note that moving a region will result in the original location being painted
+in the current background color. See "Background Color..." under the Image
+menu of the Paint Window for more information.
+
+You can also use the cursor keys to move the region one pixel at a time (hold
+down the Control key to move in larger steps).
+
+#BEGIN fill "Fill"
+The fill operation will paint an area around a selected pixel the current
+primary or secondary color/pattern (based on which mouse button used).  The
+area is determined by matching adjacent pixel values until a variation is
+found.  Diagonal pixels are not considered adjacent.
+
+Selecting the 'Change' option from the menu found by pressing button three on
+the icon will enter Change Mode. In this mode, all pixels in the image that
+have the same color as the selected one will be changed to the primary or
+secondary color.
+
+Selecting the 'Fill Range' option causes XPaint to consider not only pixels of
+the exact same color as the selected one, but also pixels within the variance
+(delta) set from the color selector found under the 'Select Range...' popup
+menu item.
+
+#BEGIN gradientFill "Gradient Fill"
+The gradient fill operation will paint an area around a selected pixel with a
+range of colors obtained by mixing the primary and secondary colors.
+The area is determined by matching adjacent pixel values until a variation is
+found.  Diagonal pixels are not considered adjacent.
+
+The 'Fill', 'Change' and 'Fill Range' options in the popup menu work the same
+as for the ordinary fill operation.
+
+Linear, Radial, Conical or Square gradient fill can be selected by clicking
+mouse button three on the Gradient Fill icon. Also, several parameters can be
+adjusted using the 'Parameters' item here:
+
+Angle
+#NL
+	Defines the tilting of the pattern. Valid range is
+#NL
+	-360 to 360 degrees.
+
+Pad	If this value is positive, the area where one color
+#NL
+	blends into the other will be compressed, yielding
+#NL
+	a sharper transition. If negative, the transition
+#NL
+	will be smoother. Valid range is -49 % to 49 %.
+
+Horizontal/Vertical offset
+#NL
+	Defines the center of the pattern. Valid range is
+#NL
+	-100 % to 100 %.
+#NL
+	This parameter has no effect for the Linear pattern.
+
+Steps 
+#NL
+	The maximum number of colors that will be used
+#NL
+	for the transition from one color to the other.
+#NL
+	For non-TrueColor displays, it can be useful to
+#NL
+	limit the number of colors used to avoid running
+#NL
+	out of palette entries.  Very small numbers can
+#NL
+	also be used to get a 'blocky' effect. Valid range
+#NL
+	is 1 through 300.
+
+#BEGIN fractalFill "Fractal Fill"
+The fractal fill operation will paint an area around a selected pixel with a
+range of colors obtained by mixing the primary and secondary colors.
+The area is determined by matching adjacent pixel values until a variation is
+found.  Diagonal pixels are not considered adjacent.
+
+The 'Fill', 'Change' and 'Fill Range' options in the popup menu work the same
+as for the ordinary fill operation.
+
+Several different fractal patterns can be selected by clicking
+mouse button three on the Fractal Fill icon.
+
+#POP
+#POP
+
+#BEGIN canvas "4. Painting Window"
+The painting window holds a canvas area for displaying or editing images.
+
+In order to paint on the canvas, the user normally has first to select
+a suitable painting tool by clicking on the icons of the global toolbox,
+as well as a set of two colors or patterns, termed here the primary and
+secondary patterns. Other parameters can also be adjusted, such as
+the line width or the character font; once these choices have been
+made, the user can proceed to apply the tool selected on the painting
+canvas.
+
+The top panel of the canvas window display a menu bar which gives
+access to all file and editing operations, as well as to the selection
+of parameters and image transformations. 
+
+Below the menu bar, the top panel displays a small-scale copy of the
+palette of available colors and patterns. On the left, the "eye" icon
+allows to select any pixel that is displayed on the screen. The 
+"disk" next to the right of the eye is a three-positions switch.
+The initial position of the swith (filled disk with boundary) means
+that the primary and secondary colors/patterns are selected simultaneously,
+the next two switches allow to select of or the other of the primary
+or secondary color/pattern.
+
+On the right of the menu bar and of the palette widget, there are four
+buttons which activate respectively the color/pattern selector, the
+global toolbox, the brush selector and the font selector.  All these
+options can also be selected from the popup menu, by clicking with
+button 3 (right button) on the painting canvas.
+
+It should be observed that each painting canvas has its own set of 
+primary and primary patterns; on the contrary, when a tool is
+selected, it applies simultaneously to all canvases. See help on each
+specific paint operation for its use.
+
+#PUSH
+#BEGIN fileMenu "4.1. File Menu"
+The file menu on the painting window is for saving information associated
+with the image displayed on the current paint canvas. 
+
+XPaint runs on a variety of displays.  Saving
+images will adapt them to the current display type (i.e., a color image 
+loaded on a greyscale screen will be saved as a grey image).
+
+See "Image Formats" for a description of the image formats usable
+by XPaint.
+
+Save
+#NL
+	Save the current image with the original
+#NL
+	filename and format.  If this is a new
+#NL
+	image, perform the "Save As" operation.
+
+Save As
+#NL
+	Save the current image with the specified
+#NL
+	filename and format (default is TIFF).
+
+Save Region...
+#NL
+	Save the selected region, in the original
+#NL
+	form that it was selected (width, height and
+#NL
+	rotation).  Odd-shaped regions will be saved
+#NL
+	as rectangles filled with the background
+#NL
+	color.  If the output format supports image
+#NL
+	masks (e.g., TIFF, PNG, XPM), then this
+#NL
+	information will also be saved.  See "Load
+#NL
+	Clipboard..." under the toolbox file menu
+#NL
+	for more information about odd-shaped
+#NL
+	images.
+
+Load Clipboard...
+#NL
+	Open an image file into the XPaint clipboard
+#NL
+	for pasting.  Images that have been saved in
+#NL
+	a format supporting odd-shaped regions will be
+#NL
+	loaded as they were selected, otherwise all
+#NL
+	images are rectangular.  See "Paste" and
+#NL
+	"Save Region..." under the Edit and File menus
+#NL
+	of the Painting Window for more information.
+
+Save Palette...
+#NL
+	Save the current palette. See "Palette
+#NL
+	Area" for more information on how
+#NL
+	patterns are loaded.
+
+Revert...
+#NL
+	Reloads the last saved image. This is
+#NL
+	equivalent to closing without saving
+#NL
+	and then opening the original file.
+#NL
+	You are asked for confirmation. If
+#NL
+	the image has not been changed since
+#NL
+	the last save, this operation does
+#NL
+	nothing.
+
+Print...
+#NL
+	Opens the "Print Utility" widget. Check the
+#NL
+	corresponding sections for more details.
+
+External viewer...
+#NL
+	Pipes the last saved image to an external viewing
+#NL
+	program. Default is "xv". This can be modified by
+#NL
+	redefining the 
+#NL
+	"Canvas.extern*form*viewercmd*string"
+#NL
+	parameter in the app-defaults file.
+
+Close
+#NL
+	Close the current painting window, saving
+#NL
+	the image if desired.
+
+#BEGIN editMenu "4.2. Edit Menu"
+The edit menu provides for a set of operations that interact with the
+current selection and the paint clipboard.  All options in this menu
+are also accessible through button three on the painting canvas.  
+The clipboard is an off-screen image that is loaded either from a selected
+region via these operations or from a file.
+
+See "Load Clipboard..." on the toolbox "File Menu" for more information
+about loading images from a file and "Change Background..." under the
+"Image Menu" for more information on the background color.
+
+Undo
+#NL
+	Reverse the last performed operation.
+#NL
+	Multiple undos are possible; see 'Undo Levels..'
+#NL
+	in the 'Image' menu.
+#NL
+	If a region is selected, and you have not moved
+#NL
+	or resized it, the last region operation is undone.
+
+Redo
+#NL
+	Cancel the effect of the last undo.
+#NL
+	This must be done immediately after an undo or
+#NL
+	redo (before drawing anything new on the canvas).
+
+Undo Levels...
+#NL
+	Changes the number of consecutive changes
+#NL
+	that can be undone or redone. Note that each
+#NL
+	undo level uses as much memory as the image
+#NL
+	itself, so large numbers can use up a lot of
+#NL
+	memory.
+
+Refresh
+#NL
+	Refreshes the painting window. Should be useful
+#NL
+	only when the X display gets garbled; this can
+#NL
+	happen especially for some buggy X servers.
+
+Cut
+#NL
+	Load the originally selected region into both 
+#NL
+	the XPaint and X server clipboards and
+#NL
+	change the area on the screen to the background
+#NL
+	color.
+
+Copy
+#NL
+	Load the originally selected region into the
+#NL
+	XPaint and X server clipboards.
+
+Paste
+#NL
+	Place the image in the clipboard onto the
+#NL
+	canvas at the last position where button one
+#NL
+	or two was pressed.  Images are first searched
+#NL
+	for in the X server clipboard and then the
+#NL
+	internal XPaint clipboard.
+
+Clear
+#NL
+	Remove the current selection from the paint	
+#NL
+	canvas.
+
+Snapshot
+#NL
+	Grab a rectangle from the root window and load
+#NL
+	that rectangle in the Xpaint clipboard. The left 
+#NL
+	button is used to select opposite corners of the 
+#NL
+	rectangle, the middle button to grab a complete
+#NL
+	window and the third button to cancel the 
+#NL
+	operation.
+
+Duplicate
+#NL
+	Perform both the copy and paste operations in one
+
+Select All
+#NL
+	Select the entire image on the canvas.
+#NL
+	(Note:  This does not use the color range options
+#NL
+	that the select-area operators from the toolbox do!)
+	
+Erase All
+#NL
+	Erases the entire image on the canvas.
+
+#BEGIN tool_line "4.3. Line Menu"
+The line menu sets the value of the line width.  This value is used by all
+operations that paint any type of line, including the borders of boxes,
+ovals and polygons. It is also used to set the dash style. A dash style
+is indicated by a sequence of at most 48 characters = and -, for example
+=========---==--. The = characters indicate pixels which will be drawn, 
+and the - characters indicate pixels wchich will not be drawn. 
+A continuous line should be indicated by a single character = (a string
+containing only characters = will also produce a continuous line).
+
+#BEGIN tool_font "4.4. Font Menu"
+This menu selects the current font to use for the text operation.  There are
+a few specific fonts choices listed, but all fonts are available through
+the font browser.
+
+Note:  Changing a font while inserting will not allow backspacing over text
+in a previous font.
+
+See "Font Browser" for more information on its use.
+
+#BEGIN regionMenu "4.5. Region Menu"
+This menu provides operations that can be applied to the currently
+selected region.  See the "Select Regions" item under the toolbox
+Painting tools for information on how to select regions.
+
+Note:  The 'Undo' option found under the Edit menu does not work
+on these operations! Use the 'Reset' option of the Region menu,
+or the 'Undo' option of the Filter menu instead.
+
+Flip X Axis
+#NL
+	Flip the current region horizontally.
+
+Flip Y Axis
+#NL
+	Flip the current region vertically.
+
+Rotate By
+#NL
+Rotate...
+#NL
+	Both of these operations allow for rotating
+#NL
+	the current region by a specified number of
+#NL
+	degrees.  Rotation may also be done
+#NL
+	by pressing button two on the selection.
+#NL
+	Pressing the Shift button while doing this
+#NL
+	constrains the rotation to multiples of
+#NL
+	15 degrees.
+
+Linear Transformation...
+#NL
+	This operation applies to the current region
+#NL
+	a linear transformation defined by a certain
+#NL
+	matrix [ a, b ; c, d], as specified by user
+#NL
+	data input for each entry.
+
+Reset
+#NL
+	Return the current image to its original
+#NL
+	size and orientation.  Note:  None of the
+#NL
+	image processing operations will be undone.
+
+Clone Region
+#NL
+	Open a new canvas containing a copy of the 
+#NL
+	selected region, in the original form that 
+#NL
+	it was selected (width, height and rotation).
+#NL
+	Odd-shaped regions will be saved as rectangles
+#NL
+	filled with the background color. See "Load
+#NL
+	Clipboard..." under the toolbox file menu
+#NL
+	for more information about odd-shaped
+#NL
+	images.
+
+Crop to region...
+#NL
+	Discard all portions of the image outside the region.
+#NL
+	This operation cannot be undone; therefore, you are
+#NL
+	required to confirm it.
+
+Autocrop...
+#NL
+	Changes the size of the current canvas by
+#NL
+	cutting away any borders. The border color
+#NL
+	is defined as the color common to at least
+#NL
+	two corners. If no two corners have the same
+#NL
+	color, nothing is done.
+#NL
+	This operation is not reversible and 
+#NL
+	affects the actual image size.
+#NL
+
+Delimit Region...
+#NL
+	Not yet implemented !! The idea is to find
+#NL
+	a monocolor region under the cursor
+
+Complement Region
+#NL
+	Not yet implemented !! The idea would be to 
+#NL
+	take the complement of the current region
+#NL
+	with respect to the whole canvas.
+
+Unselect
+#NL
+	Unselects the current region (and frees the
+#NL
+	corresponding data structures from memory).
+
+#BEGIN filterMenu  "4.6. Filter Menu"
+The filter menu provides a set of image processing operations
+that can be applied to the currently selected region.  See
+the "Select Regions" item under the toolbox Painting tools
+for information on how to select regions. In case no region has
+been selected, the entire paint canvas is selected as the region
+to which the filters shall be applied. 
+
+Any filter operation can be undone by means of the "Undo Last" option,
+but this can be applied only once to the very last filter.
+
+Invert
+#NL
+	Inverts the colors of the selected region
+#NL
+	(e.g., black to white).
+
+Sharpen
+#NL
+	Applies an image processing algorithm in an
+#NL
+	attempt to increase the detail on the
+#NL
+	selected region.
+
+Smooth
+#NL
+	Attempts to blend the colors of the region
+#NL
+	by averaging the pixel's color values with
+#NL
+	those of its neighbors.
+
+Directional Smooth
+#NL
+	Similar to Smooth, but avoids smearing edges
+#NL
+	by applying a more sophisticated algorithm.
+#NL
+	The effect is less pronounced than for Smooth.
+
+Despeckle...
+#NL
+	Tries to remove scanning artifacts etc. by replacing 
+#NL
+	each pixel by the median of the pixels inside the
+#NL	
+	n x n mask centered around that pixel. You are
+#NL	
+	queried for the mask size; this must be odd and
+#NL
+	larger than 1.
+
+Edge Detect
+#NL
+	Performs an image processing edge
+#NL
+	detection.
+
+Emboss
+#NL
+	Converts the selected region to a grey image
+#NL
+	that is highlighted such that the details
+#NL
+	appear to stand out from the screen.
+
+Oil paint...
+#NL
+	Does an effect similar to an oil painting.
+#NL
+	You are queried for the mask size, which must
+#NL
+	be an odd integer. Recommended values range
+#NL
+	from 3 to 15. Higher values result in a more
+#NL
+	pronounced effect.
+
+Add Noise...
+#NL
+	Add random noise to the image, giving a 'grainy'
+#NL
+	appearance. You are queried for the maximum
+#NL
+	noise value. Recommended values range from 
+#NL
+	5 to 50. Higher values result in a more
+#NL
+	pronounced effect.
+
+Spread...
+#NL
+	This operation swaps each pixel in the region with
+#NL
+	a random pixel near it, giving an effect similar to
+#NL
+	frosted glass. You are queried for the maximum
+#NL
+	distance. Good values range from 1 to 10.
+#NL
+	You can also specify how many iterations you want
+#NL
+	performed. This is equivalent to manually selecting
+#NL
+	the operation that many times.
+
+Pixelize...
+#NL
+	Makes the image look low resolution. This works by
+#NL
+	replacing each 'megapixel' with the average color 
+#NL
+	within that region. You are queried for the megapixel
+#NL
+	size; this can be specified as square (e.g., '5') or 
+#NL
+	rectangular (e.g., '2x4').
+
+Tilt...
+#NL
+	This operation applies to the region a certain
+#NL
+	homographic transform, which may give the illusion
+#NL
+	that the object originally shown in the region
+#NL
+	is seen in a perspective view.
+
+Blend
+#NL
+	This operation colors each pixel in the region
+#NL
+	with a weighted average of the center color and
+#NL
+	the color on the edge that intersects a line drawn
+#NL
+	from the center to the pixel in question.
+#NL
+	The result is to 'blend the region out of existence'.
+
+Solarize...
+#NL
+	Inverts pixels with a value larger than the 
+#NL
+	specified threshold. This simulates what happens
+#NL
+	to a photographic film that is exposed to light
+#NL
+	during development. Works best for greyscale
+#NL
+	images. You are queried for the threshold (1-99 %).
+
+Turn into Greyscale
+#NL
+	Converts all colors in the image to greyscale.
+
+Normalize Contrast
+#NL
+	Normalizes the contrast by forcing the lightest pixels
+#NL
+	to white, the darkest pixels to black, and linearly
+#NL
+	rescaling the ones in between.
+#NL
+	You are queried for Black and White levels in %.
+#NL
+	Pixels darker than the Black level will become black,
+#NL
+	and pixels brighter than the White level will become
+#NL
+	white. The pixels in between will be rescaled linearly.
+#NL
+	'100 %' refers to the brightest pixel in the image.
+
+Modify RGB Components...
+#NL
+	Modifies the Red, Geen, Blue components of each Pixel 
+#NL
+	by means of a suitable (homographical) transform. The
+#NL
+	corresponding color brightness is increased or decreased,
+#NL
+	according to the sign of the selected percentage of 
+#NL
+	variation. This percentage of variation should be
+#NL
+	comprised between -100% and +100%. A value of -100%
+#NL
+	means that the corresponding color will totally
+#NL
+	disappear, while a value of +100% will attribute
+#NL
+	the maximal possible value 255 to this color, as
+#NL
+	soon as the given pixel had a non zero component
+#NL
+	value.
+
+Quantize Colors...
+#NL
+	Reduces the number of colors in the image. The
+#NL
+	algorithm selects the set of colors that gives
+#NL
+	the best result and then replaces the original
+#NL
+	colors with the best match in the new color set.
+#NL
+	You can choose the number of colors to use,
+#NL
+	from 2 to 256.
+
+User Defined Filter...
+#NL
+	Not yet implemented !!
+
+Repeat Last
+#NL
+	This applies the last filter you used again, without
+#NL
+	querying for any parameters.
+
+Undo Last
+#NL
+	Undoes the effect of the filter applied in the last
+#NL
+	instance, and resets the selected region in its former
+#NL
+	state. If several filters have been applied 
+#NL
+	consecutively, only the last one can be reverted.
+
+#BEGIN selectorMenu  "4.7. Selectors Menu"
+The "Selectors" menu gives access to all popups and option selections
+which may affect the painting operations and the graphic canvas itself.
+
+Fat Bits Editor...
+#NL
+	Brings up the Fat Bits editor, which allows
+#NL
+	for editing an enlarged area of the current
+#NL
+	image without having to enlarge the entire
+#NL
+	image.
+
+Color and Pattern Editor...
+#NL
+	Opens the Color and Pattern Editor, or raises it if the
+#NL
+	popup-window is already open. This popup is also raised
+#NL
+	by pressing the appropriate button on the top panel
+
+Select Color Range...
+#NL
+	Opens the "Color Range Selection" window, or raises it 
+#NL
+	if the popup-window is already open. This widget can
+#NL
+	be used to select color domains for the various fill
+#NL
+	operators and region selection tools. See 
+#NL
+	"Color Range Selection" for more details.
+
+Change Background Color...
+#NL
+	Opens the "Background Color" popup-window. This 
+#NL
+	popup-window allows to change the background 
+#NL
+	color for the current image (default color is
+#NL
+	white).  This is only used when a region is
+#NL
+	erased or cut from the current image and
+#NL
+	when odd-shaped regions are saved. See
+#NL
+	"Color Wheel" under the "Pattern Editor" for
+#NL
+	more information on selecting a color.
+
+Toolbox...
+#NL
+	Raises the Toolbox window, in particular if it
+#NL
+	has been iconified.
+
+Brush Selector...
+#NL
+	Opens the Brush Selector, or raises it if it is
+#NL
+	already open. This window can also be reached
+#NL
+	from the appropriate button on the top panel.
+
+Font Selector...
+#NL
+	Opens the Font Selector, or raises it if it is
+#NL
+	already open. This window can also be reached
+#NL
+	from the appropriate button on the top panel.
+
+Compile a C script...
+#NL
+	Opens the Script Editor window, and lets that
+#NL
+	script be compiled if needed. This is useful
+#NL
+	e.g. for programmers who want to design their
+#NL
+	own filter routines.
+
+Change Size...
+#NL
+	Changes the size of the current canvas by
+#NL
+	cutting away or adding area on the right and
+#NL
+	lower sides.  This operation is not
+#NL
+	reversible (except by 'Revert') and affects
+#NL
+	the actual image size.
+
+Change Zoom...
+#NL
+	Enlarges the working image by the specified
+#NL
+	scale.  This does not affect the size of the
+#NL
+	image for saving, etc.
+
+Snap Spacing...
+#NL
+	Sets the distance between points on the
+#NL
+	invisible snap grid.
+
+Snap
+#NL
+	Turns on/off restriction of the current x
+#NL
+	and y position for most operations to an
+#NL
+	invisible grid.
+
+Visible Grid
+#NL
+	Turns on and off a visible black grid
+#NL
+	between the original pixels on images with a
+#NL
+	scale greater than 1 (i.e., zoomed).  This
+#NL
+	grid is only for painting purposes.  It does
+#NL
+	not affect the actual image.
+	
+#PUSH
+#BEGIN patternSelector   "4.7.1. Color and Pattern Selector"
+The Color and Pattern Selector is the place from which colors and
+patterns can be selected and activated for use on the painting canvases. 
+It can also be used to modify the palette of available patterns. 
+
+#PUSH
+#BEGIN openPatSel "Opening the Color/Pattern Selector"
+The Selector is most conveniently opened by clicking on the appropriate 
+button of a painting canvas - in second position at the right of the 
+menu bar on the top panel. This button displays an hexagonal icon 
+showing the active primary and secondary colors/patterns, such as they 
+are in effect when painting operations are applied.
+
+#BEGIN topPatSelStructure "Top Panel of the Pattern Selector"
+The Pattern Selector displays on the top menu panel the primary 
+and secondary patterns of the associated Painting Canvas (in case 
+several canvases are open, this is the one from which the Selector 
+has been opened or re-opened in the last instance).
+
+On the right of the top menu bar, an icon is displayed showing an
+hexagonal area. The border of this area is drawn with the active primary 
+pattern, and its interior with the active secondary pattern. The border
+linewidth coincides with the current linewidth of the painting canvas.
+A click on the hexagonal icon raises the painting window, without any
+effect on the various painting parameters.
+
+On the other hand, a click on the primary or secondary pattern icon
+selects one or the other, and sets correspondingly the arrow.
+
+#BEGIN leftPatSel "Selection of Colors"
+The central left panel of the Pattern Selector displays the colorwheel
+and the buttons used for color selection. The "Lookup" button allows
+the user to select any color available on the screen, whilst the
+"Record" button adds the selected color to the list of colors
+available from the Palette shown in the bottom panel. See "Color
+wheel" for more details.
+
+Note:  Manipulating colormap entries effects the canvas immediately
+and does not revert when "Cancel" is chosen.
+
+#BEGIN rightPatSel "Selection of Patterns"
+The central right panel displays a small graphic canvas in which new
+patterns can be created or edited. Patterns are by default 24x24 in
+size, but may be set to any size through the "Size" menu.  The other
+menus available provide similar functionality to those in the paint
+window and pattern editing uses the normal paint operations.
+
+Patterns may be individually saved through the "Save As" option in the
+"Canvas" menu or saved globally with the "Save Palette..." option
+in the "Palette" menu. Previously created palettes can be loaded with 
+the "Load Palette..." option. See "Palette Configuration Files" for 
+more details.
+
+#BEGIN bottomPatSel "Palette of Colors and Patterns"
+The bottom panel of the pattern selector displays the list of
+available colors or patterns, including the initial ones and those
+which have been previously created and added. 
+
+A simple click on one of the icons activates it as the primary or
+secondary color/pattern, according to the psition of the upper
+arrow. 
+
+A double click on an icon puts it in "Edition mode", as visualized by
+a red rectangular mark; the effect of pressing on one of the "Record"
+buttons is then to replace the corresponding color/pattern by the
+color/pattern being edited from the central panel. 
+
+Finally a double "double click" on a pattern icon loads that pattern
+on the graphical canvas for further editing. 
+
+Button 3 (right button) activates a popup menu offering similar
+options (mark icon in editing mode, unmark icon, load pattern on
+canvas, remove pattern).
+
+#BEGIN grabpattern "Grab Colors and Patterns"
+A quick method for adding a new color or pattern is found by using the 
+"Lookup" and "Grab" buttons.  These buttons allow the user to select 
+any color or any colored area available on the screen. A further click on
+the "Record" button will then record the selection and add it to the
+bottom palette. It should be noted that if a color is already found in 
+the palette, the action of the "Record" button is simply to make it
+active.
+
+Note: The current palette can be saved for later use with the 
+"Save Palette..." option from the "Palette" menu.
+
+#BEGIN colorwheel "Color Wheel"
+The XPaint color selection allows access to both the HSV or RGB color
+space models.  The color wheel along with the value
+slider represents HSV, while the red, green, and blue sliders are for
+manipulating the color in an RGB space.  Modifications in either of
+these color spaces will effect the other.
+
+Colors can be selected on the color wheel by using the mouse to drag
+the selection circle or to click on a desired color.   Changes
+to value will determine the brightness of the chosen color.  Colors
+can also be modified through the red, green, or blue sliders or by
+entering values in the text fields.
+
+The "Match" button will set the current color by allowing the user to
+select any color on the screen.  The exact color will be determined
+using the colormap of the selected window.
+
+#BEGIN configfile "Palette Configuration Files"
+Colors and patterns appearing on the bottom panel of the Pattern Selector
+are loaded each time the selector is opened, according to certain
+priority rules:
+#NL
+	.XPaintrc in the user's home directory
+#NL
+	.XPaintrc in the current directory
+
+Note:  Color/pattern changes affect both primary and secondary palettes.
+
+#POP
+#BEGIN range_select "4.7.2. Color Range Selection"
+This window pops up when you click the "Select Color Range" button under 
+the "Selectors" canvas menu popup. Its purpose is to select a range of 
+colors for use with the select region operations.  The color
+range is determined by setting a base color and the amount of variance
+in each of the RGB values around this color.  Colors are considered in
+this range if they match a value based on the base color +/- the given
+variance.  Default base color is white.
+
+The "Pixel Delta" button allows the user to choose another color that will
+be used to calculate the variance from the base color.
+
+More information on colors and the use of the color wheel may be found
+under the "Color and Pattern Selector" on the "Painting Window".
+
+#BEGIN brush_selector "4.7.3. Brush Selector"
+The Brush Selector is a small popup window from which the current brush can
+be set or changed. The selection of the brush only affects the "Brush"
+and "Erase" tools. 
+
+The initial brushes are defined at compile time and loaded from the
+'bitmaps/paint*.xpm' included files.
+
+The user can add new brushes through .XPaintrc configuration files.
+The syntax is
+#NL
+	brush BeginData
+#NL
+	...
+#NL
+	EndData
+#NL
+and is entirely similar to the syntax used for black and white patterns.
+(A color pattern would also be accepted, but in this case only the black
+pixels are used to define the shape of the brush; the other pixels have
+the same effect as white pixels, i.e. no effect).
+
+The simplest way is to create a black and white pattern, save it into
+a new palette, and then change the identificator 'pattern' by 'brush' 
+with a text editor.
+
+#BEGIN font_browser "4.7.4. Font Browser"
+The font browser is designed to allow any available font to be used for
+painting with the text operation.  A font is selected by choosing an item
+from each of the given lists until the font is displayed in the "selection"
+area.  As items are selected, all lists will adjust to reflect existing
+fonts with the selected characteristics.  Clicking in the blank area
+of a item list will reset that list to all available options (i.e., unselect
+the current one).
+
+If the X server supports variable sized fonts, the point size list will
+contain a "0" entry, which will use the value specified in the
+"Point Size" field.
+
+#BEGIN script_editor "4.7.5. C Script Editor"
+The C script Editor can be used to write a script in language C,
+defining e.g. a programmable filter. 
+
+This possibility will appeal to programmers who want to design their
+own filter routines.
+
+The "Compile" button compiles the C script as a shared ???.so library,
+and, if successfull, links dynamically that library to Xpaint.
+
+Several examples will be found in the share/filters subdirectory. Notice 
+that you can use this feature only if gcc has been installed on your 
+system.
+
+#POP
+#POP
+#BEGIN printMenu "5. Print Utility"
+Opens the "Print Utility". From there, the size and position of the image
+on a pages can be adjusted arbitrarily. The horizontal and vertical sizes
+can be set simultaneously or not.
+
+There are toggles for Portrait and Landscape modes, as well as for
+printing to a file or to a printer.  The default PostScript resolution 
+is 72 dpi, but this can be increased by using an interpolation of colors
+(sub-sampling). A sub-sampling of 5 x 3 means that each screen pixel 
+will give rise to 15 pixels on the printing output by interpolating
+the colors of the pixels nearby, with 5 subdivisions in the horizontal
+direction and 3 subdivisions in the vertical direction (the allowed 
+maximal subdivision is 255).
+
+The preview button creates a temporary PostScript file and pipes it
+to a PostScript viewer, "gv" by default. The PostScript viewer can be
+interactively redefined. It is initialized via the parameter
+   "Canvas.print*form*psviewer*string: ..."
+in the app-defaults file.
+
+#BEGIN fileformat "6. Image Formats"
+XPaint can support a variety of image file formats, based on
+library availability at compile time.  Some of these formats may not
+be accessible in the current running version.
+
+The table below provides a short summary of the features of each image
+format and support provided by XPaint.  Note that not all formats are
+supported for both read and write operations.
+
+Color depth is given in terms of the number of bits used to store the
+colors in the image.  This means that a color depth of 1-bit can only
+store black/white images, while 24-bit color formats can store images
+containing up to 2**24 (or approx. 16 million) colors.  Regardless of
+the image format, saved images always reflect the ability of current 
+display type (i.e., a color image loaded on a greyscale screen will be 
+saved as a grey image).  See the Possible Data Loss section for more
+details.
+
+The image mask feature of an image format provides the ability to
+save/load odd-shaped regions (i.e., regions are not required to be 
+rectangular and may have "holes" in them).   See "Save Region" and 
+"Load Clipboard..." for more information.
+
+Detailed information about each format is at the end of this section.
+#NL
+		Read		Write		Color Depth	Image Mask
+#NL
+GIF		yes		yes		8-bit		no
+#NL
+ICO		yes		yes		16-bit		yes
+#NL
+JPEG		yes		yes		24-bit		no
+#NL
+PNG		yes		yes		8, 24-bit	yes
+#NL
+PPM		yes		yes		24-bit		no
+#NL
+PDF		yes		yes*		24-bit		no
+#NL
+PS		yes		yes*		24-bit		no
+#NL
+SGI		yes		yes		24-bit		no
+#NL
+TIFF		yes		yes		8, 24-bit	yes
+#NL
+XBM		yes		yes		1-bit		no
+#NL
+XPM		yes		yes		8-bit		yes
+#NL
+XWD		yes		yes		24-bit		no
+
+* CAUTION : the output of a PostScript or PDF write is just raw bitmap data. 
+If an existing PS or PDF file is overwritten, all formatting data and all
+other information embedded in the input file are irretrievably lost, 
+especially embedded text components, PostScript procedures, fonts, etc.
+
+GIF - Graphics Interchange Format
+#NL
+	A popular image format used across a variety
+#NL
+	of platforms, including PCs. Suffers
+#NL
+	unfortunately of very restrictive licence
+#NL
+	by UNISYS, which owns a patent on the
+#NL
+	compression algorithm used.
+#NL
+	Just boycott GIF format, PNG is better !
+
+ICO - Icon Format (Microsoft)
+#NL
+	Format used by Microsoft OS for icons,
+#NL
+	size is restricted to 256x256 at most.
+#NL
+	Is provided here just for compatibility
+#NL
+	issues. Avoid this if you can.
+
+JPEG - Joint Photographic Experts Group Format
+#NL
+	A standardized, lossy format for storing
+#NL
+	compressed color and greyscale images
+#NL
+	of natural scenes.
+
+PNG - Portable Network Graphics Format
+#NL
+	A new format designed to replace GIF and,
+#NL
+	to some extent, TIFF.  It has a better
+#NL
+	compression engine than either GIF or TIFF
+#NL
+	and is a lossless format (unlike JPEG).
+#NL
+	We recommend the PNG format in most cases !
+
+PPM - Portable PixMap Format
+#NL
+	Image format provided by the PBMPlus/NetPBM
+#NL
+	toolkit that allows for converting to a wide variety
+#NL
+	of other formats.
+
+PDF - Portable Document Format
+#NL
+	PDF is a document format specified by Adobe Inc.
+#NL
+	which is widely used for documents involving
+#NL
+	text and images simulateneously.
+
+PS - PostScript Format
+#NL
+	PostScript images are normally used by most
+#NL
+	printers and text-processing packages.
+
+SGI - Silicon Graphics, Inc., Format
+#NL
+	An SGI-specific image format, supported by the
+#NL
+	libraries on SGI machines.  This format is not
+#NL
+	available on other platforms.
+
+TIFF - Tagged Image File Format
+#NL
+	A large, complex image format used by XPaint
+#NL
+	as its default format.
+
+XBM - X Window BitMap
+#NL
+	A black and white image format used by the
+#NL
+	X Window System.
+
+XPM - X Window PixMap
+#NL
+	XPM images are stored in an ASCII text
+#NL
+	format that can be included in programs.
+
+XWD - X Window Dump
+#NL
+	Used for screen dumps by the X Window
+#NL
+	System.
+
+#BEGIN about "7. About XPaint"
+NOTE: Since version 2.6.3, XPaint is released and maintained by
+Jean-Pierre Demailly (demailly@ujf-grenoble.fr), except for the PNG
+code, which is written and maintained by Greg Roelofs (newt@uchicago.edu). 
+
+The original program was written by David Koblas who pursued development
+up to XPaint 2.1.1. In 1995. Torsten Martinsen (torsten@image.dk) took up 
+the program and produced versions 2.2.1 to 2.5.7. Versions 2.5.8 up to
+2.6.2 were maintained by Torsten Martinsen and Jean-Pierre Demailly.
+Please do NOT send bug reports, etc., to David Koblas or Torsten Martinsen.
+
+The message below is the original 'About' message from version 2.1.1.
+
+               ----------------------------
+
+Hopefully, you find this software useful. If you find any bugs or have
+any comments, feel free to contact me.
+
+This software is created as DonateWare. If you enjoy using XPaint,
+it would be appreciated if you would make a donation to the
+author in the form of cookies, money, employment, or whatever.
+
+If you or your firm is looking to hire a skilled consultant, contact
+me for more details.
+
+David Koblas (koblas@netcom.com)
+#NL
+Extra Mile Consulting
+#NL
+PO Box 1352
+#NL
+Mountain View, CA 94042-1352 USA
+
+#BEGIN copyright "8. Copyright Information"
+Copyright (C) 1993 - 1995, David Koblas
+#NL
+Copyright (C) 1995 - 2000, Torsten Martinsen
+#NL
+Copyright (C) 2000 - 2005, Jean-Pierre Demailly
+#NL
+Copyright (C) 1996 - 2003, Greg Roelofs
+#NL
+Copyright (C) 1997, Scott D. Nelson
+
+Permission to use, copy, modify, and to distribute this software and
+its documentation for any purpose is hereby granted without fee,
+provided that the above copyright notice appear in all copies and that
+both that copyright notice and this permission notice appear in
+supporting documentation.  There are no representations about the
+suitability of this software for any purpose.  This software is
+provided "as is" without express or implied warranty.
+
+
+

@@ -87,6 +87,15 @@ void   srand(unsigned int seed);
 long   random(void);
 void   srandom(unsigned int seed);
 unsigned int arc4random(void);
+double erand48(unsigned short xsubi[3]);
+double drand48(void);
+long   lrand48(void);
+long   nrand48(unsigned short xsubi[3]);
+long   mrand48(void);
+long   jrand48(unsigned short xsubi[3]);
+void   srand48(long seedval);
+unsigned short *seed48(unsigned short seed16v[3]);
+void   lcong48(unsigned short param[7]);
 
 int    system(const char *command);
 char  *realpath(const char *path, char *resolved_path);

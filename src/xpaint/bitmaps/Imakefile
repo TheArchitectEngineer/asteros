@@ -1,0 +1,6 @@
+MISC = Imakefile
+SRCS =
+
+makelist:
+	sh -c 'for i in '"$(TEXT) $(SRCS) $(MISC) $(HDRS)"' ; do \
+		echo $(CURRENT_DIR)/$$i >> ../Filelist ; done '
