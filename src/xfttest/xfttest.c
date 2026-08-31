@@ -26,14 +26,35 @@ draw(Display *dpy, Window win, XftDraw *draw, XftFont *font, XftColor *color)
 	    (const FcChar8 *)msg2, (int)strlen(msg2));
 }
 
+/* Debug-only: make any X protocol error impossible to miss. Without
+ * this, an async error (e.g. from a broken RenderCompositeGlyphs
+ * request) only surfaces whenever Xlib next happens to drain the
+ * socket, which could be well after the relevant draw call -- hard to
+ * pin down which request actually failed. */
+static int
+xerror_handler(Display *d, XErrorEvent *ev)
+{
+	char buf[128];
+	XGetErrorText(d, ev->error_code, buf, sizeof(buf));
+	fprintf(stderr, "xfttest: X ERROR: %s (request_code=%d minor_code=%d serial=%lu)\n",
+	    buf, ev->request_code, ev->minor_code, ev->serial);
+	return 0;
+}
+
 int
 main(void)
 {
+	XSetErrorHandler(xerror_handler);
+
 	Display *dpy = XOpenDisplay(NULL);
 	if (dpy == NULL) {
 		fprintf(stderr, "xfttest: cannot open display\n");
 		return 1;
 	}
+	/* Synchronous mode: force each request's error (if any) to be
+	 * reported immediately after the call that caused it, not
+	 * batched/delayed. Debug-only, deliberately slow. */
+	XSynchronize(dpy, True);
 
 	int screen = DefaultScreen(dpy);
 	Window root = RootWindow(dpy, screen);
@@ -80,8 +101,8 @@ main(void)
 	 * display or an unusual window-manager reparenting sequence) to
 	 * get real content on screen for verification. */
 	draw(dpy, win, xftdraw, font, &color);
-	XFlush(dpy);
-	fprintf(stderr, "xfttest: initial draw() done\n");
+	XSync(dpy, False);
+	fprintf(stderr, "xfttest: initial draw() done, XSync returned (no error above means every request round-tripped clean)\n");
 
 	for (;;) {
 		XEvent ev;

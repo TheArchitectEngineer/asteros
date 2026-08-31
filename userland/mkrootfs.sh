@@ -305,6 +305,10 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/etc/fonts ::/usr/etc/
 		fi
 	fi
+	if [ -f build/xorg-target-root/bin/rendertest ]; then
+		echo "rendertest found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/rendertest ::/bin/rendertest
+	fi
 fi
 
 DYLD_BIN="build/dyld_obj/dyld"

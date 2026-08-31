@@ -4447,3 +4447,159 @@ a tooling limitation of this verification session, not evidence of an
 AsterOS-side bug; every finding above was independently confirmed via
 the program's own diagnostic output and direct pixel inspection, not
 solely by eyeballing a screendump.
+
+### Phase 39 follow-up — glyph-compositing hang narrowed further, root cause not yet found
+
+A second live-debugging pass (two collaborating sessions: one doing
+static analysis of `render/render.c`/`fb/fbpict.c`/`libXft`'s source
+without a working build tree, one live-verifying in QEMU) made real
+progress narrowing the hang, but did not reach a fix. Recorded here
+in full so a future session doesn't have to re-derive any of it.
+
+**`XFT_DEBUG=44` (libXft's own built-in RENDER+DRAW+GLYPH tracing,
+no code changes needed) confirms Render negotiation itself is fine**:
+```
+XftDisplayInfoGet Default visual 0x21 format 24,16,8,0
+XftDisplayInfoGet initialized, hasRender set to "True"
+```
+`hasRender` is real and true, with a genuine 24-bit PictFormat for the
+default visual -- disproving the most obvious hypothesis (that
+`XftDrawGlyphs` falls back to the legacy non-Render `XCopyPlane`/
+`XPutImage` path because `XRenderFindVisualFormat` returns NULL).
+`font->format` is non-NULL, so `xftdraw.c`'s Render branch is really
+being taken.
+
+**The hang is definitively per-glyph, inside libXft's Render upload
+path, not in font/metrics computation.** Full trace, obtained by
+temporarily auto-launching `xfttest` from `startx.sh` with
+`XFT_DEBUG=44` and positioning its output where nothing else on
+screen could overlap it (see "screen-overlap red herring" below):
+```
+Set face size to 24x24 (1599x1599)
+Set face matrix to (g,g,g,g)
+xfttest: font opened, ascent=24 descent=6 height=29 max_advance_width=47
+xfttest: matched font file: /usr/share/fonts/truetype/DejaVuSans.ttf
+xfttest: matched font family: DejaVu Sans
+glyph 36:
+ xywh (0 1152 1088 1152), trans (0 1088 1152 0) wh (17 18)
+```
+That last line is `xftglyphs.c`'s own `XFT_DBG_GLYPH` trace, printed
+*after* FreeType has fully rasterized the glyph (sane values: a
+17x18px bitmap for a 24pt glyph). Nothing after it ever printed, on a
+freshly booted VM, waited on for over a minute with no further
+change. Reading `xftglyphs.c` (`src/libXft/src/xftglyphs.c` around
+line 665) shows exactly what runs immediately next, with no
+intervening client-side computation: `if (!font->glyphset) font->
+glyphset = XRenderCreateGlyphSet(dpy, font->format);` then
+`XRenderAddGlyphs(dpy, font->glyphset, &glyph, &xftg->metrics, 1,
+bufBitmap, size)`. The hang is in this handoff to the server.
+
+**The whole X server appears to freeze, not just this one client's
+connection** -- confirmed by temporarily also auto-launching `wmaker`
+alongside the hung client (instead of replacing it): `wmaker` itself
+never finishes starting either (no dock icons, no wallpaper) while
+the glyph client is stuck. A single-threaded server truly wedged
+inside request processing (an infinite loop or a blocking wait that
+never completes) would produce exactly this -- every other client
+starves, not just the one that sent the triggering request. This
+still doesn't distinguish an infinite loop from a genuine deadlock,
+but does rule out "only this one client's socket is somehow stuck."
+
+**Added real, permanent, non-debug instrumentation** to
+`src/xorg-server/render/render.c`'s `ProcRenderCreateGlyphSet` and
+`ProcRenderAddGlyphs` (`ErrorF("XFTDEBUG: ...")` at every major step:
+before/after `AllocateGlyphSet`, `AllocateGlyph`, each per-screen
+`GetScratchPixmapHeader`/`CreatePicture`/`CreatePixmap`/
+`CompositePicture` call) -- committed as its own commit in the
+`src/xorg-server` submodule (real upstream xserver source, git
+history kept independent per this project's existing convention for
+that submodule; the parent repo's gitlink was updated to point at it).
+**This instrumentation was built into a fresh `Xfbdev` binary and
+confirmed not to regress the normal desktop** (WindowMaker + wallpaper
+still come up correctly with the instrumented server) -- but its own
+`ErrorF` output was never actually captured this pass; see the two
+real blockers below that prevented reading it.
+
+**A real, permanent, unrelated bug found and fixed as a side effect**:
+`src/xorg-server`'s checked-in `Makefile`s (107 of them, autotools-
+generated, `git status` inside the submodule shows they're not
+tracked by its own git history, so this fix lives only in the local
+build tree, not a commit) still baked in this project's pre-rename
+absolute path, `/Users/vihaannathan/Desktop/DarwinBuildCuzImBore`, from
+before it became AsterOS -- the exact same class of staleness Phase
+38 fixed for 42 `.la`/`.pc` files, just never applied to `xorg-server`
+because nothing had needed to rebuild any part of it since the rename
+until this investigation. `make -C render` / `make -C hw/kdrive/fbdev`
+both failed outright until a one-time `sed` pass (same recipe as
+Phase 38's) rewrote all 107 files. **Real, load-bearing finding**: this
+means `xorg-server` could not have been rebuilt at all, by anyone,
+before this fix -- worth knowing for any future phase that touches it.
+
+**Two real blockers stopped this pass from actually reading the
+`ErrorF` trace or fully confirming/refuting the CreateGlyphSet-vs-
+AddGlyphs split, both genuinely new findings, not restatements of
+already-known gaps:**
+
+1. **Screen-overlap red herring, resolved but worth recording**: the
+   very first attempt to read `xfttest`'s `XFT_DEBUG` output looked
+   like a hang immediately after `"glyph 36:\n"` -- turned out to be
+   the undecorated `xfttest` window (no window manager running in
+   that debug configuration) sitting directly on top of the xterm
+   showing the trace, hiding everything past its left edge.
+   Repositioning the two windows apart (confirmed via screendump
+   before trusting any "it's stuck" conclusion) revealed the real,
+   full glyph-36 line shown above. **Lesson for next time**: always
+   verify apparent hangs by screendump-confirming nothing is simply
+   drawn on top of the output before concluding a process is stuck.
+
+2. **A real, separate, pre-existing fat16lite bug**: writing to files
+   under `/root` is unreliable at runtime -- confirmed two ways, both
+   after a full clean reboot with no other explanation available:
+   `echo TESTMARK123 > /root/.twmrc` (overwriting an *existing*
+   2222-byte file, not creating a new one) was typed correctly
+   (screendump-verified on the input line before pressing Enter) and
+   executed with no visible shell error, yet after a clean QEMU
+   `quit` the file's content on disk was still the original,
+   byte-for-byte unchanged; separately, `sh: can't create /tmp/x.log:
+   Errno 45` was seen directly for a new-file case. This blocked every
+   attempt to redirect either `xfttest`'s `XFT_DEBUG` output or
+   `Xfbdev`'s own `stderr` (carrying the new `ErrorF` trace) to a file
+   for later reading -- redirecting `Xfbdev`'s own stderr to a file at
+   launch (`/bin/Xfbdev :0 -nolock 2>/root/xserver.log &`) even
+   appears to have prevented `Xfbdev` from starting at all (screen
+   stayed black indefinitely; removing the redirect immediately fixed
+   it) -- consistent with shell redirection setup itself failing
+   closed rather than degrading gracefully. **Not investigated
+   further this pass** (orthogonal to the GTK port -- a fat16lite/
+   VNOP_CREATE-family bug, not a Render/glyph bug) but real, and
+   worth its own future investigation: any future phase that needs
+   runtime file logging from inside QEMU will hit this.
+
+**A further isolation attempt (calling only `XRenderCreateGlyphSet`,
+no `XRenderAddGlyphs`, via a new minimal client) produced a harder
+failure** -- the whole display went solid black and never recovered
+(new `src/xfttest/rendertest.c` + `build_rendertest.sh`, wired into
+`userland/mkrootfs.sh` alongside `xfttest`, kept in the tree as a
+real, reusable diagnostic tool since it isolates exactly one Render
+call with no Xft/FreeType machinery in the way -- not auto-launched
+by default `startx.sh` anymore, matching every other one-off test
+binary's convention here). Whether that's `XRenderCreateGlyphSet`
+itself crashing the server outright (a *different, worse* bug than
+the `AddGlyphs`-adjacent hang `xfttest` hits) or an artifact of the
+minimal client's own construction was **not resolved this pass** --
+genuinely the most important open question for whoever picks this up
+next, since it would mean the bug is in glyph-set creation, not glyph
+addition, narrowing the search significantly.
+
+**Left as the concrete next steps, in priority order**: (1) get
+`Xfbdev`'s `ErrorF` trace actually captured -- likely needs a real
+fix or workaround for the `/root` write bug above, or a completely
+different capture mechanism (a serial-console tty device node was
+checked for and doesn't exist in this project yet); (2) once captured,
+that trace alone should show conclusively whether the hang is inside
+`ProcRenderCreateGlyphSet` (before its own final `ErrorF`) or inside
+`ProcRenderAddGlyphs`'s per-screen loop (`CreatePicture`/
+`CreatePixmap`/`CompositePicture`), which are the two remaining live
+hypotheses; (3) root-cause and fix whichever one it is; (4) re-verify
+`xfttest` renders real antialiased pixels end to end, the way Phase
+39's own verification plan originally intended.
