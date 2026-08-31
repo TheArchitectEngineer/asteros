@@ -85,3 +85,66 @@ dirfd(DIR *dirp)
 {
 	return dirp->fd;
 }
+
+/* Real scandir()/alphasort(): built on the opendir/readdir/closedir
+ * above plus qsort(), same as any real libc's own implementation --
+ * needed by WindowMaker's util/wmiv.c (its directory-browsing image
+ * viewer). */
+int
+alphasort(const struct dirent **d1, const struct dirent **d2)
+{
+	return strcmp((*d1)->d_name, (*d2)->d_name);
+}
+
+int
+scandir(const char *dirname, struct dirent ***namelist,
+	int (*select)(const struct dirent *),
+	int (*compar)(const struct dirent **, const struct dirent **))
+{
+	DIR *dirp;
+	struct dirent *de;
+	struct dirent **list = NULL;
+	size_t count = 0, capacity = 0;
+
+	dirp = opendir(dirname);
+	if (!dirp)
+		return -1;
+
+	while ((de = readdir(dirp)) != NULL) {
+		struct dirent *copy;
+
+		if (select && !select(de))
+			continue;
+
+		if (count == capacity) {
+			size_t newcap = capacity ? capacity * 2 : 16;
+			struct dirent **grown = realloc(list, newcap * sizeof(*list));
+
+			if (!grown)
+				goto fail;
+			list = grown;
+			capacity = newcap;
+		}
+
+		copy = malloc(sizeof(*copy));
+		if (!copy)
+			goto fail;
+		*copy = *de;
+		list[count++] = copy;
+	}
+
+	closedir(dirp);
+
+	if (compar)
+		qsort(list, count, sizeof(*list), (int (*)(const void *, const void *))compar);
+
+	*namelist = list;
+	return (int)count;
+
+fail:
+	closedir(dirp);
+	while (count > 0)
+		free(list[--count]);
+	free(list);
+	return -1;
+}

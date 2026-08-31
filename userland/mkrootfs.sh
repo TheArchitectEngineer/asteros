@@ -185,6 +185,33 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 			mmd -i "$ROOTFS_IMG" ::/usr/share 2>/dev/null || true
 			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/WindowMaker ::/usr/share/
 		fi
+		# Pre-populate ~/GNUstep/Defaults directly instead of shipping
+		# wmaker.inst (upstream's interactive per-user first-run
+		# installer script) -- same reasoning/precedent as XFM's ~/.xfm
+		# below: this is a single-user OS with no good way to drive an
+		# interactive install step before wmaker's first launch.
+		# Without this, wmaker's check_defaults() (main.c) can't find
+		# ~/GNUstep/Defaults/WindowMaker, tries to run "wmaker.inst
+		# --batch" (not present -- "sh: wmaker.inst: not found"), and
+		# silently falls back to its hardcoded emergency style with no
+		# textures/icon theming -- live-diagnosed via a debug xterm
+		# dumping wmaker's own stderr, which printed exactly that
+		# warning. The system-wide copies already installed into
+		# /usr/etc/WindowMaker above are the same files wmaker.inst
+		# would have copied (with the same ~/GNUstep-relative
+		# PixmapPath/IconPath entries, which are unaffected since this
+		# project's $HOME is genuinely /root), so copying them directly
+		# into place is equivalent and skips wmaker.inst entirely.
+		if [ -d build/xorg-target-root/usr/etc/WindowMaker ]; then
+			mmd -i "$ROOTFS_IMG" ::/root 2>/dev/null || true
+			mmd -i "$ROOTFS_IMG" ::/root/GNUstep 2>/dev/null || true
+			mmd -i "$ROOTFS_IMG" ::/root/GNUstep/Defaults 2>/dev/null || true
+			for f in WindowMaker WMWindowAttributes WMGLOBAL WMState; do
+				if [ -f "build/xorg-target-root/usr/etc/WindowMaker/$f" ]; then
+					mcopy -i "$ROOTFS_IMG" "build/xorg-target-root/usr/etc/WindowMaker/$f" "::/root/GNUstep/Defaults/$f"
+				fi
+			done
+		fi
 	fi
 	if [ -f build/xorg-target-root/bin/xfm ]; then
 		echo "xfm found in build/ -- including it in the rootfs"
@@ -238,6 +265,10 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 			mmd -i "$ROOTFS_IMG" ::/usr/lib/X11/xedit 2>/dev/null || true
 			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/lib/X11/xedit/lisp ::/usr/lib/X11/xedit/
 		fi
+	fi
+	if [ -f build/xorg-target-root/bin/wmiv ]; then
+		echo "wmiv found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/wmiv ::/bin/wmiv
 	fi
 fi
 

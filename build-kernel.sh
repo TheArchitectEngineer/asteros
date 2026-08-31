@@ -165,6 +165,70 @@ if [ ! -f "$SDKROOT/usr/local/include/os/internal/internal_shared.h" ]; then
 	cp -f "$LP/include/libkern/"*.h "$SDKROOT/usr/local/include/libkern/"
 fi
 
+# --- Path-drift guard: stale src/xnu/BUILD/ if SRCROOT has moved ---
+# xnu's recursive make embeds the absolute SRCROOT it was invoked from
+# into multiple places in $SRC/xnu/BUILD/ that incremental builds then
+# trust verbatim:
+#   - per-component generated Makefiles (`SOURCE_DIR=/abs/path/xnu` line
+#     baked in by SETUP/config/doconf -> SETUP/config/config)
+#   - cached .CFLAGS / .LDFLAGS / .CXXFLAGS / .SFLAGS (REPLACECONTENTS
+#     files containing the full `-I /abs/path/xnu/...` flags list)
+#   - every .d / .cpd dependency file produced by clang -MD, which
+#     records the absolute path of every #include it resolved during
+#     the previous compile
+# Moving or renaming the repo (or just `git clone`ing it fresh
+# somewhere else) leaves all of those pointing at the *previous*
+# absolute path. installhdrs/exporthdrs still succeed because they
+# only write to BUILD/obj/EXPORT_HDRS/, not to those per-component
+# generated files -- but the kernel build step then hits "No rule to
+# make target `/old/abs/path/xnu/libsa/bootstrap.cpp'" because the
+# stale .cpd files reference the old path as a prerequisite that no
+# rule can satisfy.
+#
+# Detection: fingerprint $SRC/xnu as device:inode (the same trick
+# patches/0017 uses for the xcrun wrapper -- immune to APFS
+# case-spelling, symlinks, and `pwd -P` weirdness, just "is this the
+# same on-disk directory as last time"). Compare to whatever's
+# recorded under $ROOT/build/kernel/.srcroot-stamp. If the stamp
+# exists but doesn't match -> repo moved, clean $SRC/xnu/BUILD/.
+# Fallback for when the stamp is missing (e.g. user did
+# `rm -rf build/kernel` without realising src/xnu/BUILD/ is also
+# stale): grep a sample per-component generated Makefile for its
+# SOURCE_DIR= line and stat *that* path; if it resolves to a
+# different inode than the current $SRC/xnu, same conclusion.
+SRCROOT_STAMP="$ROOT/build/kernel/.srcroot-stamp"
+if [ -d "$SRC/xnu/BUILD" ]; then
+	current_fp="$(cd "$SRC/xnu" && stat -f '%d:%i' . 2>/dev/null || true)"
+	if [ -n "$current_fp" ]; then
+		stale=0
+		if [ -f "$SRCROOT_STAMP" ]; then
+			[ "$(cat "$SRCROOT_STAMP" 2>/dev/null)" != "$current_fp" ] && stale=1
+		else
+			# No stamp -- peek at the first per-component Makefile's
+			# SOURCE_DIR= and see if it still points at the same dir.
+			sample_mk="$(ls "$SRC/xnu/BUILD/obj/DEVELOPMENT_X86_64"/*/DEVELOPMENT/Makefile 2>/dev/null | head -1 || true)"
+			if [ -n "$sample_mk" ]; then
+				old_src="$(grep -m1 '^SOURCE_DIR=' "$sample_mk" 2>/dev/null | sed 's/^SOURCE_DIR=//')"
+				if [ -n "$old_src" ]; then
+					if [ ! -e "$old_src" ]; then
+						stale=1
+					else
+						old_fp="$(stat -f '%d:%i' "$old_src" 2>/dev/null || true)"
+						if [ -z "$old_fp" ] || [ "$old_fp" != "$current_fp" ]; then
+							stale=1
+						fi
+					fi
+				fi
+			fi
+		fi
+		if [ "$stale" = "1" ]; then
+			log "xnu SRCROOT changed since last successful build -- removing stale $SRC/xnu/BUILD/"
+			rm -rf "$SRC/xnu/BUILD"
+		fi
+		unset stale sample_mk old_src old_fp current_fp
+	fi
+fi
+
 # --- Step 4: xnu installhdrs (needed before libfirehose_kernel) ---
 # Guarded by HDRS_STAMP (see Step 7 below): installhdrs/the Step 6 cp -f/
 # exporthdrs all unconditionally rewrite header files every invocation,
@@ -207,6 +271,7 @@ cp -f "$SRC/libdispatch/os/firehose_buffer_private.h" "$SRC/libdispatch/os/fireh
 
 # --- Step 7: exporthdrs (own pass, before "all" -- see patches/) ---
 log "xnu exporthdrs"
+mkdir -p "$ROOT/build/kernel"
 mkdir -p "$SRC/xnu/BUILD/obj/EXPORT_HDRS/libsa"
 (cd "$SRC/xnu" && make SDKROOT="$SDKROOT" ARCH_CONFIGS=X86_64 KERNEL_CONFIGS=DEVELOPMENT XCRUN="$XCRUN_WRAPPER" exporthdrs)
 touch "$HDRS_STAMP"
@@ -242,3 +307,14 @@ if ! cmp -s "$SRC/xnu/BUILD/obj/DEVELOPMENT_X86_64/kernel.development" "$ROOT/bu
 fi
 log "Done: build/kernel/kernel.development"
 file "$ROOT/build/kernel/kernel.development"
+
+# Persist the current SRCROOT fingerprint so the path-drift guard above
+# can spot the next repo move / rename on the *following* run. Recorded
+# *after* the kernel link succeeds so a partial / failed build never
+# locks in a fingerprint for a half-built BUILD/ tree.
+mkdir -p "$ROOT/build/kernel"
+current_fp="$(cd "$SRC/xnu" && stat -f '%d:%i' . 2>/dev/null || true)"
+if [ -n "$current_fp" ]; then
+	echo "$current_fp" > "$SRCROOT_STAMP"
+fi
+unset current_fp

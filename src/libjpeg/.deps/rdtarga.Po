@@ -1,0 +1,115 @@
+rdtarga.o: rdtarga.c cdjpeg.h jinclude.h jconfig.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stddef.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_header_macro.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_ptrdiff_t.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_size_t.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_wchar_t.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_null.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_max_align_t.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_offsetof.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/stdlib.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/types.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_def.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/machine/types.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/i386/types.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/i386/_types.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/cdefs.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_symbol_aliasing.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_posix_availability.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_int8_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_int16_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_int32_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_int64_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_u_int8_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_u_int16_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_u_int32_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_u_int64_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_intptr_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_uintptr_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/Availability.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/AvailabilityVersions.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/AvailabilityInternal.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/AvailabilityInternalLegacy.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_setsize.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_set.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_clr.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_isset.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_zero.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_suseconds_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/machine/_types.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_pthread/_pthread_types.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/wait.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/resource.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/time.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_wchar_t.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/stdio.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stdarg.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg_header_macro.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg___gnuc_va_list.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg_va_list.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg_va_arg.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg___va_copy.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg_va_copy.h \
+  /Users/vihaannathan/Desktop/AsterOS/userland/libc/include/string.h \
+  jpeglib.h jmorecfg.h jerror.h cderror.h
+cdjpeg.h:
+jinclude.h:
+jconfig.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stddef.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_header_macro.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_ptrdiff_t.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_size_t.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_wchar_t.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_null.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_max_align_t.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_offsetof.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/stdlib.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/types.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_def.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/machine/types.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/i386/types.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/i386/_types.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/cdefs.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_symbol_aliasing.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_posix_availability.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_int8_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_int16_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_int32_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_int64_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_u_int8_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_u_int16_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_u_int32_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_u_int64_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_intptr_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_uintptr_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/Availability.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/AvailabilityVersions.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/AvailabilityInternal.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/AvailabilityInternalLegacy.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_setsize.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_set.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_clr.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_isset.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_fd_zero.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_suseconds_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/machine/_types.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_pthread/_pthread_types.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/wait.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/resource.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/time.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/sys/_types/_wchar_t.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/stdio.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stdarg.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg_header_macro.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg___gnuc_va_list.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg_va_list.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg_va_arg.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg___va_copy.h:
+/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stdarg_va_copy.h:
+/Users/vihaannathan/Desktop/AsterOS/userland/libc/include/string.h:
+jpeglib.h:
+jmorecfg.h:
+jerror.h:
+cderror.h:

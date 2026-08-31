@@ -14,7 +14,15 @@ export HOME=/root
 # bug (WindowMaker's own fork()+exec() chain, see TODO.md Phase 36
 # follow-up) is now fixed (commit 5672c4f), so this is just an ordinary
 # PATH export again, not a workaround for that.
-export PATH=/bin:/sbin
+# /usr/bin holds clang/ld/neatvi (see userland/mkrootfs.sh's
+# native-toolchain block) -- missing here meant every client this script
+# launches (and everything they in turn fork/exec, e.g. an xterm shell)
+# inherited a PATH that could `mcopy` these binaries onto the disk image
+# but never actually resolve them by bare name, always needing
+# `/usr/bin/clang` spelled out in full. Found live: `clang -v`/`neatvi`
+# in an xterm both failed with "not found" even though `/usr/bin/clang
+# -v` ran fine.
+export PATH=/bin:/sbin:/usr/bin
 
 # libXt's compiled-in default app-defaults search path is stale -- it
 # bakes in this repo's absolute build path from when it was still named

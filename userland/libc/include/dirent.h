@@ -45,6 +45,11 @@ int closedir(DIR *dirp);
 void rewinddir(DIR *dirp);
 int dirfd(DIR *dirp);
 
+int scandir(const char *dirname, struct dirent ***namelist,
+	    int (*select)(const struct dirent *),
+	    int (*compar)(const struct dirent **, const struct dirent **));
+int alphasort(const struct dirent **d1, const struct dirent **d2);
+
 #ifdef __cplusplus
 }
 #endif
