@@ -424,6 +424,37 @@ rand(void)
 void srandom(unsigned int seed) { srand(seed); }
 long random(void) { return rand(); }
 
+/* BSD initstate()/setstate(): real callers (e.g. fontconfig's
+ * fccompat.c) only use these to seed once and swap in/out a state
+ * buffer around random() calls, never actually relying on the
+ * buffer's internal layout or on independent concurrent PRNG streams.
+ * random()/srandom() here share one global LCG state (g_rand_state)
+ * rather than real BSD's per-buffer nonlinear generator -- same
+ * simplified-backing-data-structure tradeoff already used for rand(),
+ * just extended to satisfy this API's calling convention: initstate()
+ * seeds the shared generator and returns the previous "current state"
+ * pointer, setstate() records which buffer is nominally active and
+ * returns the one it replaces. */
+static char *g_rand_current_state = NULL;
+
+char *
+initstate(unsigned int seed, char *state, size_t size)
+{
+	(void)size;
+	char *prev = g_rand_current_state;
+	srand(seed);
+	g_rand_current_state = state;
+	return prev;
+}
+
+char *
+setstate(char *state)
+{
+	char *prev = g_rand_current_state;
+	g_rand_current_state = state;
+	return prev;
+}
+
 unsigned int
 arc4random(void)
 {

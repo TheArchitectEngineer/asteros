@@ -37,11 +37,13 @@ typedef struct _XftFont {
 
 typedef struct _XftDraw XftDraw;
 
-typedef struct _XGlyphInfo {
-	unsigned short width, height;
-	short x, y;
-	short xOff, yOff;
-} XGlyphInfo;
+/* XGlyphInfo/_XGlyphInfo used to be redefined here, but now that real
+ * libXrender is vendored (src/libXrender), the #include above resolves
+ * to the real, complete Xrender.h -- which already defines this same
+ * struct -- instead of this project's old fake stand-in. Redefining it
+ * again here is a hard redefinition error, not just redundant, so it's
+ * removed; every caller already gets it from the real header's include.
+ */
 
 /* XftFontSet/XftResult/XftPatternGetString/XftFontSetDestroy are real
  * Xft's own aliases onto the fontconfig types/calls above -- kept as

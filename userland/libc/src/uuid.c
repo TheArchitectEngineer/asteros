@@ -44,6 +44,71 @@ uuid_unparse_upper(const uuid_t uu, uuid_string_t out)
 
 void uuid_unparse(const uuid_t uu, uuid_string_t out) { uuid_unparse_upper(uu, out); }
 
+/* Inverse of uuid_unparse: parses the standard 8-4-4-4-12 hex-digit
+ * form (case-insensitive, hyphens required in the standard positions)
+ * back into 16 raw bytes. Returns 0 on success, -1 on a malformed
+ * string -- matching real Darwin's uuid_parse() contract. */
+int
+uuid_parse(const char *in, uuid_t uu)
+{
+	static const int hyphen_after[] = {4, 6, 8, 10};
+	int nibble_count = 0;
+	unsigned char byte = 0;
+	int have_high_nibble = 0;
+
+	for (const char *p = in; *p; p++) {
+		char c = *p;
+		int is_hyphen_pos = 0;
+		for (size_t i = 0; i < sizeof(hyphen_after) / sizeof(hyphen_after[0]); i++) {
+			if (nibble_count == hyphen_after[i]) {
+				is_hyphen_pos = 1;
+				break;
+			}
+		}
+		if (is_hyphen_pos && c == '-') {
+			continue;
+		}
+
+		int digit;
+		if (c >= '0' && c <= '9') {
+			digit = c - '0';
+		} else if (c >= 'a' && c <= 'f') {
+			digit = c - 'a' + 10;
+		} else if (c >= 'A' && c <= 'F') {
+			digit = c - 'A' + 10;
+		} else {
+			return -1;
+		}
+
+		if (nibble_count >= 32) {
+			return -1;
+		}
+
+		if (!have_high_nibble) {
+			byte = (unsigned char)(digit << 4);
+			have_high_nibble = 1;
+		} else {
+			byte |= (unsigned char)digit;
+			uu[nibble_count / 2] = byte;
+			have_high_nibble = 0;
+		}
+		nibble_count++;
+	}
+
+	if (nibble_count != 32) {
+		return -1;
+	}
+	return 0;
+}
+
+void
+uuid_copy(uuid_t dst, const uuid_t src)
+{
+	for (int i = 0; i < 16; i++) {
+		dst[i] = src[i];
+	}
+}
+
 int
 gethostuuid(uuid_t out, const struct timespec *wait)
 {

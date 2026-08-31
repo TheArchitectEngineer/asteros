@@ -86,6 +86,8 @@ int    rand(void);
 void   srand(unsigned int seed);
 long   random(void);
 void   srandom(unsigned int seed);
+char  *initstate(unsigned int seed, char *state, size_t size);
+char  *setstate(char *state);
 unsigned int arc4random(void);
 double erand48(unsigned short xsubi[3]);
 double drand48(void);

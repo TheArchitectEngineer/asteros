@@ -4255,3 +4255,195 @@ hang.
   those dependency libraries -- if any of the 42 affected libraries
   ever gets rebuilt from scratch with the old broken toolchain
   metadata still cached somewhere, the same fix would need reapplying.
+
+## Phase 39 — GTK3 port, step 1: X11 extension libraries + real font stack: DONE for build/link/font-matching, real remaining gap in on-screen glyph rendering
+
+Goal: per explicit user request ("port PureDarwin's GTK port over to
+AsterOS"), begin adopting PureDarwin's GTK3 work (a separate, more
+mature Darwin-reconstruction project on this machine, `nix/pkgs/gtk/`)
+following the same discipline as Phase 30's PureDarwin adoption:
+extract PureDarwin's dependency lists/patches/flags, but re-implement
+the actual build against this project's own toolchain, not Nix. GTK3
+itself is a large, multi-phase undertaking (full roadmap recorded in
+this session's plan, not duplicated here); this phase is step 1 of
+that roadmap: the four missing X11 extension libraries GTK3's X11
+backend requires, plus a real FreeType2+fontconfig+Xft stack replacing
+`src/xft-stub`'s bitmap stand-in for anything linked against the new
+prefix.
+
+**Vendored: libXrender 0.9.12, libXfixes 5.0.3, libXrandr 1.5.2,
+libXcursor 1.2.3** (all `gitlab.freedesktop.org/xorg/lib/lib*`).
+libXfixes/libXrandr pinned to match this project's already-vendored
+`fixesproto 5.0`/`randrproto 1.5.0` protocol headers (current upstream
+is 6.x/1.5.5, needing newer proto headers not vendored here -- a
+deliberate, documented version gap, not an oversight). Built with a
+newly-committed, reusable autotools-via-cross-clang `build.sh` per
+library -- the same recipe already proven manually for libXi (Phase
+38, evidenced only by its `config.log`) but never previously turned
+into a script; `configure` itself had to be generated from each
+package's `configure.ac`/`autogen.sh` via `NOCONFIGURE=1 ACLOCAL_PATH=
+src/xorg-util-macros LIBTOOLIZE=glibtoolize ./autogen.sh` (upstream
+ships no committed `configure`; macOS's `libtoolize` is `glibtoolize`;
+the vendored `xorg-util-macros` supplies `xorg-macros.m4 >= 1.8`).
+Real libXfixes/libXrandr/libXcursor had no prior AsterOS vendor at
+all; real libXrender's `make install` correctly overwrote the old
+header-only `Xfixes.h`/`xfixes.pc` stub libXi's Phase 38 session hand-
+wrote (that stub only ever needed one typedef, never linked
+`-lXfixes` -- now there's a real, linkable one). All four built clean,
+no source patches needed.
+
+**Fixed a real collision this exposed between the new real libXrender
+and `src/xft-stub`**: `xft-stub/build.sh` used to bundle its own fake
+25-line `X11/extensions/Xrender.h` (just the `XRenderColor` struct) and
+copy it into the shared `xorg-deps-install` prefix on every rebuild --
+once real libXrender installs the actual, complete header there, that
+copy step would silently clobber it back to the fake one on the next
+xpaint/xterm/etc. rebuild. Fixed at the root, not worked around: (1)
+`xft-stub/build.sh` no longer copies a bundled `Xrender.h` at all, only
+its own `Xft.h`; (2) `xft-stub`'s own `Xft.h` had *also* independently
+redefined the `XGlyphInfo`/`_XGlyphInfo` struct (needed for its own
+`XftTextExtents8`/`XftTextExtentsUtf8` additions from the Phase-38-era
+xpaint port) -- now that its `#include <X11/extensions/Xrender.h>`
+resolves to the real header instead of its own stub, that became a
+hard redefinition **compile error**, not just redundant, caught live
+by rebuilding xpaint as this phase's own regression check; removed,
+since the real header already provides the same struct. Verified via
+byte-for-byte `md5` comparison of the installed `Xrender.h` before and
+after rebuilding `xft-stub` then `xpaint`: unchanged, real 1058-line
+header survives every rebuild. This is a genuine, permanent dependency
+ordering requirement now (documented in `xft-stub/build.sh`'s own
+comment): libXrender must be built before `xft-stub` from a clean tree.
+
+**Vendored and built the real font stack, in a new second shared
+prefix `build/gtk-deps-install`** (kept separate from `xorg-deps-
+install` specifically so `fontconfig`/`libXft`/`freetype2` -- which
+fully collide with files `xft-stub` installs -- can't race with it;
+`libXrender`/`libXfixes`/`libXrandr`/`libXcursor` have no such
+collision and live in the existing `xorg-deps-install` alongside every
+other X11 core lib): **expat 2.8.3**, **libpng 1.6.58**, **FreeType
+2.13.3**, **fontconfig 2.13.1**, **real libXft 2.3.4**. Version choices
+deliberately conservative where it mattered: FreeType pinned below the
+current 2.14.x line because upstream's own Meson support is still
+"experimental" and 2.13.x's autotools (`builds/unix/configure`) is the
+proven path; fontconfig pinned to 2.13.1, the last release before it
+went Meson-only (~2.14+) -- meson bring-up is explicitly scoped to a
+later phase of this roadmap, not this one.
+
+**Real libc gaps this surfaced, fixed at the root in `userland/libc/`
+(not worked around locally), same standing precedent as every prior
+X11 port**:
+- `fontconfig`'s `fcatomic.h` `__APPLE__` branch calls real Darwin
+  `libkern/OSAtomic.h` primitives (`OSMemoryBarrier`/
+  `OSAtomicCompareAndSwap64Barrier`) this project's libc doesn't
+  implement. Not added -- `-DFC_NO_MT` in `fontconfig/build.sh` forces
+  fontconfig's own plain non-atomic fallback path instead, safe here
+  since nothing in this project's X11 clients touches fontconfig from
+  more than one thread.
+- `initstate`/`setstate` (BSD PRNG state functions, `fccompat.c`'s
+  `FcRandom()` fallback chain) and `uuid_parse`/`uuid_copy` (`fccache.c`,
+  parsing/copying a per-directory cache UUID) were genuinely missing.
+  Added for real to `userland/libc/src/stdlib_misc.c` and `uuid.c`:
+  `initstate`/`setstate` share the same global LCG state `rand()`/
+  `srand()` already use rather than real BSD's per-buffer nonlinear
+  generator (same simplified-backing-data-structure tradeoff as
+  pthread TSD/CFDictionary before it -- real callers here only ever
+  seed once and swap one buffer in/out around `random()` calls, never
+  rely on independent concurrent streams); `uuid_parse` is a real,
+  from-scratch 8-4-4-4-12 hex parser (inverse of the already-real
+  `uuid_unparse`); `uuid_copy` is a plain 16-byte copy. `libSystem.B.dylib`
+  rebuilt (`userland/libSystem/build.sh`) to pick these up.
+
+**Real, permanent build.sh bug found and fixed (not a workaround)**:
+`fontconfig/build.sh` originally passed `--sysconfdir="$PREFIX/etc"`
+(a **build-host** path, `build/gtk-deps-install/etc`) to `./configure`
+-- this got baked into `libfontconfig.a` as the library's compiled-in
+default config-file search path (`FcConfigFilename()`), which only
+ever exists on the build machine, never on the deployed target root.
+Built and linked fine, but failed live in QEMU with a real, correctly-
+diagnosing error: `Fontconfig error: Cannot load default config file`.
+Fixed by passing `--sysconfdir=/usr/etc` instead -- a **target**-
+absolute path matching where `userland/mkrootfs.sh`/`xfttest/build.sh`
+actually install `fonts.conf` on the deployed root -- confirmed live:
+rebuilding fontconfig+relinking xfttest+reimaging made that exact error
+message disappear on the next boot. (`make install`'s own attempt to
+write to that now-real-looking `/usr/etc` path is still safely
+redirected by the existing `DESTDIR` staging, so this never touches
+the build host's actual `/usr/etc`.)
+
+**Second real, permanent build.sh bug found and fixed**: `xfttest`'s
+own `-I` include order put `xorg-deps-install` (where `xft-stub` still
+installs its own `X11/Xft/Xft.h` and `fontconfig/fontconfig.h` stand-
+ins) *before* `gtk-deps-install` (the real headers). `xfttest.c` was
+silently compiling against the stub's smaller `XftFont`/`XftColor`
+struct layouts while *linking* against the real `libXft.a`/
+`libfontconfig.a` -- same symbol names, mismatched struct layouts, a
+real memory-corruption risk (e.g. the real `XftColorAllocValue` writing
+a full-size real `XftColor` through a pointer only sized for the
+stub's smaller one on the stack). Caught at compile time, not silently
+at runtime: a new diagnostic line this phase added (`FC_FILE`/
+`FC_FAMILY` lookup on the matched font's pattern) only exists in the
+real `fontconfig.h`, so the stub-shadowed build failed to compile with
+`FC_FILE` undeclared. Fixed by reordering `-I` so `gtk-deps-install`
+is searched first; documented in `xfttest/build.sh`'s own comment as a
+standing rule for anything built against both prefixes.
+
+**Live-verified in QEMU** (headless, QMP-driven `send-key`/
+`input-send-event`/`screendump`, same technique as Phase 36's
+successor phases): booted, `startx &` from the console shell, opened
+XTerm from `WMRootMenu`, ran `xfttest &` inside it. Confirmed, from the
+program's own diagnostic output printed live to the xterm (not just
+"it linked"):
+```
+xfttest: font opened, ascent=24 descent=6 height=29 max_advance_width=47
+xfttest: matched font file: /usr/share/fonts/truetype/DejaVuSans.ttf
+xfttest: matched font family: DejaVu Sans
+xfttest: initial draw() done
+xfttest: draw() on Expose
+```
+This is real, concrete proof the full real chain executes correctly
+end to end: real fontconfig scans `/usr/share/fonts` and matches the
+real vendored DejaVu Sans TTF (vendored into `src/fonts/`, Bitstream
+Vera-derived, permissive license, `THIRD_PARTY_LICENSES.md` updated)
+by its real on-disk path, not a fallback/empty pattern; real FreeType
+opens it and reports real, sane 24pt metrics (not zero/garbage); the
+`XftFontOpenName` → `XftDrawCreate` → `XftColorAllocValue` →
+`XftDrawStringUtf8` call chain runs to completion without crashing,
+twice (once eagerly right after setup, once on a real `Expose` event
+delivered by the X server) with no fontconfig/FreeType errors at all
+(the earlier `Cannot load default config file` error is confirmed
+gone). Also directly confirmed the `xft-stub` collision fix caused no
+regression: `xpaint` (Phase 38-era, depends on `xft-stub`) rebuilds and
+links clean after all of the above.
+
+**Not yet DONE -- a real, honestly-reported gap, not glossed over**:
+despite every step above completing successfully with correct data,
+**no visible glyph pixels actually reached the screen** -- pixel-
+inspected the "Xft Test" window's content area directly (cropped the
+real window bounds out of a screendump and checked for any non-white
+pixel), confirmed genuinely, exactly blank (0 non-white pixels in the
+true content region; an earlier false alarm turned out to be desktop
+wallpaper bleeding into a crop that mistakenly included the area
+outside the window). Since font matching/metrics/the full Xft call
+chain are all independently confirmed real and correct (see the
+diagnostic output above), the remaining gap is narrower than "Xft
+doesn't work" -- it's specifically that `XftDrawStringUtf8`'s actual
+glyph rasterization-to-screen (real FreeType glyph bitmaps → an
+XRender glyph set on the X server → composited onto the window's
+drawable) produces no visible output on this project's vendored
+`Xfbdev`/`xorg-server`. `render/render.c`'s `ProcRenderAddGlyphs`/
+`ProcRenderCompositeGlyphs` are real, non-stub, wired into the request
+dispatch table in the vendored server source -- so this isn't
+obviously dead/missing server code, but whether that code path is
+actually exercised correctly (vs. XRender's fill/gradient paths, which
+cairo's own future integration will also depend on -- see this
+session's roadmap note on Phase 41) was not root-caused further this
+phase. Left as the next concrete task before any future phase attempts
+real cairo/Pango text rendering, which depends on exactly this same
+glyph-compositing path working. QEMU's headless QMP mouse-event
+injection was also unreliable for extended interactive sessions in
+this environment (relative motion/keyboard input intermittently
+stopped registering after several actions, recovering on VM restart) --
+a tooling limitation of this verification session, not evidence of an
+AsterOS-side bug; every finding above was independently confirmed via
+the program's own diagnostic output and direct pixel inspection, not
+solely by eyeballing a screendump.

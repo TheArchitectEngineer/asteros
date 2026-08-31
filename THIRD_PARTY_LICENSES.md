@@ -48,12 +48,46 @@ text:
 `libxkbfile`, `libxmu`, `libxpm`, `libxt`, `pixman`, `pthread-stubs`,
 `randrproto`, `renderproto`, `twm`, `xcbproto`, `xclock`,
 `xcmiscproto`, `xextproto`, `xkbcomp`, `xkeyboard-config`,
-`xorg-server`, `xorg-util-macros`, `xproto`, `xterm`, `xtrans`
+`xorg-server`, `xorg-util-macros`, `xproto`, `xterm`, `xtrans`,
+`libXrender`, `libXfixes`, `libXrandr`, `libXcursor`, `libXft`
 
 ## MIT License
 
 `musl-math-src` — musl libc's math functions, MIT-licensed. See
 `src/musl-math-src/COPYRIGHT`.
+
+`expat` — see `src/expat/COPYING`.
+
+`src/freetype2/src/dlg`, `src/freetype2/include/dlg` — the small
+`dlg` logging library (github.com/nyorain/dlg) FreeType's own build
+unconditionally compiles in; MIT-licensed, vendored directly rather
+than via FreeType's usual git-submodule checkout (see
+`src/freetype2/build.sh`'s comment).
+
+## FreeType License (FTL)
+
+`freetype2` — dual-licensed GPL-2.0/FTL upstream; this project selects
+the FTL (a BSD-style license with an acknowledgment clause), not
+GPL-2.0, to avoid a copyleft conflict with the rest of this dependency
+chain — same discipline as the corecrypto/GPLv3 skip in TODO.md's
+PureDarwin-adoption phase. See `src/freetype2/LICENSE.TXT`.
+
+## Fontconfig License (HPND-style, MIT-equivalent)
+
+`fontconfig` — a permissive, MIT-equivalent license predating the MIT
+license's own formalized text. See `src/fontconfig/COPYING`.
+
+## libpng License
+
+`libpng` — its own permissive license (libpng-2.0, essentially a
+zlib/MIT-style grant). See `src/libpng/LICENSE`.
+
+## Bitstream Vera / DejaVu Fonts License
+
+`src/fonts/DejaVuSans.ttf` — Bitstream Vera fonts (c) Bitstream, Inc.,
+with DejaVu's own changes released into the public domain; permissive,
+no share-alike requirement, redistribution explicitly permitted. Full
+text in `src/fonts/LICENSE`.
 
 ## Apache License 2.0 (with LLVM exceptions)
 

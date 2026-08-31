@@ -293,6 +293,18 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 		echo "wmiv found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/wmiv ::/bin/wmiv
 	fi
+	if [ -f build/xorg-target-root/bin/xfttest ]; then
+		echo "xfttest found in build/ -- including it in the rootfs"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xfttest ::/bin/xfttest
+		if [ -d build/xorg-target-root/usr/share/fonts ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/share 2>/dev/null || true
+			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/share/fonts ::/usr/share/
+		fi
+		if [ -d build/xorg-target-root/usr/etc/fonts ]; then
+			mmd -i "$ROOTFS_IMG" ::/usr/etc 2>/dev/null || true
+			mcopy -s -i "$ROOTFS_IMG" build/xorg-target-root/usr/etc/fonts ::/usr/etc/
+		fi
+	fi
 fi
 
 DYLD_BIN="build/dyld_obj/dyld"
