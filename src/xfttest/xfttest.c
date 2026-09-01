@@ -44,6 +44,16 @@ xerror_handler(Display *d, XErrorEvent *ev)
 int
 main(void)
 {
+	/* Force stderr fully unbuffered regardless of whether it's a tty
+	 * or a redirected file -- when redirected to a file (the only
+	 * reliable way to capture this program's output for later
+	 * reading, see TODO.md's Phase 39 follow-up), libc switches
+	 * stderr from line-buffered to fully-buffered by default, so
+	 * every fprintf below would sit in an internal buffer and never
+	 * actually reach the file at all if this process hangs (as it
+	 * currently does) before ever exiting/flushing normally. */
+	setvbuf(stderr, NULL, _IONBF, 0);
+
 	XSetErrorHandler(xerror_handler);
 
 	Display *dpy = XOpenDisplay(NULL);

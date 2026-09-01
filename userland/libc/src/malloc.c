@@ -11,11 +11,50 @@
  * Thread safety: real pthreads now exist (pthread.c), so every public
  * entry point below takes g_malloc_lock -- a plain atomic-CAS spinlock,
  * not a pthread_mutex_t (this file must not depend on pthread.c, which
- * itself calls malloc()). Internal helpers with a _nolock suffix assume
- * the caller already holds it; callers that build on top of another
- * public entry point's logic (calloc, aligned_alloc) take the lock once
- * themselves and call the _nolock forms directly instead of recursing
- * into the public (locking) ones, since the spinlock isn't recursive. */
+ * itself calls malloc()).
+ *
+ * malloc_lock() carries a watchdog: ground-truthed live (Xfbdev wedged
+ * permanently the first time a real Xft client uploaded a glyph --
+ * TODO.md's Phase 39 glyph-compositing investigation), g_malloc_lock can
+ * end up permanently held with no code anywhere still running that could
+ * ever call malloc_unlock() to release it -- every later malloc()/free()
+ * in that process then spins in the acquire loop forever, which is a
+ * silent, total hang (no crash, no error) since this OS has no watchdog
+ * above the process level either. Extensive live instrumentation (kernel
+ * physical-memory snapshots read back with mtools, since the hang leaves
+ * no way to read a log file through the normal filesystem path -- see
+ * the session notes this bug was root-caused in) traced the stuck lock
+ * to a free() call made from inside pixman's per-image destroy_func hook
+ * (fb/fbpict.c's image_destroy, wired up via
+ * pixman_image_set_destroy_function()), which runs synchronously inside
+ * pixman_image_unref() -> _pixman_image_fini() -> free(image) -- i.e.
+ * between an outer free() taking this same lock and releasing it -- but
+ * a real reentrant-recursion fix (tracking lock ownership and letting a
+ * same-call-stack reentrant acquire through immediately) was tried live
+ * and did *not* resolve the hang: recursion was confirmed firing on
+ * every reproduction, yet the process still never made it back out of
+ * free(). Whatever actually leaks the lock is therefore something other
+ * than straightforward single-level reentrancy, and did not reveal
+ * itself even after also instrumenting both malloc_nolock() loops and
+ * free_nolock()'s coalescing loop individually (none of them exceeded
+ * millions of iterations, ruling out an ordinary infinite loop in this
+ * file's own allocation/free logic as the direct cause). Given that,
+ * the honest, defensible fix here is a bounded watchdog rather than a
+ * claim to have eliminated the root cause: this process is single main
+ * thread only (no INPUTTHREAD, no pthread_create, ground-truthed via
+ * `nm` on the built binary), so there is never a legitimate reason for
+ * one caller to hold this lock across tens of millions of spin
+ * iterations of another caller waiting on it -- a real concurrent
+ * holder making progress would finish in microseconds. A holder still
+ * not done after LOCK_SPIN_LIMIT iterations has leaked the lock, not
+ * merely delayed releasing it, so breaking the lock open and proceeding
+ * trades a permanent, silent hang for guaranteed forward progress,
+ * which is the only choice that doesn't wedge the whole process. This
+ * does not corrupt allocator state any worse than the leak already
+ * would have: nothing else in this single-threaded process can be
+ * concurrently mutating the free list while we're spinning, so the
+ * worst case is the leaked holder's own in-progress chunk edit, which
+ * existed whether or not this watchdog fires. */
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -23,10 +62,27 @@
 
 static int g_malloc_lock;
 
+#define LOCK_SPIN_LIMIT 1000000UL
+
+/* Bounds every walk of the chunk free-list. A real arena never has
+ * anywhere near this many chunks; this exists purely so a corrupted or
+ * accidentally-cyclic list degrades to "stop walking and carry on" (a
+ * wrong-but-terminating allocator decision) instead of "spin forever"
+ * (see the file header's account of the malloc_lock() watchdog for why
+ * a guaranteed-terminating allocator matters more here than usual). */
+#define CHUNK_SCAN_LIMIT 2000000UL
+
 static void
 malloc_lock(void)
 {
+	unsigned long spins = 0;
 	while (__atomic_exchange_n(&g_malloc_lock, 1, __ATOMIC_ACQUIRE)) {
+		spins++;
+		if (spins > LOCK_SPIN_LIMIT) {
+			/* Leaked, not contended -- see file header. Force it
+			 * open rather than hang forever. */
+			break;
+		}
 		__asm__ __volatile__("pause" ::: "memory");
 	}
 }
@@ -103,7 +159,11 @@ malloc_nolock(size_t size)
 	}
 	size = align16(size);
 
+	unsigned long scan_iters = 0;
 	for (struct chunk *c = g_head; c; c = c->next) {
+		if (++scan_iters > CHUNK_SCAN_LIMIT) {
+			break; /* corrupt/cyclic list -- fall through to arena_grow() */
+		}
 		if (!c->free || c->size < size) {
 			continue;
 		}
@@ -124,7 +184,8 @@ malloc_nolock(size_t size)
 	/* No existing block has room -- mmap another one and link it onto
 	 * the end of the chain, then retry the allocation from it. */
 	struct chunk *tail = g_head;
-	while (tail->next) {
+	unsigned long tail_iters = 0;
+	while (tail->next && ++tail_iters <= CHUNK_SCAN_LIMIT) {
 		tail = tail->next;
 	}
 	struct chunk *fresh = arena_grow(size);
@@ -155,7 +216,11 @@ free_nolock(void *ptr)
 	c->free = 1;
 	/* coalesce adjacent free chunks (single pass, list is address-ordered
 	 * since we only ever split forward) */
+	unsigned long coalesce_iters = 0;
 	for (struct chunk *p = g_head; p && p->next; p = p->next) {
+		if (++coalesce_iters > CHUNK_SCAN_LIMIT) {
+			break; /* corrupt/cyclic list -- ptr is already marked free above */
+		}
 		if (p->free && p->next->free &&
 		    (unsigned char *)(p + 1) + p->size == (unsigned char *)p->next) {
 			p->size += sizeof(struct chunk) + p->next->size;

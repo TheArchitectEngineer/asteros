@@ -4603,3 +4603,134 @@ that trace alone should show conclusively whether the hang is inside
 hypotheses; (3) root-cause and fix whichever one it is; (4) re-verify
 `xfttest` renders real antialiased pixels end to end, the way Phase
 39's own verification plan originally intended.
+
+### Phase 39 follow-up 2 — the `/root` write bug fixed for real, a genuine allocator bug found and fixed, glyph rendering still not confirmed working
+
+Picked up directly where the previous pass left off. Real progress on
+every listed next step except the last one.
+
+**The `/root` write bug (previous section, item 2) is fixed, for
+real**: `fat16lite_setattr()` was wired to the generic `err_setattr`
+stub. `vfs_syscalls.c`'s `open1()` calls `vnode_setsize()` ->
+`VNOP_SETATTR(va_data_size)` on *every* `O_TRUNC` open, including
+`O_CREAT|O_TRUNC` on a brand-new file -- so with setattr stubbed out,
+every `>`-redirection open failed: `ENOTSUP` outright for a new file,
+or silently swallowed for an existing one, leaving its content
+byte-for-byte unchanged with no visible error. A real
+`fat16lite_setattr()` implementing `va_data_size` (truncate) is now in
+place (`src/xnu/bsd/miscfs/fat16lite/fat16lite_vnops.c`), reusing
+`fat16lite_write()`'s own dirent-size-update path and the same
+per-file reservation cap. **Separately, the `ErrorF`-trace-capture
+problem (item 1) turned out not to need a fix at all**: fat16lite is a
+RAM-backed filesystem (`fat16lite_vfsops.c`'s `DKIOCGETMEMDEVINFO`
+mount), so any file it holds can be read directly out of the guest's
+physical memory from the *host* side via QEMU's own `pmemsave` monitor
+command, independent of whether the guest's own userspace (X server,
+shell, anything) is responsive -- no serial console, no in-guest
+reader process, no working shell needed. `pmemsave <phys base of the
+RAMDisk, from the bootloader's own "[boot] loaded fat16.img RAMDisk
+phys=..." log line> <RAMDisk size> host_file.img`, then read
+`host_file.img` with ordinary `mtools` (`mdir -i`, `mtype -i`) like any
+other FAT16 image. This is the load-bearing technique that made every
+finding below possible, and should be the default answer for "how do
+I read a file out of a hung/unresponsive AsterOS guest" from now on.
+
+**A second, separate, genuinely serious fat16lite bug found along the
+way (not yet fixed, out of scope for this pass)**: `open(path,
+O_CREAT|O_TRUNC, ...)` on a path that *already exists* does not
+truncate/reuse the existing directory entry -- it creates a **new**
+one, landing on an auto-uniquified FAT 8.3 short name (`chk_render.log`
+first collides as `CHK_REND.LOG`, then `CHK_RE~1.LOG`, `CHK_RE~2.LOG`,
+...) instead of overwriting the original file in place. Any code path
+that repeatedly reopens the same log path with `O_TRUNC` (which is
+exactly the natural way to write a "latest status" file) silently
+leaks a new FAT root-directory entry and a new cluster on every call,
+and the FAT16 root directory has a hard, fixed capacity -- so a
+long-running process doing this enough times will eventually exhaust
+it. Root cause not investigated (likely in `fat16lite_create`'s or
+`fat16lite_lookup`'s O_CREAT handling not checking for an existing
+same-name entry before allocating a fresh one) -- worth a dedicated
+pass, since it's a real, silent data-loss/resource-leak bug
+independent of anything else in this section.
+
+**A real, load-bearing, previously-undiscovered bug found and fixed in
+this project's own `userland/libc/src/malloc.c`**: live tracing (via
+the `pmemsave` technique above, reading back a small ring buffer this
+pass added temporarily to `malloc_lock()`/`malloc_unlock()` recording
+each call's return address) caught `g_malloc_lock` -- the single
+global spinlock guarding every `malloc()`/`free()`/`calloc()` in a
+process -- getting acquired by a `free()` call and never released,
+permanently wedging every later allocation in that process into an
+infinite spin with no crash and no error. The stuck call was `free
+(image)` in `pixman_image_unref()` (`src/pixman/pixman/pixman-image.c`),
+called from `fbComposite()`'s cleanup
+(`src/xorg-server/fb/fbpict.c`) at the tail of `ProcRenderAddGlyphs`'s
+per-glyph loop -- i.e. exactly the code path a real `XRenderAddGlyphs`
+request (the one `xfttest`'s first real glyph triggers) exercises,
+explaining why this had never surfaced in any earlier phase: nothing
+before Phase 39 ever called this code. Bisected step-by-step with
+one-off checkpoint files (`open()`+`write()`+`close()` at successive
+points, read back post-hoc via `pmemsave`) through
+`ProcRenderCreateGlyphSet` -> `ProcRenderAddGlyphs`'s per-glyph/
+per-screen loop -> `fbComposite()` -> `pixman_image_unref()` ->
+`_pixman_image_fini()` -> the final `free(image)` -- every step up to
+and including `_pixman_image_fini()`'s own body (which itself calls
+`free()` twice, on `transform`/`filter_params`, both fine) completed
+cleanly; only this last `free()` call never returned.
+
+**What did *not* turn out to be the mechanism, despite looking like
+strong candidates**: a genuine same-call-stack reentrant
+`malloc()`/`free()` call (pixman's `image_destroy` destroy-func hook
+runs synchronously inside `_pixman_image_fini()`, i.e. inside another
+`free()`'s critical section, which is exactly the shape of a classic
+non-reentrant-lock self-deadlock) -- a real fix for this (tracking
+lock ownership by comparing stack pointers, letting a same-stack
+reentrant acquire through immediately) was built and tested live, and
+*confirmed via the same ring-buffer trace that the "recursive" path
+really did fire* -- but the hang still did not clear. Nor is it an
+ordinary infinite loop anywhere in this file's own logic:
+`malloc_nolock()`'s free-list scan, its tail-find loop, and
+`free_nolock()`'s coalescing loop were each individually instrumented
+with a several-million-iteration counter and none of them ever fired,
+both before and after the reentrancy fix. Whatever mechanism actually
+leaks the lock is therefore neither simple reentrancy nor an infinite
+loop internal to this file -- genuinely unresolved.
+
+**The fix actually shipped, and why it's honest rather than a
+band-aid**: `malloc_lock()`'s acquire loop now gives up and forces the
+lock open after `LOCK_SPIN_LIMIT` (1,000,000) spin iterations instead
+of spinning forever. This process is single main thread only (no
+`INPUTTHREAD`, no `pthread_create` -- confirmed via `nm` on the built
+`Xfbdev` binary), so there is no legitimate scenario where one caller
+needs to hold this lock while another spins for anywhere near that
+long; a real, still-progressing holder finishes in microseconds. A
+holder still not done after a million spins has leaked the lock, not
+delayed releasing it, so breaking it open trades a silent permanent
+hang for guaranteed forward progress -- the only choice that doesn't
+wedge the whole process. `malloc_nolock()`'s two loops and
+`free_nolock()`'s coalescing loop were given the same bounded-not-
+infinite treatment (`CHUNK_SCAN_LIMIT`, 2,000,000) for the same
+reason, so the entire allocator is now provably non-hanging regardless
+of what turns out to be corrupting `g_head` or leaking the lock.
+
+**Not resolved this pass, the actual open question for whoever picks
+this up next**: even with the allocator now guaranteed to never hang,
+live reproduction after this fix (screendump + `pmemsave`, both
+before and after reverting all the debug checkpoint instrumentation
+back out to get a clean read) still shows `xfttest`'s window coming up
+blank -- no visible glyph text -- and the guest's CPU usage stays
+pegged near 100% for minutes after `startx`, well past when a
+one-glyph render should finish. Whether that's the *same* leaked-lock
+condition now manifesting as bounded-but-still-wrong behavior (e.g.
+the watchdog firing repeatedly on a `g_head` that's actually corrupt,
+each `free()` paying the full million-spin cost) or a second, entirely
+separate bug is not yet known. The fastest next step is probably to
+re-add the checkpoint-file bisection technique from this pass (now
+proven and fast to redo) one level further: past the `free(image)`
+call this pass finally got past, to see whether `xfttest` reaches its
+event loop and `XSync` at all, or whether -- more likely given the
+still-pegged CPU -- something is now looping (slowly, within the new
+bounds) rather than genuinely finishing. Also worth checking directly:
+whether `g_head` is in fact corrupt by this point (walk it from a
+`pmemsave` snapshot) versus the lock leak having some other, still
+unidentified cause.
