@@ -23,7 +23,7 @@
  * above the process level either. Extensive live instrumentation (kernel
  * physical-memory snapshots read back with mtools, since the hang leaves
  * no way to read a log file through the normal filesystem path -- see
- * the session notes this bug was root-caused in) traced the stuck lock
+ * TODO.md's Phase 39 follow-up for the technique) traced the stuck lock
  * to a free() call made from inside pixman's per-image destroy_func hook
  * (fb/fbpict.c's image_destroy, wired up via
  * pixman_image_set_destroy_function()), which runs synchronously inside
@@ -43,18 +43,21 @@
  * claim to have eliminated the root cause: this process is single main
  * thread only (no INPUTTHREAD, no pthread_create, ground-truthed via
  * `nm` on the built binary), so there is never a legitimate reason for
- * one caller to hold this lock across tens of millions of spin
- * iterations of another caller waiting on it -- a real concurrent
- * holder making progress would finish in microseconds. A holder still
- * not done after LOCK_SPIN_LIMIT iterations has leaked the lock, not
- * merely delayed releasing it, so breaking the lock open and proceeding
- * trades a permanent, silent hang for guaranteed forward progress,
- * which is the only choice that doesn't wedge the whole process. This
- * does not corrupt allocator state any worse than the leak already
- * would have: nothing else in this single-threaded process can be
- * concurrently mutating the free list while we're spinning, so the
- * worst case is the leaked holder's own in-progress chunk edit, which
- * existed whether or not this watchdog fires. */
+ * one caller to hold this lock while another spins anywhere near
+ * LOCK_SPIN_LIMIT iterations waiting on it -- a real concurrent holder
+ * making progress finishes in microseconds. A holder still not done
+ * after that many spins (measured live at ~80ms wall-clock under this
+ * project's emulated CPU -- long enough that no genuine short critical
+ * section would ever trip it, short enough not to compound into a
+ * user-visible delay if it fires more than once) has leaked the lock,
+ * not merely delayed releasing it, so breaking the lock open and
+ * proceeding trades a permanent, silent hang for guaranteed forward
+ * progress, which is the only choice that doesn't wedge the whole
+ * process. This does not corrupt allocator state any worse than the
+ * leak already would have: nothing else in this single-threaded
+ * process can be concurrently mutating the free list while we're
+ * spinning, so the worst case is the leaked holder's own in-progress
+ * chunk edit, which existed whether or not this watchdog fires. */
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -62,7 +65,7 @@
 
 static int g_malloc_lock;
 
-#define LOCK_SPIN_LIMIT 1000000UL
+#define LOCK_SPIN_LIMIT 20000UL
 
 /* Bounds every walk of the chunk free-list. A real arena never has
  * anywhere near this many chunks; this exists purely so a corrupted or

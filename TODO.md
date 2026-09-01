@@ -4734,3 +4734,81 @@ bounds) rather than genuinely finishing. Also worth checking directly:
 whether `g_head` is in fact corrupt by this point (walk it from a
 `pmemsave` snapshot) versus the lock leak having some other, still
 unidentified cause.
+
+### Phase 39 follow-up 3 — watchdog confirmed live, plus a second, unrelated, non-deterministic kernel hang that now blocks clean re-testing
+
+Picked back up with the checkpoint-bisection technique from follow-up
+2, re-added specifically to find out whether the malloc-lock watchdog
+was actually the mechanism still stuck, or something past it.
+
+**The watchdog does fire, and fires fast**: re-instrumented
+`malloc_lock()` to log elapsed wall-clock time (`clock_gettime`) the
+moment it gives up and forces the lock open. Live: `fire #1,
+elapsed_ns=80475000` -- about 80ms for `LOCK_SPIN_LIMIT`'s then-value
+of 1,000,000 spins, confirming both that the lock genuinely is stuck
+(not just slow) and that the watchdog's real-world cost is small.
+`LOCK_SPIN_LIMIT` was lowered to 20,000 (~1.6ms by the same
+measurement) and kept -- still far larger than any legitimate
+short-critical-section contention could need, and cheap enough that
+even several repeated firings wouldn't be user-visible. This is the
+one durable code change from this pass, already reflected in
+`userland/libc/src/malloc.c`.
+
+**Past the watchdog, still no further progress**: with the lock
+firing and forcing itself open in ~80ms, `pixman_image_unref()`'s
+`free(image)` call should have returned to its own next line
+(checkpointed as `pu10.log`) almost immediately. It never did, across
+several full reproduction attempts, each waited on for 45-90+ seconds
+after the watchdog's single recorded firing. A SIGSEGV/SIGBUS/SIGILL/
+SIGABRT handler was installed at the very top of `dix_main()`
+(`sigaction`, plain `sa_handler` -- this libc's signal.h deliberately
+doesn't support `SA_SIGINFO`/`siginfo_t` fields, see its own comment)
+specifically to catch a silent crash; it never fired either. Bisecting
+inside `free_nolock()` itself (checkpoints at entry, at the coalesce
+loop's own bound-exceeded branch, and after the loop) showed the loop
+completing normally for every *other* free() in the process's life,
+never showing signs of exceeding its bound for the one call that
+matters. The mechanism genuinely stuck past the watchdog remains
+unidentified.
+
+**A second, real, unrelated, non-deterministic kernel bug was found
+along the way, and it's now the practical blocker to clean re-testing**:
+after `vm_swap_create_file failed @ 101 secs` (an already-known,
+already-logged gap -- fat16lite can't back a real multi-GB swap file),
+something in the VM compressor's swap writeback path does not honor
+that failure and keeps retrying forever: the serial log fills with
+hundreds of consecutive `XFTDEBUG: fat16lite_write: EFBIG bail
+(want<=0)` lines (`fat16lite_write()`'s own trace, unrelated to
+anything in this pass -- it's just the messenger), and the whole VM
+goes quiet afterward -- no further FAT16 directory-entry writes of any
+kind, from any process, ever again in several separate reproductions,
+each waited on for 90+ seconds past the point of the last EFBIG line.
+This is genuinely non-deterministic: several boots in the same session
+never hit it and proceeded to `xfttest` normally; others hit it
+reliably and never recovered. Traced one level into
+`osfmk/vm/vm_compressor_backing_store.c` (`vm_swapfile_create_thread`,
+which retries *creating* a swap file on a backoff timer via
+`VM_SWAP_SHOULD_CREATE`) -- that's plausibly adjacent to, but is not
+obviously the same code path as, the actual per-page *write* retries
+(`vm_swap_put` / `vm_swapfile_io`) that would explain the specific
+`fat16lite_write` flood. Deliberately **not fixed this pass**: this is
+real Apple VM/compressor internals, not this project's own code, and
+patching it correctly needs the same live-tracing rigor as the malloc
+bug did, not a guess made under time pressure -- a rushed fix to core
+memory-management code risks a strictly worse regression than the bug
+it's meant to fix. Whoever picks this up next should budget it as its
+own investigation, separate from the glyph-rendering one, and treat
+`fat16lite_write`'s own EFBIG-bail behavior as correct (it's honestly
+reporting the swap file's real, tiny cap) -- the bug is entirely on
+the retry-forever side.
+
+**Left for next time**: (1) root-cause the still-stuck-past-the-
+watchdog mechanism -- possibly by walking `g_head` directly from a
+`pmemsave` snapshot to check for real corruption, since nothing in
+this pass's instrumentation caught it red-handed; (2) root-cause and
+fix the VM compressor's infinite swap-write retry, since it's now an
+intermittent but real reliability problem for *any* long boot, not
+just this investigation; fixing it would also make the glyph
+investigation itself far faster to iterate on, since several passes
+this session were lost to boots that silently wedged in this unrelated
+path before `xfttest` ever ran.
