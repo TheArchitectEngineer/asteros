@@ -95,6 +95,7 @@ double ceil(double x);
 double trunc(double x);
 double round(double x);
 double fmod(double x, double y);
+float fmodf(float x, float y); /* added for WindowMaker's real Xft/font-stack rebuild (wrlib/rotate.c) */
 double rint(double x);
 double hypot(double x, double y);
 double frexp(double x, int *e); /* added for xedit (lisp/mp/mpi.c, mpr.c) */

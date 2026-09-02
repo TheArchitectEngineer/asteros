@@ -56,6 +56,68 @@ cat > "$DESTDIR/usr/etc/fonts/fonts.conf" <<'FONTSEOF'
 <fontconfig>
 	<dir>/usr/share/fonts</dir>
 	<cachedir>/usr/var/cache/fontconfig</cachedir>
+
+	<!-- The only font this project ships is DejaVu Sans, registered
+	     under its own real family name -- nothing here maps the
+	     generic CSS-style family names ("Sans", "Serif", "Monospace",
+	     and their lowercase X/fontconfig-style spellings) to it. A
+	     real, full fontconfig install normally supplies that mapping
+	     via its own compiled-in conf.d rules; this project's fonts.conf
+	     is deliberately minimal and doesn't. Any client requesting a
+	     generic family (WindowMaker's own Defaults, "Sans:bold:
+	     pixelsize=12" etc -- see WindowMaker/Defaults/WindowMaker.in)
+	     therefore gets no real-face match, and libXft silently falls
+	     back to wrapping a legacy X core bitmap font instead of real
+	     antialiased FreeType rendering -- ground-truthed live via
+	     WindowMaker's own root menu coming up in a blocky, non-
+	     antialiased fallback font despite linking real Xft/fontconfig/
+	     FreeType and successfully opening *a* font (XftFontOpenName
+	     doesn't return NULL for this case -- it returns the core-font
+	     wrapper, which is why a naive "did WMCreateFont succeed" check
+	     doesn't catch it). <alias>, not <match>, is fontconfig's own
+	     dedicated, canonical mechanism for exactly this generic-name-
+	     to-real-family mapping (what every real system's own
+	     conf.d/*-family-*.conf uses) -- fixed at the root here rather
+	     than per-client, aliasing every generic family to the one real
+	     font actually installed. -->
+	<alias>
+		<family>Sans</family>
+		<prefer><family>DejaVu Sans</family></prefer>
+	</alias>
+	<alias>
+		<family>sans-serif</family>
+		<prefer><family>DejaVu Sans</family></prefer>
+	</alias>
+	<alias>
+		<family>Serif</family>
+		<prefer><family>DejaVu Sans</family></prefer>
+	</alias>
+	<alias>
+		<family>serif</family>
+		<prefer><family>DejaVu Sans</family></prefer>
+	</alias>
+	<alias>
+		<family>Monospace</family>
+		<prefer><family>DejaVu Sans</family></prefer>
+	</alias>
+	<alias>
+		<family>monospace</family>
+		<prefer><family>DejaVu Sans</family></prefer>
+	</alias>
+
+	<!-- Belt and suspenders: force antialiasing on for every font
+	     request that doesn't already say otherwise. A real fontconfig
+	     install's own default conf.d chain always sets this
+	     explicitly; this minimal fonts.conf otherwise leaves the
+	     "antialias" property unset on most patterns. -->
+	<match target="font">
+		<test name="antialias" qual="all" compare="not_eq">
+			<bool>false</bool>
+		</test>
+		<edit name="antialias" mode="assign">
+			<bool>true</bool>
+		</edit>
+	</match>
 </fontconfig>
 FONTSEOF
 

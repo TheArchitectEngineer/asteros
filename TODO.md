@@ -5124,3 +5124,177 @@ and four follow-up passes progressively narrowed -- the concrete
 finding for anyone continuing GTK3 bring-up from here: real on-screen
 antialiased text rendering via Xft/Render/pixman is confirmed working
 on this OS.
+
+### Phase 39 follow-up 6 -- WindowMaker relinked against the real font stack; a real fmodf gap and a real fontconfig alias gap fixed; menu text still not visually antialiased, root cause not found
+
+With glyph rendering itself proven working (follow-up 5), the obvious
+next question: WindowMaker (`wmaker`) still linked against
+`src/xft-stub` (Phase 36's build, from before Phase 39's real Xft/
+FreeType/fontconfig stack existed) -- so its own window titles/menus/
+dock labels were never real Xft output at all, stub or otherwise
+broken. This pass relinked `wmaker` and `wmsetbg` against the real
+stack and chased the visual result as far as time allowed.
+
+**`wmaker`/`wmsetbg` now genuinely link real Xft/FreeType/fontconfig,
+confirmed via symbols, not just a clean build log**: `nm` on the
+rebuilt `src/wmaker/src/wmaker` binary shows real, defined (`T`, not
+`U`) `_FcPatternCreate`/`_XftFontOpenName`/`_XftFontOpenPattern` --
+the actual FreeType/fontconfig code statically linked in, not stub
+stand-ins. Reconfigured via `./configure` with explicit `XFT_CFLAGS`/
+`XFT_LIBS` environment overrides pointing at `build/gtk-deps-install`
+(the real font stack's prefix) instead of letting `pkg-config` resolve
+`xft`/`fontconfig` from whatever's on `PKG_CONFIG_PATH` (which would
+still find `xorg-deps-install`'s stub `.pc` files first) -- same
+`-I gtk-deps-install/include` (and `.../include/freetype2`) *before*
+any `xorg-deps-install` header path recipe `xfttest/build.sh` already
+documents and depends on (the stub's `Xft.h`/`fontconfig.h` have a
+different, smaller struct layout than the real ones; searching them
+first silently miscompiles against the real linked library). This
+reconfigure/rebuild is **not scripted anywhere** (no
+`src/wmaker/build.sh` exists, unlike every other vendored library in
+this project) and `config.status`/`Makefile`/the built binaries are
+all gitignored (`src/wmaker/.gitignore`), so the exact commands used
+are recorded here for reproducibility:
+
+```
+cd src/wmaker
+ROOT=/path/to/AsterOS
+X11_DEPS="$ROOT/build/xorg-deps-install"
+FONT_DEPS="$ROOT/build/gtk-deps-install"
+CLANG="$ROOT/build/tools/asteros-sdk/bin/clang -std=gnu23"
+
+CC="$CLANG" \
+CPPFLAGS="-I$X11_DEPS/include" \
+LDFLAGS="-L$X11_DEPS/lib" \
+XFT_CFLAGS="-I$FONT_DEPS/include -I$FONT_DEPS/include/freetype2" \
+XFT_LIBS="-L$FONT_DEPS/lib -L$X11_DEPS/lib -lXft -lfontconfig -lfreetype -lexpat -lpng16 -lz -lXrender -lX11 -lxcb -lXau -lXdmcp" \
+./configure --host=x86_64-apple-darwin19 --prefix=/usr --bindir=/bin --datadir=/usr/share \
+  --x-includes="$X11_DEPS/include" --x-libraries="$X11_DEPS/lib" \
+  --disable-png --enable-jpeg --disable-gif --disable-tiff --disable-webp --disable-magick \
+  --disable-pango --disable-shm --disable-shared --enable-static
+```
+(`CPPFLAGS`/`LDFLAGS` pointing at `X11_DEPS` are needed too --
+`--x-includes`/`--x-libraries` alone don't reach WindowMaker's own
+custom `AC_CHECK` test-compiles for things like the JPEG library,
+ground-truthed live: without them, `checking for JPEG support
+library... failed` even though `--x-includes` was set, because that
+specific probe's own conftest compile line has no `-I` at all.) Only
+`src/`(`wmaker`) and `util/wmsetbg` were rebuilt this pass -- `make`
+from the top level also tries `WPrefs.app`, which fails independently
+on a real, pre-existing, unrelated bug (`KeyboardShortcuts.c:174:
+static declaration of 'XConvertCase' follows non-static declaration`
+against real `Xutil.h`'s own extern declaration, since real libX11
+here doesn't implement `XConvertCase` -- `configure` already knows
+this, `checking for XConvertCase in -lX11... no`) -- not investigated
+or fixed this pass, out of scope (WPrefs.app is a separate GUI
+preferences tool, not needed for `wmaker`/`wmsetbg` themselves).
+
+**A real, load-bearing Makefile-dependency-tracking gap found and
+worked around while getting a clean relink**: `hw/kdrive/fbdev`'s
+(`Xfbdev`) and `fb`'s/`render`'s own Makefiles link against
+`libpixman-1.a`/reference symbols from other already-built static
+libraries purely via linker flags (`-lpixman-1 -L.../lib`), which
+`make`'s own dependency graph has no visibility into -- so after the
+`pixman` submodule's content changed (follow-up 5's actual fix) and
+`fb`/`render` were separately rebuilt with diagnostic instrumentation
+then reverted, plain `make -C hw/kdrive/fbdev` judged its own sources
+unchanged and silently skipped relinking, shipping a **stale Xfbdev
+binary that still referenced deleted diagnostic symbols**
+(`_malloc_debug_check_sanity_tagged`) from mid-investigation --
+confirmed live via `dyld: _malloc_debug_check_sanity_tagged` failing
+to load at boot. Not a new bug this pass introduced so much as an
+existing hazard finally tripped by editing `pixman`/`fb`/`render` in
+the same session as testing `Xfbdev`: **whenever any of `pixman`,
+`fb`, or `render` change, `Xfbdev` (and anything else linking their
+`.a`s) needs an explicit forced relink** (`rm` the target binary, not
+just `make`) rather than trusting `make`'s own staleness check.
+Worth fixing at the root eventually (proper Makefile prerequisites on
+the installed `.a` files), left as-is this pass since it's upstream
+autotools-generated build machinery, same class of out-of-scope
+concern as the `config.status` stale-path issue in follow-up 5.
+
+**A real, separate libc gap found and fixed at the root**: linking
+`wmiv`/`wmsetbg` (both in `util/`, both use `wrlib`'s `RRotateImage`)
+failed with `Undefined symbols ... _fmodf, referenced from
+_RRotateImage in libwraster.a` -- this project's libc had `fmod`
+(double) but never `fmodf` (float), a real, previously-undiscovered
+gap (nothing before this pass had linked anything calling the float
+variant). Added for real, same pattern as the existing `fmod`
+wrapper: `userland/libc/src/math_builtins.c`'s
+`float fmodf(float x, float y) { return __builtin_fmodf(x, y); }`,
+prototype added to `userland/libc/include/math.h`. `libSystem.B.dylib`
+rebuilt to pick it up (`userland/libSystem/build.sh`).
+
+**A real, separate fontconfig config gap found and fixed at the
+root**: `xfttest/build.sh`'s minimal `fonts.conf` (shared by every
+client that ships one, `wmaker` included, since `mkrootfs.sh` never
+overrides it per-client) registers the one real font this project
+ships (DejaVu Sans) under its own literal family name, but never maps
+the generic CSS-style family names (`Sans`, `Serif`, `Monospace`, and
+their lowercase X/fontconfig spellings) to it -- the mapping a real,
+full fontconfig install normally supplies via its own compiled-in
+`conf.d/*-family-*.conf` chain. WindowMaker's own shipped defaults
+request exactly these generic names (`WindowTitleFont = "Sans:bold:
+pixelsize=12"` etc, `WindowMaker/Defaults/WindowMaker.in`), which is
+a completely ordinary, correct thing for a client to do -- the gap is
+in this project's own minimal font config, not in WindowMaker. Fixed
+at the root in `xfttest/build.sh`'s `fonts.conf` heredoc (the one
+tracked template every client's installed copy comes from) using
+fontconfig's own dedicated, canonical `<alias>` mechanism (not a
+hand-rolled `<match>`) for the generic-name mapping, plus a belt-and-
+suspenders `<match target="font">` rule forcing `antialias=true` by
+default for any pattern that doesn't already say otherwise (a real,
+full fontconfig install's own default chain always sets this
+explicitly; this minimal one otherwise leaves it unset on most
+patterns). Verified via a live, instrumented rebuild that
+`XftFontOpenName()` does receive the intended pattern strings and
+does not fall back (see below) -- this fix is real and correct, just
+not sufficient on its own to explain the remaining symptom.
+
+**Left unresolved, the real open question for whoever picks this up
+next: WindowMaker's own root menu (`F12`, `WMRootMenu`) renders its
+item text in a small, clearly non-antialiased, monospace-looking
+font, and changing the configured font family *or* size has zero
+visible effect on it** -- ground-truthed live, exhaustively, via a
+purpose-built one-shot checkpoint added directly to
+`src/wmaker/src/defaults.c`'s `getFont()` (the single, shared
+config-value-to-`WMFont` resolver every `*Font` default key goes
+through, `MenuTextFont` included): it logs every font key's *actual*
+string value read from the live defaults database, plus whether
+`WMCreateFont()` on that value ever falls back to the hardcoded
+`"fixed"` family. Result, read back via the same `pmemsave` technique
+used throughout this investigation: `MenuTextFont=DejaVu Sans-24` (a
+config value manually edited into
+`~/GNUstep/Defaults/WindowMaker` specifically to make any real change
+impossible to miss -- 12px to 24px, a generic alias to a literal,
+already-installed family name) was read back *correctly*, and
+`WMCreateFont()` **never fell back** -- i.e. `XftFontOpenName()`
+genuinely opened a real, valid font for that exact pattern. Traced
+`setMenuTextFont()` (the update callback `getFont()`'s result feeds
+into) and confirmed it does the obvious, correct thing
+(`scr->menu_entry_font = font`), and `paintEntry()` (`menu.c`) does
+call `WMDrawString(scr->wmscreen, win, color, scr->menu_entry_font,
+...)` to draw each entry's label -- every individual link in the
+chain, read in isolation, looks correct. And yet: screendumps taken
+before and after this edit, at the pixel level (`Image.NEAREST`, no
+resampling interpolation to hide or fabricate anything), are
+**identical** -- not just similar, byte-for-byte the same menu at the
+same tiny size with the same pure-black-and-white, zero-intermediate-
+gray-value edges. Whatever actually determines what gets drawn for
+menu entry text is not `scr->menu_entry_font` the way every piece of
+source code says it should be, or there's a redraw/cache-invalidation
+step downstream of `setMenuTextFont()`'s `REFRESH_MENU_FONT` return
+value that this pass didn't trace far enough to find. **Concrete next
+step**: instrument `paintEntry()` itself (not just the font-loading
+chain above it) to log the actual `WMFont*` pointer and its
+`->name`/pixel size at the moment of each real draw call, and compare
+against the pointer `setMenuTextFont()` actually received -- if
+they differ, that pinpoints exactly where the two diverge; if they're
+the same pointer with the same claimed properties yet still render
+identically, the bug is downstream of WINGs entirely, back in
+`XftDrawStringUtf8`/pixman -- which follow-up 5 already proved capable
+of real antialiased output for a different call site (`xfttest`), so
+the difference would have to be something specific to *this* call's
+arguments (the `Drawable`/GC/`XftDraw` context menus use, most
+likely) worth comparing directly against `xfttest`'s own working
+setup.

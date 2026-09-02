@@ -18,6 +18,7 @@ double ceil(double x) { return __builtin_ceil(x); }
 double trunc(double x) { return __builtin_trunc(x); }
 double round(double x) { return __builtin_round(x); }
 double fmod(double x, double y) { return __builtin_fmod(x, y); }
+float fmodf(float x, float y) { return __builtin_fmodf(x, y); }
 double rint(double x) { return __builtin_rint(x); }
 
 /* __sincos_stret: Darwin-specific combined sin+cos ABI helper. LLVM's
