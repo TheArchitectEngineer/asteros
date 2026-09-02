@@ -5394,3 +5394,104 @@ that bypass it, and prefer setting `PKG_CONFIG_LIBDIR` (a hard
 replacement of the default search path) over `PKG_CONFIG_PATH` (an
 addition to it) whenever host-vs-target ambiguity is the risk, not
 just an ordering preference.
+
+### Phase 39 follow-up 8 -- WindowMaker icons (Clip, Dock, appicons) were never rendering; root cause was the exact Phase-34 AC_CHECK_LIB transitive-deps trap this project had already documented once, just not applied to this reconfigure
+
+With fonts and menu antialiasing genuinely fixed (follow-up 7), the
+next visible gap: every WindowMaker icon -- the Clip control in the
+corner, the two default Dock tiles (`WPrefs`, `xterm`), any future
+appicon -- rendered as a flat, blank tile with no picture at all, no
+matter what image existed on disk for it.
+
+**Instrumented to get a real answer instead of guessing**: added
+one-shot debug logging (`icondbg()`, guarded/uniquely-named per call
+to dodge the fat16lite O_CREAT-always-new-dirent behavior documented
+in follow-up 4/5) into `set_icon_image_from_database()`,
+`update_icon_pixmap()`, and `get_rimage_icon_from_default_icon()` in
+`src/wmaker/src/icon.c`, rebuilt, booted, and pulled the log back out
+with the same pmemsave-then-mtools technique used throughout Phase
+39 (fat16lite's base physical address is logged at boot via
+`kprintf("XFTDEBUG: fat16lite_mountroot base_phys=0x%lx ...")` on the
+serial console -- `pmemsave <addr> <image_size> out.img` from the
+QEMU monitor, then `mtype -i out.img '::/root/ICONDBG*.LOG'`, which
+also incidentally proved mtools' wildcard `mtype` reads every
+colliding same-short-name dirent in sequence, useful since
+fat16lite's own runtime `create()` writes no LFN entries and silently
+truncates/collides long names -- see that function's own comment).
+
+The log gave a direct, unambiguous answer:
+```
+inst=Logo class=WMDock cmd=/bin/WPrefs file=/usr/share/WindowMaker/Icons/GNUstepGlow.xpm
+  get_rimage_from_file(/usr/share/WindowMaker/Icons/GNUstepGlow.xpm) -> NULL
+get_default_image_path() -> /usr/share/WindowMaker/Icons/defaultAppIcon.xpm
+get_default_image() -> NULL
+```
+Both the per-app icon file *and* the fallback default icon -- both
+real, valid `.xpm` files, confirmed present on disk with correct
+paths -- failed to load. Not a path problem, not a filesystem
+problem: an XPM *decoding* problem.
+
+**Root cause**: `configure.ac`'s XPM detection
+(`WM_IMGFMT_CHECK_XPM` in `m4/wm_imgfmt_check.m4`) tries to link
+`XpmCreatePixmapFromData` against `-lXpm` alone; when that link test
+fails it doesn't error out, it silently falls back to
+`wrlib/load_xpm_normalized.c` -- upstream's own bundled substitute,
+explicitly documented in its own header comment as a "restricted"
+parser: exact `#rrggbb`/`#rrrrggggbbbb` hex colors or `None` only, no
+comments except line 1, no blank lines, no leading whitespace. Real
+XPM files (including WindowMaker's own bundled `Icons/*.xpm`) use
+full XPM syntax -- symbolic color names, comments, C-string
+continuations -- none of which this restricted parser accepts, so it
+returned NULL for literally every real-world XPM file thrown at it,
+which is exactly the observed behavior. The link test itself failed
+for the *identical* reason already root-caused once this phase, in
+Phase 34: `AC_CHECK_LIB`-style single-library link probes don't know
+`libXpm.a`'s own transitive dependencies (`libX11`/`libXext`/etc.),
+so linking `-lXpm` alone against `$XLFLAGS $XLIBS` fails even though
+the real, already-vendored `build/xorg-deps-install/lib/libXpm.a`
+is right there. Phase 34 already wrote down the fix for this exact
+trap (`LIBS="-lXmu -lXt -lXext -lX11 -lxcb -lXau -lXdmcp -lSM -lICE
+-lXpm"` passed into every `configure` invocation) -- follow-up 6/7's
+reconfigures for the font/fontconfig fixes simply didn't carry that
+`LIBS` setting forward, so this specific probe regressed back to
+silent-fallback behavior without anyone changing anything XPM-related
+on purpose.
+
+**Fix**: added that same `LIBS=` value to the WindowMaker reconfigure
+(alongside the already-fixed `PKG_CONFIG_LIBDIR` from follow-up 7,
+and `--enable-png` from the PNG fix earlier this same pass -- PNG
+icons were a real, separate, smaller gap: `build/gtk-deps-install`
+already vendors a real cross-built `libpng16.a` for the GTK font
+stack, just never wired into wrlib's own `PNG_CFLAGS`/`PNG_LIBS`
+probe, fixed the same way once `CPPFLAGS`/`LDFLAGS` pointed at
+`gtk-deps-install` too). `config.h` afterward: `USE_XPM 1`, `USE_PNG
+1`, plus `USE_XSHAPE 1`/real `-lXmu` as a bonus from the same `LIBS`
+fix. Rebuilt `wrlib` (now compiling `load_xpm.c`, the real
+libXpm-backed loader, instead of `load_xpm_normalized.c`), `WINGs`,
+`wmaker`, `wmsetbg`, reinstalled, rebuilt the disk image, booted for
+real end-to-end verification. Removed the diagnostic logging
+afterward (`git checkout -- src/icon.c`) and rebuilt clean before the
+final verification pass, to confirm the fix holds without the
+instrumentation.
+
+**Result, confirmed live**: the Clip control now shows a real,
+shaded paperclip icon; the Dock's two default tiles show real,
+detailed shaded icons (a glow/gear graphic for `WPrefs`, a
+striped-cube default icon for `xterm`) instead of flat blank tiles --
+matching the look of a real WindowMaker/GNUstep desktop, not a
+placeholder. `TIFF` support remains genuinely out of scope (no
+vendored `libtiff` anywhere in this project, unlike PNG/XPM which
+both turned out to already be vendored) -- the handful of
+`Icons/*.tiff`-only assets with no `.xpm` sibling still won't load,
+but every icon this default install actually exercises (Clip,
+`WPrefs`, `xterm`, and `defaultAppIcon.xpm`'s fallback path) is XPM
+or PNG and now renders correctly.
+
+**Lesson reinforced**: a documented fix for a specific `configure`
+trap (Phase 34's `LIBS=` transitive-deps workaround) doesn't
+automatically carry forward to a *different* reconfigure invocation
+written later in the same project -- when copy-adapting a `configure`
+command from an earlier phase's notes for a new build, diff it
+against the original rather than reconstructing it from memory, or a
+previously-fixed probe can silently regress with nothing in the diff
+pointing at it.
