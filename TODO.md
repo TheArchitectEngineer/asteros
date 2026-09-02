@@ -5298,3 +5298,99 @@ the difference would have to be something specific to *this* call's
 arguments (the `Drawable`/GC/`XftDraw` context menus use, most
 likely) worth comparing directly against `xfttest`'s own working
 setup.
+
+### Phase 39 follow-up 7 -- root cause actually found: WindowMaker was linking the host's Homebrew fontconfig, not this project's
+
+Follow-up 6 left menu text pixel-identical no matter what font was
+requested, with every link in the WINGs call chain looking correct in
+isolation. The `WMCreateFont()`-succeeds-but-never-varies symptom is
+exactly what `src/xfttest/build.sh`'s own comment warns about (Xft
+silently wrapping a legacy core bitmap font instead of doing real
+FreeType rasterization when fontconfig can't produce a real match) --
+but the fonts.conf alias fixes from follow-up 6 had no effect, which
+only makes sense if WindowMaker's actual runtime fontconfig instance
+was never reading *this project's* `fonts.conf` at all.
+
+It wasn't. `WINGs/libWINGs.la`'s recorded `dependency_libs` (built by
+the follow-up 6 reconfigure) showed the real culprit in plain text:
+`-L/opt/homebrew/Cellar/fontconfig/2.18.3/lib -lfontconfig` -- the
+**host macOS Homebrew fontconfig**, not
+`build/gtk-deps-install`'s cross-built one. Traced to
+`configure.ac:663-671`:
+
+```
+AC_MSG_CHECKING([for fontconfig library])
+FCLIBS=`$PKG_CONFIG fontconfig --libs`
+...
+AC_SUBST(FCLIBS)
+```
+
+This is a second, completely independent fontconfig probe from the
+`XFT_CFLAGS`/`XFT_LIBS` env-var override the follow-up 6 reconfigure
+command set (which *did* work correctly and only affects Xft's own
+`PKG_CHECK_MODULES([XFT], ...)` check) -- `FCLIBS` calls the system
+`pkg-config` binary directly with no override honored, and
+`WINGs/Makefile.am:15` then adds `@FCLIBS@` onto
+`libWINGs_la_LIBADD` alongside `@XFT_LIBS@`. Since `PKG_CONFIG_PATH`
+was never restricted, `pkg-config` fell through to its host default
+search dirs and found Homebrew's `fontconfig.pc` there. At static-
+link time, libtool's `-lfontconfig` de-duplication collapsed to the
+*last* occurrence's `-L` path, so the real `gtk-deps-install`
+fontconfig (correctly present via `XFT_LIBS`) got silently discarded
+in favor of the host one -- which of course has no idea this
+project's target root or its `/usr/etc/fonts/fonts.conf` (with the
+generic-family `<alias>` fixes from follow-up 6) even exist, so it
+always resolved every request to whatever its own default host match
+was: a fixed, small, non-antialiased fallback, identical regardless
+of what family/size WindowMaker actually asked for.
+
+**Fix**: reconfigure with `PKG_CONFIG_LIBDIR` set to exactly the two
+target pkgconfig dirs (replacing pkg-config's built-in default search
+path rather than merely appending to it, which `PKG_CONFIG_PATH`
+alone would have done) and `PKG_CONFIG_PATH` cleared, so
+`configure.ac`'s own `$PKG_CONFIG fontconfig --libs` check has no way
+to reach the host's Homebrew install:
+
+```bash
+PKG_CONFIG_LIBDIR="$FONT_DEPS/lib/pkgconfig:$X11_DEPS/lib/pkgconfig" \
+PKG_CONFIG_PATH= \
+CC="$CLANG" \
+CPPFLAGS="-I$X11_DEPS/include" \
+LDFLAGS="-L$X11_DEPS/lib" \
+XFT_CFLAGS="-I$FONT_DEPS/include -I$FONT_DEPS/include/freetype2" \
+XFT_LIBS="-L$FONT_DEPS/lib -L$X11_DEPS/lib -lXft -lfontconfig -lfreetype -lexpat -lpng16 -lz -lXrender -lX11 -lxcb -lXau -lXdmcp" \
+./configure --host=x86_64-apple-darwin19 --prefix=/usr --bindir=/bin --datadir=/usr/share \
+  --x-includes="$X11_DEPS/include" --x-libraries="$X11_DEPS/lib" \
+  --disable-png --enable-jpeg --disable-gif --disable-tiff --disable-webp --disable-magick \
+  --disable-pango --disable-shm --disable-shared --enable-static
+```
+
+After reconfiguring, `config.log` confirmed
+`FCLIBS='-L.../gtk-deps-install/lib -lfontconfig -lfreetype -lpng16
+-L.../xorg-deps-install/lib -lz'` -- the correct, target install.
+Force-rebuilt `WINGs/libWINGs.la`, `src/wmaker`, `util/wmsetbg` (`rm
+-f` the stale `.lo`/`.o`/`.la`/binaries first, same
+Makefile-dependency-tracking staleness hazard as follow-up 6 --
+changed `-l`/`-L` flags aren't tracked as make prerequisites), `nm`
+confirmed no `homebrew` path strings anywhere in the final binary,
+reinstalled into `build/xorg-target-root`, rebuilt `boot/fat16.img`/
+`boot/esp.img` (`make image`), and booted for real end-to-end
+verification: `startx` from the busybox shell, `F12` to open the root
+menu, `screendump` via the QEMU monitor. The menu is now a large,
+clearly proportional real font (not the old tiny fixed-width bitmap
+one), and pixel-sampling the screendump directly (no interpolation)
+shows real intermediate grayscale values at glyph edges -- e.g. `(0,
+0, 0)`, `(85, 85, 85)`, `(170, 170, 170)`, `(255, 255, 255)` on the
+"Info" menu row -- which a 1-bit bitmap-font fallback could never
+produce (it only ever emits the exact foreground/background colors,
+zero blending). Real antialiased FreeType rendering, confirmed live,
+closing out the mystery from follow-up 6.
+
+**Lesson for next time a `pkg-config`-based dependency behaves like
+it's reading the wrong install**: don't assume an env-var override
+like `XFT_LIBS`/`XFT_CFLAGS` covers every library a project's
+`configure.ac` touches -- grep for other direct `$PKG_CONFIG` calls
+that bypass it, and prefer setting `PKG_CONFIG_LIBDIR` (a hard
+replacement of the default search path) over `PKG_CONFIG_PATH` (an
+addition to it) whenever host-vs-target ambiguity is the risk, not
+just an ordering preference.
