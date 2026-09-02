@@ -111,7 +111,7 @@ Xfm.file window.Geometry:	515x345
 *defaultSortType: 		SortByName
 
 ! The default editor to use
-*defaultEditor: 		exec emacs
+*defaultEditor: 		exec xedit
 
 ! The default viewer to use
 *defaultViewer: 		exec xless

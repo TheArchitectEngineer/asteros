@@ -117,8 +117,10 @@ static void createFileOkCb(Widget w, FileWindowRec *fw, XtPointer call_data)
     char s[0xff];
     sprintf(s, "Error creating file %s:", popups.createFile_s);
     sysError(s);
-  } else
+  } else {
     intUpdate();
+    doEdit(popups.fw->directory, popups.createFile_s);
+  }
   freeze = False;
 }
 

@@ -203,7 +203,7 @@ Xfm*defaultDisplayType:		Icons
 Xfm*defaultSortType: 		SortByName
 
 ! The default editor to use
-Xfm*defaultEditor: 		exec emacs
+Xfm*defaultEditor: 		exec xedit
 
 ! The default viewer to use
 Xfm*defaultViewer: 		exec xless

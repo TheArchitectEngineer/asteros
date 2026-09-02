@@ -367,10 +367,27 @@ error:
     Feep();
 }
 
+/*	Function Name: DoLoad
+ *	Description: "Load" button callback. With a filename typed in,
+ *		     loads that file as usual. With an empty filename
+ *		     field (e.g. right after startup, before anything has
+ *		     been typed), pops up the graphical directory browser
+ *		     (dirwindow) instead, so a file can be picked with the
+ *		     mouse rather than requiring the path to be typed out.
+ *	Arguments: w, client_data, call_data - standard callback signature.
+ *	Returns: none.
+ */
 /*ARGSUSED*/
 void
 DoLoad(Widget w, XtPointer client_data, XtPointer call_data)
 {
+    if (*GetString(filenamewindow) == '\0') {
+        Cardinal zero = 0;
+
+        DirWindow(topwindow, NULL, NULL, &zero);
+        return;
+    }
+
     if (ReallyDoLoad(GetString(filenamewindow), ResolveName(NULL))) {
         SwitchDirWindow(False);
         XtSetKeyboardFocus(topwindow, textwindow);
