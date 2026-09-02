@@ -4812,3 +4812,315 @@ just this investigation; fixing it would also make the glyph
 investigation itself far faster to iterate on, since several passes
 this session were lost to boots that silently wedged in this unrelated
 path before `xfttest` ever ran.
+
+### Phase 39 follow-up 4 -- swap-write retry fixed, and `g_head` confirmed corrupted before the stuck `free(image)` call
+
+Picked up both items left at the end of follow-up 3, in the order that
+pass recommended: the kernel swap bug first (since it was blocking
+clean re-testing), then the `g_head`-corruption question.
+
+**The VM compressor's infinite swap-write retry is fixed.** Root
+cause, found in `osfmk/vm/vm_compressor_backing_store.c`: a swap
+file's *nominal* size (what `vm_swap_create_file()` ->
+`vm_swapfile_preallocate()` -> `vnode_setsize(..., IO_NOZEROFILL, ...)`
+believes it successfully reserved) can be larger than what
+`fat16lite_write()` will actually honor for real writes into that
+file -- `fat16lite_setattr()`'s truncate path and `fat16lite_write()`'s
+own bounds check use different caps (confirmed live: `vnode_setsize`
+happily "succeeds" at a nominal size that `fat16lite_write()` then
+EFBIG-bails on for every write past the file's real per-file
+reservation). When a write into an already-`SWAP_READY` file hits this,
+`vm_swap_put_finish()` frees the segment back via `vm_swap_free()`,
+which resets `swp_free_hint` to that same (still-doomed) segment index
+-- so the very next `vm_swap_put()` call reallocates the identical
+offset, fails identically, frees identically, forever, in a genuinely
+tight loop with no backoff, which is exactly what produced the
+"hundreds of consecutive `fat16lite_write: EFBIG bail`" flood and the
+subsequent total silence (this loop runs at `TH_OPT_VMPRIV` priority
+and never voluntarily blocks, so it starves every other thread in a
+single-core guest, including whatever would otherwise still be doing
+FAT16 writes).
+
+Fix: a new `SWAP_UNUSABLE` swapfile flag
+(`osfmk/vm/vm_compressor_backing_store.c`), set on a swapfile the
+first time a write into it fails with `EFBIG`, and checked alongside
+`SWAP_READY` in `vm_swap_put()`'s eligibility test so no *new* segment
+is ever handed out from that file again. Deliberately does not clear
+`SWAP_READY` itself -- `vm_swap_get()` (reading back segments already
+successfully written to the file) and `vm_swap_free_now()` both still
+gate on `SWAP_READY`, so leaving it set keeps every segment written
+before the failure point readable; only forward allocation stops. Once
+a file is marked unusable, the existing (already-correct, already-
+bounded) swap-file-creation backoff (`VM_SWAP_SHOULD_CREATE`'s 15-
+second cooldown, `VM_MAX_SWAP_FILE_NUM`-capped) takes over, and worst
+case the compressor falls back to keeping segments resident in memory
+-- the designed degrade path for "swap failed," not a hang.
+Live-verified: a full `make kernel` (xnu's own `installhdrs`/
+`exporthdrs`/build, all three architecture configs) compiles clean
+with this change, and multiple full boots past the known
+`vm_swap_create_file failed @ N secs` gap complete with zero EFBIG
+flood and reach userland normally every time.
+
+(Unrelated, but hit and worked around while getting `make kernel`
+green again: `build-kernel.sh`'s SRCROOT-drift guard, when it decides
+`src/xnu/BUILD/` is stale and removes it, does not also invalidate
+`build/kernel/.hdrs-stamp` -- so a build right after a drift-triggered
+wipe skips re-running `installhdrs`/`exporthdrs` entirely and fails
+with `no such include directory: .../EXPORT_HDRS/libsa`, since nothing
+recreated that tree. Worked around this pass by `rm`-ing the stamp by
+hand, per the script's own log message; not fixed in the script
+itself since it's tooling, not project source, and out of scope for
+this pass. Worth a real fix -- invalidate the stamp in the same branch
+that deletes `BUILD/` -- so the next person hitting this doesn't have
+to re-derive it.)
+
+**`g_head` is confirmed corrupted by the time the stuck `free(image)`
+call happens** -- the concrete lead follow-up 3 left unpulled. Method:
+`pixman_image_unref()` (`src/pixman/pixman/pixman-image.c`) now calls
+a new one-shot diagnostic, `malloc_debug_dump_freelist_once()`
+(`userland/libc/src/malloc.c`), immediately before its `free(image)`
+call -- it walks `g_head` exactly as it stands at that moment and
+writes every chunk (address, size, free flag, next pointer) to
+`/root/ghead_pre_free.log`, using nothing but raw `open()`/`write()`/
+`close()` (no `snprintf`/stdio, so the dump itself can never recurse
+into `malloc()` and can never deadlock on `g_malloc_lock`) and
+deliberately *not* taking `g_malloc_lock` at all (safe: this process
+is single-threaded, and the call site runs before the free() that
+might leak the lock, not after). A companion
+`malloc_debug_mark_reached_once()` writes a second, trivial
+`/root/ghead_post_free.log` immediately *after* the `free(image)`
+call, so the mere presence/absence of that second file on a snapshot
+answers "did execution get back out this time" with no further
+analysis needed. Both are one-shot per process (a hot call site
+re-triggering either would otherwise leak a new FAT16 root-directory
+entry every time via the O_CREAT|O_TRUNC-always-creates-new-dirent bug
+noted in follow-up 2 -- one-shot sidesteps that regardless of call
+frequency), and both are cheap/inert enough to leave wired up
+permanently rather than reverting.
+
+Live reproduction (with the swap-retry fix above in place, so this was
+a clean run with no unrelated wedge first): `xfttest`'s window came up
+blank as always, `/root/ghead_pre_free.log` was written (176KB, 2883
+chunk records), and **`/root/ghead_post_free.log` does not exist** --
+confirmed via the same `pmemsave`-the-RAM-disk technique used
+throughout this investigation (RAM disk phys base read from the
+bootloader's own `[boot] loaded fat16.img RAMDisk phys=...` line,
+`pmemsave <addr> <size> snapshot.img`, then `mdir -i`/`mtype -i` from
+ordinary `mtools`). So the hang is still exactly where follow-up 2
+first localized it, unchanged by anything in this pass.
+
+Reading `ghead_pre_free.log`: chunks 1 through 2882 are every one
+well-formed -- `free` is 0 or 1 (never anything else), every address
+is 16-byte aligned, and every `next` exactly equals the previous
+chunk's own `addr + sizeof(struct chunk) + size` (address-ordered, as
+the allocator's own comments say it should be). Chunk 2883 is not:
+
+```
+chunk[2882] addr=0x100d89cd0 size=16   free=0    next=0x100d89d00
+chunk[2883] addr=0x100d89d00 size=1997118 free=8194 next=0x102074a7f
+chunk[2884] addr=0x102074a7f size=<dump ends here, mid-field>
+```
+
+`0x100d89d00` is exactly `0x100d89cd0 + sizeof(struct chunk) (32) +
+16` -- i.e. chunk 2883 begins exactly where chunk 2882's own 16-byte
+payload ends, so this is not the dump wandering off into unrelated
+memory; it is chunk 2883's *own header* that's corrupt. `free=8194` is
+not 0 or 1 (the field can only ever be assigned one of those two
+values anywhere in `malloc.c`); `next=0x102074a7f` is not 16-byte
+aligned (`0xa7f mod 16 == 0xf`), which no legitimate chunk pointer in
+this allocator can ever be, whether freshly `mmap`'d (page-aligned) or
+computed by the allocator's own pointer arithmetic (always advances by
+`sizeof(struct chunk)`-or-`align16()`-sized steps). The dump loop
+itself then dereferences that same wild `next` pointer for chunk 2884
+and the file ends mid-line, right after writing chunk 2884's `addr=`
+field and before its `size=` value -- i.e. `dbg_write_dec(fd,
+(unsigned long)c->size)` reading `c->size` off address
+`0x102074a7f` is where the *dump* itself stops making progress. Since
+`free_nolock()`'s own coalescing loop walks this exact same list the
+same way (dereferencing `p->next->free` and comparing addresses) and
+is bounded only by an *iteration count* (`CHUNK_SCAN_LIMIT`), not by
+any validation that each `next` is a sane pointer before following it,
+it has no defense against this: it would reach the same wild address
+at essentially the same (very low, ~2884) iteration count, nowhere
+near the 2,000,000 bound that would otherwise save it. This is likely
+the actual mechanism behind the still-stuck-past-the-watchdog hang
+follow-up 2 and 3 couldn't pin down -- not a leaked lock, not an
+infinite loop in this file's own logic, but a genuinely corrupted heap
+that any list walk (the dump's, or `free_nolock()`'s own) chokes on at
+the same point.
+
+**What corrupted it is not yet known -- this pass localizes the
+symptom precisely but does not root-cause it.** The exact adjacency
+(corruption starts at the byte immediately following chunk 2882's own
+16-byte payload) is the strongest lead: either whatever object was
+allocated as chunk 2882 overflowed its own 16-byte bound by exactly
+enough to scribble chunk 2883's header, or something holding a stale/
+wild pointer unrelated to chunk 2882 happens to write to this same
+address later (a use-after-free or an unrelated wild write, not
+necessarily chunk 2882's own fault) -- this pass did not distinguish
+between those two. **Concrete next step**: extend
+`malloc_debug_dump_freelist_once()` (or add a sibling one-shot
+checkpoint) to run *earlier* in the same reproduction -- e.g. right
+before each of the last several `free()`/`malloc()` calls leading up
+to the stuck one -- to catch the exact call that first corrupts
+`0x100d89d00`, the same bisection discipline follow-up 2 used to
+localize the stuck call itself in the first place. Since chunk 2882 is
+a 16-byte allocation, also worth cross-referencing against what in the
+glyph-upload path (`ProcRenderAddGlyphs`'s per-glyph loop,
+`fbComposite()`, or pixman's own glyph/image bookkeeping) allocates
+something that small right before the final `pixman_image_unref()` --
+a 16-byte object is a plausible size for a small fixed-size struct
+(a `pixman_transform_t` fragment, a short `pixman_vector_t`, a small
+gradient/format record) rather than pixel data, which narrows the
+search meaningfully.
+
+### Phase 39 follow-up 5 -- root cause found and fixed: glyph rendering finally confirmed working end to end
+
+Picked up the concrete next step from follow-up 4 directly: added a
+per-call-site corruption probe (`malloc_debug_check_sanity_tagged()`,
+a sibling of `malloc_debug_dump_freelist_once()` taking an explicit
+caller-chosen tag instead of inferring one from a fixed set of entry
+points) and planted it at successively finer-grained points along the
+one call chain that matters -- `ProcRenderAddGlyphs`'s `CompositePicture`
+call -> `fbComposite()` -> `pixman_image_composite32()` -> whatever it
+dispatches to -- bisecting exactly the way follow-up 4 recommended.
+Each round rebuilt `libc`/`libSystem.B.dylib`/`pixman`/`Xfbdev`, rebuilt
+the image, and re-ran the same live-QEMU + `pmemsave` reproduction.
+
+**Every layer of the actual pixel-compositing math checked out clean,
+one at a time, with real numbers, not just code reading:** the
+destination glyph pixmap's real byte stride (`devKind`, 20) exactly
+matched what `create_bits_picture()` (`fb/fbpict.c`) passed to
+`pixman_image_create_bits()`; the format was confirmed `PIXMAN_a8`
+end to end (glyph mask, 8bpp, matching `bpp` on both the fb and pixman
+sides); the clip region reduced to exactly one rectangle covering the
+full 17x18 glyph, correctly dispatched with `dest_x=0, dest_y=0,
+width=17, height=18`; and a live bounds check planted directly inside
+`convert_and_store_pixel()`'s 8bpp store path (`pixman-access.c`) --
+comparing every single write address against `[image->bits,
+image->bits + height*rowstride*4)` -- fired zero times across a full
+run that included the actual glyph's real text render. The dispatched
+function turned out to be `general_composite_rect()` (the generic
+per-scanline fallback in `pixman-general.c`), not the `SRC`+`a8`+`a8`
+memcpy fast path pixman also has registered for this exact case
+(`fast_composite_src_memcpy`) -- resolved by logging the raw `func`
+pointer pixman's own fast-path lookup returned and looking it up
+against `Xfbdev`'s own symbol table -- but `general_composite_rect()`'s
+own scanline buffers are stack-allocated and provably too small to be
+the issue (68 bytes used of an 8192-byte-per-buffer budget). All of
+this narrowed the search to "somewhere before the actual pixel-pushing
+loop even starts."
+
+**Bisecting the narrow window between `_pixman_compute_composite_region32()`
+returning and `general_composite_rect()` being invoked** (region/
+extent analysis, `optimize_operator()`, `_pixman_implementation_lookup_composite()`)
+pinned it precisely: the corruption-checkpoint tag that finally caught
+it *for the first time with zero prior corruption* was
+`composite32:after_lookup_composite` -- i.e. inside
+`_pixman_implementation_lookup_composite()` itself
+(`pixman-implementation.c`). Reading that function: its only actual
+memory write is to a small fast-path result cache
+(`cache_t`, 8 entries) reached via `PIXMAN_GET_THREAD_LOCAL
+(fast_path_cache)` -- a `PIXMAN_DEFINE_THREAD_LOCAL` variable.
+
+**Root cause**: `pixman-compiler.h`'s `PIXMAN_DEFINE_THREAD_LOCAL`
+macro picks its implementation via `#if defined(PIXMAN_NO_TLS) /
+#elif defined(TLS) / #elif defined(HAVE_PTHREADS) / ...`, and this
+project's vendored `src/pixman/config.h` (autotools-generated, not
+tracked in git -- see below) defines `TLS __thread`, because
+`./configure`'s probe for that only checks whether the *compiler*
+accepts the `__thread` keyword syntactically -- it has no way to know
+whether the *target runtime* actually backs it with a real TLS block.
+This one doesn't: `userland/libc/src/pthread.c`'s own header comment
+says so explicitly ("There is no dyld/kernel TLS (bsdthread_register()
+is called with tsd_offset=0)" -- "which thread am I" is answered by a
+stack-range lookup instead, precisely because there's no real TLS to
+ask). A `static __thread cache_t fast_path_cache;` in
+`pixman-implementation.c` therefore compiles to FS-segment-relative
+addressing that nothing on this OS ever initializes -- every access
+resolves through whatever garbage happens to be in the FS base at the
+time, landing at an essentially arbitrary address. Writing the 8-entry
+fast-path cache update through that address is what corrupted
+`g_head`'s heap chunk headers -- not a bounds bug in any of the actual
+pixel-composition math, which is why every check of *that* came back
+clean. This also explains why the corrupted bytes looked plausible as
+"pointer-shaped garbage" in earlier passes' captures (`free=8194`,
+`next=0x102074a7f` recurring near-identically across unrelated boots)
+-- they're fragments of `cache_t` entries (an `imp` pointer, a `func`
+pointer, small format/flag ints), not pixel data, landing at a
+FS-base-relative address that happens to be highly reproducible
+because nothing ever sets the FS base to anything other than whatever
+fixed value it powers on with.
+
+**Fix, in two layers for two different reasons:**
+
+1. `src/pixman/pixman/Makefile.am` (tracked in git): added
+   `AM_CPPFLAGS = -DPIXMAN_NO_TLS` to the `libpixman-1.la` target, with
+   a comment explaining why. `#if defined(PIXMAN_NO_TLS)` is checked
+   *before* `#elif defined(TLS)` in the macro chain, so this wins
+   regardless of what `config.h` says, forcing
+   `PIXMAN_DEFINE_THREAD_LOCAL`/`PIXMAN_GET_THREAD_LOCAL` down the
+   plain-`static`-variable path instead -- correct and sufficient here
+   since every `pixman`-linked process on this OS (`Xfbdev` and every
+   client) is single-threaded. This is the durable half of the fix:
+   it's a source-tree file, survives a fresh clone, and (once
+   `autoreconf`/`automake` regenerates `pixman/Makefile` from it, which
+   happened live this pass -- see the pitfall below) takes effect on
+   any future rebuild without needing this investigation's context
+   again.
+2. `src/pixman/config.h` (gitignored, autotools-generated, **not**
+   tracked in git -- confirmed via `git check-ignore`): also hand-
+   patched to leave `TLS` undefined, with the same explanation inlined
+   as a comment, as a second, redundant, immediately-effective layer.
+   This one only protects the *current* on-disk build tree -- it will
+   NOT survive a fresh `./configure` regenerating this file from
+   scratch, which is exactly why layer 1 above is the one that
+   actually matters long-term. Left in place anyway (belt and
+   suspenders) given how many sessions this specific bug cost.
+
+**A real, separate pitfall hit and fixed while landing layer 1**:
+editing the tracked `Makefile.am` made the next `make` invocation
+notice it was newer than the (gitignored, stale) generated
+`pixman/Makefile` and automatically re-run `automake`/`config.status`
+to regenerate it -- which failed outright, because `config.status`
+itself has this project's pre-rename absolute path
+(`/Users/vihaannathan/Desktop/DarwinBuildCuzImBore`) baked into its
+recorded `CC`/`PKG_CONFIG_PATH`/etc. values from whenever it was first
+generated, long before the rename to AsterOS -- the exact same class
+of staleness Phase 38 fixed for 42 `.la`/`.pc` files and Phase 39
+follow-up 1 fixed for `xorg-server`'s own checked-in Makefiles, just
+not yet applied to pixman's `config.status` because nothing had
+triggered its auto-regeneration path until now. Fixed with the same
+one-time `sed` pass recipe: rewrote every occurrence of the stale path
+to the current one in `config.status` and `pixman-1.pc`, then re-ran
+`./config.status pixman/Makefile depfiles` to regenerate a clean,
+working `pixman/Makefile` (confirmed `AM_CPPFLAGS = -DPIXMAN_NO_TLS`
+correctly carried through from `Makefile.am` into the regenerated
+file). Worth knowing for whoever next touches any tracked `.am`/`.in`
+file in this submodule: it may silently trigger the same
+auto-regeneration path and hit the same stale-path failure.
+
+**Verified working end to end, with a fully clean build tree (all of
+this pass's diagnostic instrumentation reverted first -- every
+`malloc_debug_*` call site added across `userland/libc/src/malloc.c`,
+`src/pixman/pixman/{pixman.c,pixman-general.c,pixman-access.c,
+pixman-image.c}`, and `src/xorg-server/{fb/fbpict.c,render/render.c}`
+was `git checkout`'d back out once the root cause was confirmed, so
+none of it ships)**: rebuilt `libc`, `libSystem.B.dylib`, `pixman`,
+`Xfbdev` from that clean tree, rebuilt the image, booted fresh in
+QEMU, and ran `xfttest` via the same temporary `startx.sh` auto-launch
+earlier passes used (reverted afterward, per this project's own
+one-off-test-binary convention). **`xfttest`'s window now shows real,
+correctly antialiased glyph text** -- "AsterOS real Xft — antialiased
+text" and a full alphanumeric line, legible, properly hinted, no
+corruption artifacts -- confirmed via `screendump`, with the frame
+byte-identical across a 10+ second gap (genuinely finished rendering,
+not still in progress) and zero corruption detected by the (still-
+present-at-verification-time, since reverted afterward)
+`malloc_debug_check_sanity_tagged()` probes across the entire session,
+including many more glyphs composited afterward for the rest of the
+test string. This closes out the glyph-rendering gap Phase 39 opened
+and four follow-up passes progressively narrowed -- the concrete
+finding for anyone continuing GTK3 bring-up from here: real on-screen
+antialiased text rendering via Xft/Render/pixman is confirmed working
+on this OS.
