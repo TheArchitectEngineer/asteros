@@ -91,4 +91,29 @@ done
 # (not this script) is the real fix, left for a future pass.
 /bin/wmaker &
 
+# xcompmgr (Phase 40) -- DISABLED for now, real regression found.
+# Off-screen redirection via Composite (re-enabled in Xfbdev this
+# phase; was previously built with --disable-composite) and the
+# compositing-manager machinery itself were proven genuinely live
+# (confirmed with a DEBUG_REPAINT-instrumented rebuild: paint_all()
+# was compositing every window every frame; a numerically-confirmed
+# real shadow was measured on both a WindowMaker Dock icon (-c) and a
+# real xterm (-s), see git history/TODO.md Phase 40 for the full
+# story). But running `-s` live surfaced a real, uninvestigated
+# regression: WindowMaker's Dock icons (Clip and friends) render
+# washed-out/pale -- barely any shading -- instead of their real
+# XPM/PNG artwork, confirmed by comparing raw pixel values from before
+# xcompmgr ever ran (real shading, values spanning ~118-255) against
+# after. Not root-caused yet -- leading suspicion is a window-pixmap
+# staleness/generation-tracking gap between xcompmgr's `w->pixmap`
+# caching (`XCompositeNameWindowPixmap`, only ever fetched once per
+# window, xcompmgr.c's `if (hasNamePixmap && !w->pixmap)`) and this
+# project's brand-new, never-before-exercised Composite implementation
+# in Xfbdev/kdrive -- but that's a guess, not confirmed. Composite
+# stays enabled at the server level (real infrastructure, no
+# regression there); xcompmgr itself is commented out below until this
+# is actually root-caused, since a washed-out desktop is a worse
+# tradeoff than missing shadows.
+# /bin/xcompmgr -s &
+
 wait $XPID

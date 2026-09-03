@@ -251,6 +251,10 @@ if [ -f build/xorg-target-root/bin/Xfbdev ]; then
 		echo "xeyes found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xeyes ::/bin/xeyes
 	fi
+	if [ -f build/xorg-target-root/bin/xcompmgr ]; then
+		echo "xcompmgr found in build/ -- including it in the rootfs (Phase 40)"
+		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xcompmgr ::/bin/xcompmgr
+	fi
 	if [ -f build/xorg-target-root/bin/xedit ]; then
 		echo "xedit found in build/ -- including it in the rootfs"
 		mcopy -i "$ROOTFS_IMG" build/xorg-target-root/bin/xedit ::/bin/xedit

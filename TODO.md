@@ -5495,3 +5495,190 @@ command from an earlier phase's notes for a new build, diff it
 against the original rather than reconstructing it from memory, or a
 previously-fixed probe can silently regress with nothing in the diff
 pointing at it.
+
+## Phase 40 -- CPU compositing manager (xcompmgr, real drop shadows via window redirection): infrastructure DONE and verified live, xcompmgr itself DISABLED after a real regression, root cause open
+
+Goal: the graphics stack (Xfbdev/kdrive's software `fb` + pixman
+rasterizer, Xft/fontconfig/freetype2 glyphs, WindowMaker) has been
+fully CPU-rendered since Phase 34/36/39, but nothing was ever
+redirected off-screen -- no compositing, so no shadows, no real
+transparency. This phase added a real compositing manager, ported
+from upstream **xcompmgr** (the X.org project's own reference
+compositor, same upstream family as everything else vendored here),
+to prove the missing piece: off-screen window redirection via the
+Composite extension, drop shadows painted via XRender alpha
+blending, damage-driven repaint via libXdamage.
+
+**Composite was previously disabled.** `src/xorg-server`'s Xfbdev
+build had `--disable-composite` in its configure invocation (Damage/
+Render/Fixes were already on). Composite is wired entirely at the mi
+(machine-independent) level (`composite/compinit.c`), not in any
+kdrive-specific file, so no kdrive DDX code needed writing -- just
+the configure flag plus whatever it surfaced.
+
+**Vendored, real upstream, pinned tags, same clone-then-strip-`.git`
+pattern as every other `src/` dependency:** `compositeproto`
+(compositeproto-0.4.2, headers-only), `libXcomposite`
+(libXcomposite-0.4.7), `libXdamage` (libXdamage-1.1.7), `xcompmgr`
+(xcompmgr-1.1.9). Each got its own `build.sh` following the exact
+`libXrender`/`libXfixes` cross-compile recipe (pinned-tag clone,
+`NOCONFIGURE=1 ACLOCAL_PATH=.../xorg-util-macros LIBTOOLIZE=glibtoolize
+./autogen.sh` once, `--host=x86_64-apple-darwin19` against the
+project's cross clang, install into `build/xorg-deps-install`).
+
+**Real, previously-undiscovered gaps this surfaced:**
+- `presentproto` (required by `xorg-server`'s `REQUIRED_MODULES`
+  regardless of Composite) has never actually been vendored under
+  this project's own `src/` -- the original Xfbdev build was silently
+  satisfied by the *host's* Homebrew-installed `xorgproto` package via
+  default pkg-config search paths (confirmed by the original
+  `DIX_CFLAGS` containing `-I/opt/homebrew/Cellar/xorgproto/...`).
+  Reconfiguring with a strict `PKG_CONFIG_LIBDIR` (excluding Homebrew,
+  matching the project's own stated preference from Phase 34) breaks
+  immediately on the missing `presentproto`. Not fixed this phase --
+  the reconfigure instead reused the original's actual recipe
+  (`PKG_CONFIG_PATH` prepending `xorg-deps-install`, default search as
+  fallback) to avoid introducing a new, unrelated regression while
+  chasing Composite; the Homebrew-leakage gap for `presentproto` is a
+  real, pre-existing, undocumented-until-now issue, left open.
+- Static-only linking (no `.dylib` anywhere in `xorg-deps-install`)
+  means `PKG_CHECK_MODULES`-driven `configure` scripts must be told
+  `PKG_CONFIG="pkg-config --static"` or the transitive static chain
+  `libX11.a` itself needs (`-lxcb -lXau -lXdmcp`) gets silently
+  dropped, failing at link time with undefined `_xcb_*` symbols --
+  the exact trap `src/xedit/build.sh` already worked around once;
+  `xcompmgr`'s own `configure.ac` (an application, not a library) also
+  doesn't understand libtool's `--disable-shared`/`--enable-static`
+  flags at all (harmless warning, no-op), unlike every `libX*` here.
+
+**Verification tooling built mid-phase:** no VNC/screenshot support
+existed in this environment at first -- the initial regression check
+(Composite-enabled Xfbdev still boots a normal desktop) relied on a
+human watching the QEMU window. Real autonomous verification was
+then built: QEMU's own HMP monitor, run on a dedicated `-monitor
+unix:PATH,server,nowait` socket (separate from the muxed
+`-serial mon:stdio` console, which does *not* reliably deliver
+synthetic input to the guest in this environment -- repeated attempts
+to answer the bootloader's boot-args prompt over piped serial stdin
+never worked, versus the monitor socket's `sendkey`, which worked
+immediately) gives real `screendump` (framebuffer -> PPM, converted
+to PNG via `sips`, or read as raw pixels via PIL for exact RGB
+values) and real `sendkey`/`mouse_move`/`mouse_button` input
+injection -- a genuine autonomous screenshot-and-drive loop for this
+project's own GUI, no human at the keyboard required. `startx` was
+also confirmed to be a manual console command, not an autostart
+daemon (matches `userland/mkrootfs.sh`'s own existing comment, just
+hadn't been hit interactively before).
+
+**Follow-up bug 1 -- shadows never appeared at all, on anything.**
+First live pass (with `/bin/xcompmgr &`, no flags) proved the
+compositor was genuinely alive (a second, manually-run `xcompmgr` in
+a real `xterm`'s foreground printed **"Another composite manager is
+already running (0x400001)"** -- direct protocol-level proof the
+background instance holds the real `_NET_WM_CM_S0` selection) but
+zoomed window-edge crops showed zero shadow anywhere. Root-caused
+with a temporary `-DDEBUG_REPAINT` instrumented rebuild (flipped
+`xcompmgr.c`'s own `#define DEBUG_REPAINT 0` to `1`, redirected its
+stdout to `/tmp/xcompmgr.log` from `startx.sh`, `cat`-ed it from a
+live `xterm`): `paint_all()` was already compositing the same four
+window IDs every frame in a tight loop -- the redirect/damage/paint
+pipeline worked end to end. The real bug: `compMode` hardcodes to
+`CompSimple` ("looks like a regular X server", zero shadows) unless
+`-s` or `-c` is passed on argv (`xcompmgr.c`'s own `getopt` loop,
+~line 2089) -- `startx.sh` was launching it bare. Not a build/wiring
+bug at all, just a missing required flag.
+
+**Follow-up bug 2 -- `-c` shadows appeared on WindowMaker's Dock
+icons but not on a real `xterm`.** Added `-c` (CompClientShadows, the
+classic blurred look), rebuilt, re-verified: a real, numerically-
+confirmed soft gradient (113->128 over a few pixels, scanned via raw
+PPM pixel reads, not just eyeballed PNGs) appeared under the Dock's
+icon tiles. A real `xterm`'s edges stayed perfectly flat
+`(128,128,128)` on all four sides, confirmed pixel-exact. Root-caused
+by reading `win_extents()`/`determine_mode()`: `-c`'s shadow branch
+is unconditionally skipped for any window whose X visual has a
+nonzero alpha mask (`w->mode == WINDOW_ARGB`, set in
+`determine_mode()` whenever `XRenderFindVisualFormat()` reports
+`direct.alphaMask != 0`, guarded at the shadow branch by
+`w->mode != WINDOW_ARGB`) -- and enabling Composite makes Xfbdev
+advertise a 32-bit ARGB visual, which `xterm` (or libX11's default
+visual selection) appears to pick up, making it ARGB-classified and
+therefore shadow-exempt under `-c`'s own design (its blurred shadow
+assumes an ARGB window already handles its own transparency). `-s`
+(CompServerShadows) has no such exclusion
+(`compMode == CompServerShadows || w->mode != WINDOW_ARGB` is
+unconditionally true for `-s`) at the cost of a small fixed sharp
+offset (dx=2, dy=7) instead of a tunable blur -- switched to `-s` to
+get a shadow on every real window, not just Dock tiles.
+
+**Confirmed, with exact pixel values, not just a screenshot:** after
+switching to `-s`, a fresh `xterm`'s exact border was located via
+raw-pixel dark-border detection (border at x=388/888, y=214/555), then
+scanned immediately adjacent: `y=556..560` (directly below the
+window, matching `-s`'s `dy=7`) read a flat, solid **`(90,90,90)`**
+-- clearly darker than the `(128,128,128)` background on every other
+side of the same window (`x=889..902` and `x=365..387`, both flat
+128). A real, sharp-edged drop shadow, on a real application window,
+confirmed by exact RGB values, not visual impression.
+
+**Wired in:** `userland/mkrootfs.sh` copies
+`build/xorg-target-root/bin/xcompmgr` into the rootfs the same way as
+every other X11 client (`xeyes`/`xedit` pattern); `userland/startx.sh`
+launches `/bin/xcompmgr -s &` right after `/bin/wmaker &`,
+best-effort like everything else in that script, with the full
+`-c`-vs-`-s`/ARGB-visual reasoning left in a comment there so a
+future pass revisiting the blurred look knows exactly what it's
+trading away.
+
+**Follow-up bug 3 -- WindowMaker Dock icons render washed-out/pale
+under `-s`, xcompmgr disabled as a result.** Running the desktop live
+with `-s` (past the numeric shadow-confirmation pass above) surfaced
+a real, user-visible regression: the Clip icon and other Dock tiles
+lost essentially all shading -- a near-blank pale/white circle instead
+of the real shaded XPM/PNG artwork. Confirmed as a genuine regression,
+not imagination, by comparing raw pixel values at the same icon
+region from *before xcompmgr ever ran* (Composite-enabled Xfbdev,
+freshly rebuilt, but no compositor process yet -- real varied color,
+values spanning roughly 118-255 with clear structure) against the
+same region afterward. Not root-caused: the leading suspicion is a
+window-pixmap staleness/generation-tracking gap between xcompmgr's
+own caching (`w->pixmap` is fetched via `XCompositeNameWindowPixmap`
+exactly once per window and never re-fetched, guarded by
+`if (hasNamePixmap && !w->pixmap)` in `paint_all()`) and this
+project's Composite implementation in Xfbdev/kdrive -- which had
+*never been exercised by any client before this phase* (Composite was
+disabled from Phase 34 until this one). A generation-count or
+pixmap-reallocation bug specific to this kdrive backend, only
+triggered by a window whose content gets drawn asynchronously after
+first map (matching how a Dock icon's real artwork loads: blank at
+map time, then the real XPM/PNG paints in once decoded) is plausible
+but genuinely unconfirmed -- this is a real, open question for the
+next pass, not a guess dressed up as an answer. WindowMaker's own
+visual-selection code (`wrlib/context.c`'s `bestContext()`) was
+checked and correctly prefers a real 24-bit TrueColor visual over the
+new 32-bit ARGB one Composite adds, so this is *not* the same
+ARGB-visual issue as follow-up bug 2.
+
+**Decision: `xcompmgr -s` commented out in `userland/startx.sh`,
+Composite stays enabled at the server level.** A visibly broken
+desktop (washed-out icons) is a worse tradeoff than missing shadows.
+Nothing about this reverts the confirmed-working infrastructure --
+Composite/Damage/Render are still enabled and correct in Xfbdev, the
+regression is specifically in how `xcompmgr` (or this project's
+Composite implementation) refreshes redirected window content over
+time, not in the base CPU rendering pipeline.
+
+**Status: infrastructure DONE, compositor itself disabled pending a
+real fix.** Off-screen window redirection, the compositing-manager
+selection, damage-driven repaint, and real drop-shadow compositing
+were all proven live with reproducible, numeric pixel evidence -- not
+a stub, not a guess -- across two real bugs found and fixed (missing
+`-s`/`-c` flag; `-c`'s ARGB-visual shadow exclusion) and one real
+pre-existing gap surfaced and left documented but unfixed
+(`presentproto` Homebrew-leakage). A third real bug (Dock icon
+washout under live, sustained compositing) was found after that and
+is NOT fixed -- `xcompmgr` is disabled in `startx.sh` until it is,
+since it visibly regresses the desktop today. Whoever picks this back
+up has a real, narrowed-down, testable hypothesis (window-pixmap
+staleness across content updates, not visual selection) rather than
+an unexplored one.
