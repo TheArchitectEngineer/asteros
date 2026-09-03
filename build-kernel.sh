@@ -224,6 +224,16 @@ if [ -d "$SRC/xnu/BUILD" ]; then
 		if [ "$stale" = "1" ]; then
 			log "xnu SRCROOT changed since last successful build -- removing stale $SRC/xnu/BUILD/"
 			rm -rf "$SRC/xnu/BUILD"
+			# HDRS_STAMP (Step 4/7 below) lives under build/kernel/, not
+			# under $SRC/xnu/BUILD/, so the rm -rf above doesn't touch it --
+			# left alone, Step 7 (exporthdrs, which is what actually
+			# creates $SRC/xnu/BUILD/obj/EXPORT_HDRS/libsa) sees the stamp
+			# as still valid and skips itself, leaving the kernel build to
+			# fail immediately with "no such include directory:
+			# .../EXPORT_HDRS/libsa". Removing it here keeps the two
+			# staleness signals in sync: whatever invalidates BUILD/ must
+			# also invalidate the header-export stamp.
+			rm -f "$ROOT/build/kernel/.hdrs-stamp"
 		fi
 		unset stale sample_mk old_src old_fp current_fp
 	fi
